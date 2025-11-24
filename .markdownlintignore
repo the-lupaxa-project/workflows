@@ -1,0 +1,7 @@
+# Common noise you don't want linted
+node_modules/
+dist/
+build/
+vendor/
+**/.venv/
+**/__pycache__/

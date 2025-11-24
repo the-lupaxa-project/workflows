@@ -1,0 +1,48 @@
+# Markdownlint configuration (YAML)
+
+default: true
+
+# Consistent list indentation
+MD007:
+  indent: 2
+
+# Relaxed line length limits for readability and prose
+MD013:
+  line_length: 200
+  code_block_line_length: 300
+  tables: false
+  headings: true
+
+MD024: false
+
+# Disable trailing-punctuation-in-headings (allows ":" etc.)
+MD026:
+  punctuation: ""
+
+# Disable enforcement of ordered list numbering style
+MD029: false
+
+MD033:
+  allowed_elements:
+    - a
+    - br
+    - details
+    - div
+    - em
+    - h1
+    - h2
+    - h3
+    - h4
+    - h5
+    - hr
+    - img
+    - ins
+    - p
+    - span
+    - strong
+    - sub
+    - summary
+    - sup
+
+# Allow content before first H1 (e.g., logo block)
+MD041: false
