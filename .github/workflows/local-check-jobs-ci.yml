@@ -1,0 +1,66 @@
+name: Check check-jobs.py
+
+on:
+  push:
+    paths:
+      - ".github/scripts/check-jobs.py"
+      - ".github/workflows/local-check-jobs-ci.yml"
+  pull_request:
+    paths:
+      - ".github/scripts/check-jobs.py"
+      - ".github/workflows/local-check-jobs-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  check-jobs:
+    name: Lint & type-check check-jobs.py
+    runs-on: ubuntu-latest
+
+    env:
+      SCRIPT_PATH: .github/scripts/check-jobs.py
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c  # v6.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Show Python version
+        run: |
+          python --version
+          which python
+
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Install tooling (ruff, mypy)
+        run: |
+          python -m pip install ruff mypy
+
+      - name: Syntax check
+        run: |
+          python -m py_compile "${SCRIPT_PATH}"
+
+      - name: Ruff lint
+        run: |
+          ruff check "${SCRIPT_PATH}"
+
+      - name: mypy type checking
+        run: |
+          mypy "${SCRIPT_PATH}"
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - check-jobs
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml

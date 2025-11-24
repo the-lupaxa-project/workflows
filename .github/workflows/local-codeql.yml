@@ -1,0 +1,39 @@
+name: CodeQL Analysis
+
+on:
+  push:
+    branches-ignore:
+      - "dependabot/"
+    paths-ignore:
+      - "**/*.md"
+  pull_request:
+    branches:
+      - "**"
+    paths-ignore:
+      - "**/*.md"
+  schedule:
+    - cron: "4 3 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  codeql:
+    uses: ./.github/workflows/reusable-codeql.yml
+    with:
+      languages: "python"
+
+  status-check:
+    name: CodeQL Status
+    needs:
+      - codeql
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml
