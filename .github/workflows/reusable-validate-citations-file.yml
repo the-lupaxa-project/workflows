@@ -1,0 +1,55 @@
+name: Reusable Validate Citations File (CITATION.cff)
+
+on:
+  workflow_call:
+    inputs:
+      include_files:
+        description: "Comma-separated list of files (or regex) to include"
+        required: false
+        type: string
+      exclude_files:
+        description: "Comma-separated list of files (or regex) to exclude"
+        required: false
+        type: string
+      report_only:
+        description: "Generate a report but do not fail the build"
+        required: false
+        type: boolean
+        default: false
+      show_errors:
+        description: "Show detailed errors"
+        required: false
+        type: boolean
+        default: true
+      show_skipped:
+        description: "Show skipped files"
+        required: false
+        type: boolean
+        default: false
+      no_color:
+        description: "Disable coloured output"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate-citations-file:
+    name: Validate Citations File
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+
+      - name: Validate Citations File
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+          SHOW_SKIPPED: ${{ inputs.show_skipped }}
+          NO_COLOR: ${{ inputs.no_color }}
+        run: bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/validate-citations-file/master/pipeline.sh)

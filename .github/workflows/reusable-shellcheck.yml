@@ -1,0 +1,46 @@
+name: Reusable ShellCheck (Shell Script Linting)
+
+on:
+  workflow_call:
+    inputs:
+      include_files:
+        description: "Comma-separated list or regex patterns to include"
+        required: false
+        type: string
+        default: ""
+      exclude_files:
+        description: "Comma-separated list or regex patterns to exclude"
+        required: false
+        type: string
+        default: ""
+      report_only:
+        description: "Do not fail the build even if errors occur"
+        required: false
+        type: string
+        default: "false"
+      show_errors:
+        description: "Show detailed error output"
+        required: false
+        type: string
+        default: "true"
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+
+      - name: Run ShellCheck
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/shellcheck/master/pipeline.sh)

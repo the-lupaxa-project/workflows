@@ -1,0 +1,44 @@
+name: Documentation Lint (Markdown + YAML)
+
+on:
+  push:
+    branches:
+      - "**"          # run on any branch push
+    paths:
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.yaml"
+  pull_request:       # run on PRs
+    paths:
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.yaml"
+  workflow_dispatch:  # add a Run Workflow button
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  markdown-lint:
+    name: Markdown Lint
+    uses: ./.github/workflows/reusable-markdown-lint.yml
+    secrets: inherit
+
+  yaml-lint:
+    name: YAML Lint
+    uses: ./.github/workflows/reusable-yaml-lint.yml
+    secrets: inherit
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - markdown-lint
+      - yaml-lint
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml

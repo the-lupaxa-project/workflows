@@ -1,0 +1,44 @@
+name: Reusable Slack Workflow Status
+
+on:
+  workflow_call:
+    inputs:
+      include_jobs:
+        description: >
+          Controls whether job details are included in the Slack notification.
+          Valid values:
+            - "true"       -> include all jobs
+            - "false"      -> no job details
+            - "on-failure" -> only include job details if the workflow fails
+          Defaults to "on-failure".
+        required: false
+        type: string
+        default: "true"
+
+      include_commit_message:
+        description: "Include the commit message in the notification."
+        required: false
+        type: boolean
+        default: true
+
+    secrets:
+      slack_webhook_url:
+        description: "Incoming Slack webhook URL."
+        required: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  slack-workflow-status:
+    name: Slack Workflow Status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post Slack Workflow Status
+        uses: Gamesight/slack-workflow-status@68bf00d0dbdbcb206c278399aa1ef6c14f74347a  # v1.3.0
+        with:
+          repo_token: ${{ github.token }}
+          slack_webhook_url: ${{ secrets.slack_webhook_url }}
+          include_jobs: ${{ inputs.include_jobs }}
+          include_commit_message: ${{ inputs.include_commit_message }}

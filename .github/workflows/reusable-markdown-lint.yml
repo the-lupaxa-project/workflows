@@ -1,0 +1,65 @@
+name: Reusable Markdown Lint (MD Style & Quality)
+
+on:
+  workflow_call:
+    inputs:
+      include_files:
+        description: "Comma-separated list or regex patterns to include"
+        required: false
+        type: string
+      exclude_files:
+        description: "Comma-separated list or regex patterns to exclude"
+        required: false
+        type: string
+
+      report_only:
+        description: "Do not fail the build even if errors occur"
+        required: false
+        type: boolean
+        default: false
+
+      show_errors:
+        description: "Show detailed error output"
+        required: false
+        type: boolean
+        default: true
+
+      show_skipped:
+        description: "Show skipped / ignored files in the output"
+        required: false
+        type: boolean
+        default: false
+
+      no_color:
+        description: "Disable ANSI colours."
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+
+      - name: Setup Node 24
+        uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903  # v6.0.0
+        with:
+          node-version: "24"
+
+      - name: Run markdown lint
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+          SHOW_SKIPPED: ${{ inputs.show_skipped }}
+          NO_COLOR: ${{ inputs.no_color }}
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/markdown-lint/master/pipeline.sh)

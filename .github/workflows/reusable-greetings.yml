@@ -1,0 +1,37 @@
+name: Reusable Greetings (First Interaction)
+
+on:
+  workflow_call:
+    inputs:
+      issue-message:
+        description: "Message posted on a user's first issue"
+        required: false
+        type: string
+        default: "Thank you for raising your first issue - all contributions to this project are welcome!"
+      pr-message:
+        description: "Message posted on a user's first pull request"
+        required: false
+        type: string
+        default: "Thank you for raising your first pull request - all contributions to this project are welcome!"
+    secrets:
+      repo-token:
+        description: "Token with permission to comment on issues and pull requests"
+        required: true
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  greetings:
+    name: First-time Contributor Greetings
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Handle Greetings
+        uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d  # v3.1.0
+        with:
+          repo_token: ${{ secrets.repo-token }}
+          issue_message: ${{ inputs.issue-message }}
+          pr_message: ${{ inputs.pr-message }}

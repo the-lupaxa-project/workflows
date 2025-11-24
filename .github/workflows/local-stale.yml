@@ -1,0 +1,29 @@
+name: Stale Issue & PR Handler
+
+on:
+  schedule:
+    - cron: "35 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Run Stale Issue & PR Handler
+    uses: ./.github/workflows/reusable-stale.yml
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - stale
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml

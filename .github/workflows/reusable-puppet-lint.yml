@@ -1,0 +1,56 @@
+name: Reusable Puppet Lint (Manifest Style Checker)
+
+on:
+  workflow_call:
+    inputs:
+      include_files:
+        description: "Comma-separated list of Puppet files / globs to include (regex supported)"
+        required: false
+        type: string
+      exclude_files:
+        description: "Comma-separated list of Puppet files / globs to exclude (regex supported)"
+        required: false
+        type: string
+      report_only:
+        description: "Generate report but do not fail build"
+        required: false
+        type: boolean
+        default: false
+      show_errors:
+        description: "Show individual errors instead of only per-file summary"
+        required: false
+        type: boolean
+        default: true
+      show_skipped:
+        description: "Show files that are skipped"
+        required: false
+        type: boolean
+        default: false
+      no_color:
+        description: "Disable coloured output"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  puppet-lint:
+    name: Puppet Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+
+      - name: Run Puppet Lint
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+          SHOW_SKIPPED: ${{ inputs.show_skipped }}
+          NO_COLOR: ${{ inputs.no_color }}
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/puppet-lint/master/pipeline.sh)

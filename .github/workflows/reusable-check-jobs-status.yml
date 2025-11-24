@@ -1,0 +1,27 @@
+name: Check Jobs Status Summary
+
+on:
+  workflow_call:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  check-jobs-status:
+    name: Check Jobs Status
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+        with:
+          repository: the-lupaxa-project/.github
+          path: lupaxa-dotgithub
+
+      - name: Run Check Jobs (Python)
+        env:
+          # Prefer explicit secret if the caller provides one, otherwise fall back to the built-in token
+          GITHUB_TOKEN: ${{ github.token }}
+        # run: bash <(curl -fsSL "https://raw.githubusercontent.com/the-lupaxa-project/.github/master/.github/scripts/check-jobs.sh")
+        run: python lupaxa-dotgithub/.github/scripts/check-jobs.py

@@ -1,0 +1,27 @@
+name: Dependabot (Approve, Comment, Merge)
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    name: Dependabot (Reusable)
+    uses: ./.github/workflows/reusable-dependabot.yml
+    secrets: inherit
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - dependabot
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml

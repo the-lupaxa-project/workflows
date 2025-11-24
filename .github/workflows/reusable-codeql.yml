@@ -1,0 +1,37 @@
+name: Reusable CodeQL Analysis
+
+on:
+  workflow_call:
+    inputs:
+      languages:
+        description: >
+          Comma-separated list of languages to analyze
+          (e.g. "python" or "javascript,python,go").
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+jobs:
+  codeql-analyze:
+    name: CodeQL Analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout the Repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
+        with:
+          languages: ${{ inputs.languages }}
+          queries: +security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3

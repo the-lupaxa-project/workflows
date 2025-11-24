@@ -1,0 +1,112 @@
+name: Reusable Stale Issues & PRs (with Slack Notification)
+
+on:
+  workflow_call:
+    inputs:
+      stale-issue-message:
+        description: "Message when an issue becomes stale"
+        required: false
+        type: string
+        default: "This issue is stale because it has been open 30 days with no activity. Remove stale label or comment or this will be closed in 5 days."
+      close-issue-message:
+        description: "Message when an issue is closed as stale"
+        required: false
+        type: string
+        default: "This issue was closed because it has been stalled for 5 days with no activity."
+      days-before-issue-stale:
+        description: "Number of days before an issue is marked stale"
+        required: false
+        type: number
+        default: 30
+      days-before-issue-close:
+        description: "Number of days after staleness before an issue is closed"
+        required: false
+        type: number
+        default: 5
+      stale-issue-label:
+        description: "Label applied to stale issues"
+        required: false
+        type: string
+        default: "state: stale"
+      close-issue-label:
+        description: "Label applied to issues closed due to staleness"
+        required: false
+        type: string
+        default: "resolution: closed"
+      exempt-issue-labels:
+        description: "Comma-separated list of labels that exempt issues from staleness"
+        required: false
+        type: string
+        default: "state: blocked,state: keep"
+
+      stale-pr-message:
+        description: "Message when a PR becomes stale"
+        required: false
+        type: string
+        default: "This PR is stale because it has been open 45 days with no activity. Remove stale label or comment or this will be closed in 10 days."
+      close-pr-message:
+        description: "Message when a PR is closed as stale"
+        required: false
+        type: string
+        default: "This PR was closed because it has been stalled for 10 days with no activity."
+      days-before-pr-stale:
+        description: "Number of days before a PR is marked stale"
+        required: false
+        type: number
+        default: 45
+      days-before-pr-close:
+        description: "Number of days after staleness before a PR is closed"
+        required: false
+        type: number
+        default: 10
+      stale-pr-label:
+        description: "Label applied to stale PRs"
+        required: false
+        type: string
+        default: "state: stale"
+      close-pr-label:
+        description: "Label applied to PRs closed due to staleness"
+        required: false
+        type: string
+        default: "resolution: closed"
+      exempt-pr-labels:
+        description: "Comma-separated list of labels that exempt PRs from staleness"
+        required: false
+        type: string
+        default: "state: blocked,state: keep"
+
+    secrets:
+      slack_webhook_url:
+        description: "Slack webhook URL for workflow failure notifications (optional)"
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    name: Handle Stale Issues & PRs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Handle Stale Issues & PRs
+        id: stale-issues
+        uses: actions/stale@5f858e3efba33a5ca4407a664cc011ad407f2008  # v10.1.0
+        with:
+          stale-issue-message: ${{ inputs.stale-issue-message }}
+          close-issue-message: ${{ inputs.close-issue-message }}
+          days-before-issue-stale: ${{ inputs.days-before-issue-stale }}
+          days-before-issue-close: ${{ inputs.days-before-issue-close }}
+          stale-issue-label: ${{ inputs.stale-issue-label }}
+          close-issue-label: ${{ inputs.close-issue-label }}
+          exempt-issue-labels: ${{ inputs.exempt-issue-labels }}
+
+          stale-pr-message: ${{ inputs.stale-pr-message }}
+          close-pr-message: ${{ inputs.close-pr-message }}
+          days-before-pr-stale: ${{ inputs.days-before-pr-stale }}
+          days-before-pr-close: ${{ inputs.days-before-pr-close }}
+          stale-pr-label: ${{ inputs.stale-pr-label }}
+          close-pr-label: ${{ inputs.close-pr-label }}
+          exempt-pr-labels: ${{ inputs.exempt-pr-labels }}

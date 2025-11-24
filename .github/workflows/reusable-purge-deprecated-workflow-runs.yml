@@ -1,0 +1,65 @@
+name: Reusable Purge Deprecated Workflow Runs
+
+on:
+  workflow_call:
+    inputs:
+      token:
+        description: >
+          Optional GitHub token to use for the purge.
+          Defaults to github.token if not provided.
+        required: false
+        type: string
+
+      remove_obsolete:
+        description: "Remove obsolete workflow runs"
+        required: false
+        type: boolean
+        default: true
+
+      remove_cancelled:
+        description: "Remove cancelled workflow runs"
+        required: false
+        type: boolean
+        default: true
+
+      remove_failed:
+        description: "Remove failed workflow runs"
+        required: false
+        type: boolean
+        default: true
+
+      remove_skipped:
+        description: "Remove skipped workflow runs"
+        required: false
+        type: boolean
+        default: true
+
+      remove_older_than:
+        description: >
+          Optional multi-line string passed to 'remove-older-than'.
+          Example:
+            30d *
+            7d Some Workflow Name
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  purge-deprecated-workflows:
+    name: Purge Deprecated Workflow Runs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Run Purge Deprecated Workflow Runs
+        uses: otto-de/purge-deprecated-workflow-runs@fae5062e7f4854fcb04c09ab468637a066405c9f  # v4.0.2
+        with:
+          token: ${{ inputs.token || github.token }}
+          remove-obsolete: ${{ inputs.remove_obsolete }}
+          remove-cancelled: ${{ inputs.remove_cancelled }}
+          remove-failed: ${{ inputs.remove_failed }}
+          remove-skipped: ${{ inputs.remove_skipped }}
+          remove-older-than: ${{ inputs.remove_older_than }}

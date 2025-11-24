@@ -1,0 +1,70 @@
+name: Reusable MkDocs Publish
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version to use"
+        required: false
+        default: "3.13"
+        type: string
+      use-dev-extras:
+        description: 'Try to install ".[dev]" from pyproject.toml'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
+
+      - name: Set up Python
+        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c  # v6.0.0
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install docs dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+          if [ "${{ inputs.use-dev-extras }}" = "true" ]; then
+            echo "Attempting to install dev extras from pyproject.toml..."
+            if python -m pip install ".[dev]" 2>/dev/null; then
+              echo "Installed dev extras from pyproject.toml"
+            else
+              echo "Dev extras failed; falling back to mkdocs + theme only."
+              python -m pip install mkdocs mkdocs-material
+            fi
+          else
+            echo "Using bare mkdocs + theme (no dev extras)."
+            python -m pip install mkdocs mkdocs-material
+          fi
+
+      - name: Build MkDocs site
+        run: mkdocs build --strict
+
+      - name: Upload artifact for GitHub Pages
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4.0.0
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4.0.5

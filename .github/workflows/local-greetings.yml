@@ -1,0 +1,31 @@
+name: Greetings
+
+on:
+  pull_request:
+  issues:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  greetings:
+    name: Run Greetings
+    uses: ./.github/workflows/reusable-greetings.yml
+    secrets:
+      repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - greetings
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml
