@@ -1,0 +1,30 @@
+name: Shellcheck
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+  workflow_dispatch:  # add a Run Workflow button
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    uses: ./.github/workflows/reusable-shellcheck.yml
+    secrets: inherit
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - shellcheck
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml
