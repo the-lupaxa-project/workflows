@@ -1,0 +1,38 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+
+title: "The Lupaxa Project: Reusable Workflows"
+version: "0.0.0"
+
+authors:
+  - family-names: "The Lupaxa Project"
+
+abstract: >
+  This repository acts as a central catalog of reusable workflows for:
+
+  - Standardised linting
+  - Security scanning
+  - Workflow hardening
+  - Release preparation & tagging
+  - Dependency automation
+  - Slack notifications
+  - Check-jobs validation
+  - Code quality enforcement
+
+keywords:
+  - lupaxa
+  - the-lupaxa-project
+  - tooling
+
+license: "MIT"
+
+repository-code: "https://github.com/the-lupaxa-project/workflows"
+url: "https://github.com/the-lupaxa-project/workflows"
+
+preferred-citation:
+  type: software
+  title: "The Lupaxa Project: Reusable Workflows"
+  authors:
+    - family-names: "The Lupaxa Project"
+  year: 2025
+  url: "https://github.com/the-lupaxa-project/workflows"

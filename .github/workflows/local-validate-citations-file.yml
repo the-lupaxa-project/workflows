@@ -1,0 +1,45 @@
+name: Citation Validation
+
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+    paths:
+      - 'CITATION.cff'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - 'CITATION.cff'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  shellcheck:
+    name: Shellcheck
+    uses: ./.github/workflows/reusable-validate-citations-file.yml
+    secrets: inherit
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - shellcheck
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml
+
+  slack-workflow-status:
+    name: Slack Workflow Status
+    needs:
+      - shellcheck
+    if: always()
+
+    uses: ./.github/workflows/reusable-slack-workflow-status.yml
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
