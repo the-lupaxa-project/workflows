@@ -2,56 +2,62 @@
 """
 Slack workflow status notifier for GitHub Actions.
 
-This script is designed to be run inside a GitHub Actions job at the *end* of a
-workflow. It fetches the current workflow run and its jobs via the GitHub REST
-API, builds a Slack message similar in spirit to Gamesight/slack-workflow-status,
-and posts it to an Incoming Webhook URL.
+This script is a Python reimplementation of the core behaviour of
+Gamesight/slack-workflow-status, adapted to run as a standalone script
+inside a GitHub Actions job.
 
-Environment variables used:
+It:
+
+  - Fetches the current workflow run and its jobs from the GitHub API
+  - Filters jobs to those with status == "completed"
+  - Determines a workflow color and message:
+        "good" / "warning" / "danger"
+        "Success:" / "Cancelled:" / "Failed:"
+  - Builds per-job fields like:
+        "✓ <job_link|job_name> (1m 23s)"
+  - Builds a Slack attachment with:
+        - status line (actor, event, branch / PR)
+        - details line (workflow name, run number, duration)
+        - optional commit message
+        - footer with repo link
+        - fields with job info (unless disabled)
+
+Configuration (env vars):
 
   Required:
-    - GITHUB_REPOSITORY        (e.g. "owner/repo")
-    - GITHUB_RUN_ID            (numeric ID of the current workflow run)
-    - GITHUB_TOKEN or ACTIONS_RUNTIME_TOKEN
-    - SLACK_WEBHOOK_URL        (the Slack incoming webhook URL)
+    SLACK_WEBHOOK_URL       Slack Incoming Webhook URL
+    GITHUB_REPOSITORY       e.g. "owner/repo"
+    GITHUB_RUN_ID           numeric ID of the current workflow run
+    GITHUB_TOKEN or ACTIONS_RUNTIME_TOKEN
 
-  Optional behaviour flags (typically set from a reusable workflow):
+  Optional (behaviour):
 
-    - SEND_TO_SLACK_RESULTS
-        Comma-separated list of results that should trigger a Slack notification:
-          e.g. "failure,cancelled,timed_out"
-        Use "all" (default) to notify on every result.
+    SEND_TO_SLACK_RESULTS
+      Comma-separated list of workflow conclusions to notify on,
+      e.g. "failure,cancelled,timed_out". Use "all" (default) to notify
+      on every result.
 
-    - SEND_TO_SLACK_INCLUDE_JOBS
-        Controls whether job details are included:
-          "true"       -> include all jobs
-          "false"      -> no job details
-          "on-failure" -> only include jobs if the workflow failed
-        Default: "true"
+    SEND_TO_SLACK_INCLUDE_JOBS
+      "true"       -> always include job fields
+      "false"      -> never include job fields
+      "on-failure" -> include job fields only when workflow is not success
+      Default: "true"
 
-    - SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE
-        "true" (default) to include the head commit message (first line).
+    SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE
+      "true" (default) to append "Commit: <message>" to the text, using
+      workflow_run.head_commit.message.
 
-  Optional cosmetic overrides:
+    SEND_TO_SLACK_JOBS_TO_FETCH
+      Number of jobs to fetch per_page from the GitHub API. Default: "30".
 
-    - SEND_TO_SLACK_CHANNEL       (Slack channel name, e.g. "#ci-status")
-    - SEND_TO_SLACK_USERNAME      (bot display name)
-    - SEND_TO_SLACK_ICON_EMOJI    (e.g. ":wolf:")
-    - SEND_TO_SLACK_ICON_URL      (URL to an image to use as the icon)
+  Optional (cosmetics, similar to Gamesight action inputs):
 
-The Slack payload uses classic Incoming Webhook attachments with:
+    SEND_TO_SLACK_CHANNEL      -> Slack channel (e.g. "#ci-status")
+    SEND_TO_SLACK_NAME         -> Bot display name
+    SEND_TO_SLACK_ICON_URL     -> Icon image URL
+    SEND_TO_SLACK_ICON_EMOJI   -> Icon emoji (e.g. ":wolf:")
 
-  - A summary line:
-      ":white_check_mark: Workflow *CI* in `owner/repo` on `branch` succeeded in `1m 23s`"
-
-  - Fields:
-      Actor, Event, Branch, Workflow, Status, Duration, Run URL, PR, Commit, etc.
-
-  - Optional "Jobs" field with one line per job:
-      ":white_check_mark: tests (45s)"
-      ":x: lint (12s)"
-
-This script is dependency-free (only Python standard library).
+This script intentionally uses only the Python standard library.
 """
 
 import json
@@ -75,41 +81,70 @@ def error(message: str, *, code: int = 1) -> NoReturn:
 
 
 def parse_iso8601(value: Optional[str]) -> Optional[datetime]:
-    """Parse an ISO 8601 timestamp from the GitHub API into a timezone-aware datetime."""
+    """
+    Parse an ISO 8601 timestamp from the GitHub API into a naive UTC datetime.
+
+    GitHub typically returns timestamps like "2025-11-24T18:03:45Z".
+    """
     if not value:
         return None
     value = value.strip()
     if not value:
         return None
-    # GitHub uses e.g. "2025-11-24T18:03:45Z"
+    # Replace trailing Z with +00:00 so fromisoformat can handle it
     if value.endswith("Z"):
         value = value[:-1] + "+00:00"
     try:
-        return datetime.fromisoformat(value)
+        dt = datetime.fromisoformat(value)
     except ValueError:
         return None
+    # Convert to naive UTC for easier duration math
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(tz=None).replace(tzinfo=None)
+    return dt
 
 
-def format_duration(seconds: float) -> str:
-    """Format a duration in seconds as '1h 2m 3s' (or smaller units as appropriate)."""
-    total = int(round(seconds))
-    if total < 0:
-        total = 0
-    minutes, sec = divmod(total, 60)
-    hours, minutes = divmod(minutes, 60)
+def compute_duration(start: datetime, end: datetime) -> str:
+    """
+    Compute a duration string like "1d 2h 3m 4s" between two datetimes.
 
-    parts: List[str] = []
-    if hours:
-        parts.append(f"{hours}h")
-    if minutes:
-        parts.append(f"{minutes}m")
-    if not parts or sec:
-        parts.append(f"{sec}s")
-    return " ".join(parts)
+    This mirrors the TypeScript compute_duration implementation from the
+    original Gamesight action.
+    """
+    duration_ms = (end - start).total_seconds()
+    if duration_ms < 0:
+        duration_ms = 0
+    delta = int(duration_ms)
+
+    days = delta // 86400
+    delta -= days * 86400
+    hours = (delta // 3600) % 24
+    delta -= hours * 3600
+    minutes = (delta // 60) % 60
+    delta -= minutes * 60
+    seconds = delta % 60
+
+    def format_duration(value: int, text: str, hide_on_zero: bool) -> str:
+        if value <= 0 and hide_on_zero:
+            return ""
+        return f"{value}{text} "
+
+    result = (
+        format_duration(days, "d", True)
+        + format_duration(hours, "h", True)
+        + format_duration(minutes, "m", True)
+        + format_duration(seconds, "s", False)
+    ).strip()
+
+    if not result:
+        return "0s"
+    return result
 
 
 def fetch_json(url: str, token: str, user_agent: str) -> Dict[str, Any]:
-    """Fetch a JSON document from the GitHub API with basic error handling."""
+    """
+    Fetch a JSON object from the GitHub API with basic error handling.
+    """
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
@@ -152,64 +187,44 @@ def fetch_json(url: str, token: str, user_agent: str) -> Dict[str, Any]:
     return data
 
 
-def maybe_read_pr_metadata() -> Tuple[str, str]:
-    """
-    Attempt to read pull request metadata from GITHUB_EVENT_PATH.
-
-    Returns:
-        (pr_number, pr_title) or ("", "") if not a PR event or parsing fails.
-    """
-    event_path = os.environ.get("GITHUB_EVENT_PATH")
-    if not event_path or not os.path.isfile(event_path):
-        return "", ""
-
-    try:
-        with open(event_path, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-    except Exception:
-        return "", ""
-
-    pr = payload.get("pull_request") or {}
-    number = pr.get("number")
-    title = pr.get("title")
-
-    if number:
-        return str(number), str(title or "")
-    return "", ""
-
-
 # --------------------------------------------------------------------------- #
-# GitHub data loading
+# GitHub data loading (run + jobs)
 # --------------------------------------------------------------------------- #
 
 
-def fetch_run_and_jobs(repo: str, run_id: str, token: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+def fetch_run_and_jobs(
+    repo: str, run_id: str, token: str, jobs_to_fetch: int
+) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """
     Fetch workflow run metadata and jobs from the GitHub API.
 
     Returns:
-        (run, jobs_list)
+        (workflow_run, completed_jobs)
     """
     base = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
 
     run = fetch_json(base, token, "lupaxa-send-to-slack")
-    jobs_data = fetch_json(f"{base}/jobs?per_page=100", token, "lupaxa-send-to-slack")
+    jobs_data = fetch_json(f"{base}/jobs?per_page={jobs_to_fetch}", token, "lupaxa-send-to-slack")
 
     jobs_raw = jobs_data.get("jobs", [])
     if not isinstance(jobs_raw, list):
         jobs_raw = []
 
-    return run, [j for j in jobs_raw if isinstance(j, dict)]
+    completed_jobs = [
+        job for job in jobs_raw if isinstance(job, dict) and job.get("status") == "completed"
+    ]
+
+    return run, completed_jobs
 
 
-def get_overall_result(run: Dict[str, Any]) -> str:
+def get_workflow_conclusion(workflow_run: Dict[str, Any]) -> str:
     """
-    Determine the overall result of the workflow run.
+    Determine the overall conclusion for the workflow run.
 
-    Prefer the 'conclusion' field; fall back to 'status' if needed.
+    Use workflow_run.conclusion if present, otherwise fall back to workflow_run.status.
     """
-    conclusion = (run.get("conclusion") or "").strip().lower()
-    status = (run.get("status") or "").strip().lower()
+    conclusion = (workflow_run.get("conclusion") or "").strip().lower()
+    status = (workflow_run.get("status") or "").strip().lower()
 
     if conclusion:
         return conclusion
@@ -219,268 +234,272 @@ def get_overall_result(run: Dict[str, Any]) -> str:
 
 
 # --------------------------------------------------------------------------- #
-# Slack payload construction
+# Slack payload construction (mirroring Gamesight)
 # --------------------------------------------------------------------------- #
 
 
-def status_emoji_and_color(result: str) -> Tuple[str, str]:
-    """Map a workflow conclusion to a Slack emoji and attachment color."""
-    result = (result or "").lower()
-
-    emoji_map = {
-        "success": ":white_check_mark:",
-        "failure": ":x:",
-        "cancelled": ":no_entry_sign:",
-        "canceled": ":no_entry_sign:",
-        "timed_out": ":alarm_clock:",
-        "neutral": ":grey_question:",
-        "skipped": ":fast_forward:",
-        "action_required": ":warning:",
-        "stale": ":warning:",
-    }
-
-    color_map = {
-        "success": "#2eb886",      # green
-        "failure": "#e01e5a",      # red
-        "cancelled": "#8c8c8c",    # grey
-        "canceled": "#8c8c8c",
-        "timed_out": "#e3b341",    # yellow/orange
-        "neutral": "#439fe0",      # blue
-        "skipped": "#439fe0",
-        "action_required": "#e3b341",
-        "stale": "#8c8c8c",
-    }
-
-    emoji = emoji_map.get(result, ":grey_question:")
-    color = color_map.get(result, "#439fe0")
-    return emoji, color
-
-
-def human_status_phrase(result: str) -> str:
-    """Map a workflow conclusion to a human-readable phrase."""
-    result = (result or "").lower()
-    if result == "success":
-        return "succeeded"
-    if result == "failure":
-        return "failed"
-    if result in ("cancelled", "canceled"):
-        return "was cancelled"
-    if result == "timed_out":
-        return "timed out"
-    if result == "skipped":
-        return "was skipped"
-    if result == "action_required":
-        return "requires action"
-    if result == "neutral":
-        return "completed (neutral)"
-    if result == "stale":
-        return "completed (stale)"
-    if result == "completed":
-        return "completed"
-    if result == "in_progress":
-        return "is in progress"
-    if result == "queued":
-        return "is queued"
-    return f"completed with status '{result or 'unknown'}'"
-
-
-def build_jobs_text(
-    jobs: List[Dict[str, Any]],
-    include_mode: str,
-    overall_result: str,
-) -> str:
+def determine_workflow_color_and_msg(completed_jobs: List[Dict[str, Any]]) -> Tuple[str, str]:
     """
-    Build a multi-line string describing each job's status and duration.
+    Determine workflow_color and workflow_msg based on job conclusions.
 
-    Example line:
-        ":white_check_mark: tests (45s)"
+    Mirrors:
+
+      if all jobs are success/skipped:
+          color = "good", msg = "Success:"
+      elif any job cancelled:
+          color = "warning", msg = "Cancelled:"
+      else:
+          color = "danger", msg = "Failed:"
     """
-    include_mode = (include_mode or "true").strip().lower()
-    if include_mode == "false":
-        return ""
-    if include_mode == "on-failure" and overall_result == "success":
-        return ""
+    if not completed_jobs:
+        # No completed jobs, treat as warning
+        return "warning", "Unknown:"
 
-    lines: List[str] = []
+    conclusions = [str(job.get("conclusion") or "").lower() for job in completed_jobs]
 
-    for job in jobs:
-        name = str(job.get("name", "")).strip()
-        if not name:
+    if all(c in ("success", "skipped") for c in conclusions):
+        return "good", "Success:"
+
+    if any(c == "cancelled" for c in conclusions):
+        return "warning", "Cancelled:"
+
+    # Otherwise, treat as failure
+    return "danger", "Failed:"
+
+
+def build_job_fields(
+    completed_jobs: List[Dict[str, Any]],
+    include_jobs_mode: str,
+    workflow_color_msg: Tuple[str, str],
+    workflow_conclusion: str,
+) -> List[Dict[str, Any]]:
+    """
+    Build the Slack fields array for jobs, respecting include_jobs_mode.
+
+    Job field format:
+      {
+        "title": "",
+        "short": true,
+        "value": "✓ <job_html_url|job.name> (1m 23s)"
+      }
+    """
+    include_jobs_mode = (include_jobs_mode or "true").strip().lower()
+    workflow_color, workflow_msg = workflow_color_msg  # noqa: F841 (may be unused)
+
+    if include_jobs_mode == "false":
+        return []
+
+    # For "on-failure", if the overall conclusion is success/skipped-only, skip jobs
+    if include_jobs_mode == "on-failure":
+        # We mimic Gamesight's logic (they only look at job conclusions),
+        # but here we use workflow_conclusion as a proxy.
+        if workflow_conclusion == "success":
+            return []
+
+    fields: List[Dict[str, Any]] = []
+
+    for job in completed_jobs:
+        conclusion = str(job.get("conclusion") or "").lower()
+        name = str(job.get("name") or "").strip()
+        html_url = str(job.get("html_url") or "").strip()
+
+        if not name or not html_url:
             continue
 
-        conclusion = str(job.get("conclusion") or job.get("status") or "unknown").lower()
-
-        # Emoji for job-level status
-        emoji, _ = status_emoji_and_color(conclusion)
-
-        started = parse_iso8601(job.get("started_at"))
-        completed = parse_iso8601(job.get("completed_at"))
-        duration_str = ""
-
-        if started and completed:
-            duration_str = format_duration((completed - started).total_seconds())
-
-        if duration_str:
-            lines.append(f"{emoji} {name} ({duration_str})")
+        if conclusion == "success":
+            job_status_icon = "✓"
+        elif conclusion in ("cancelled", "skipped"):
+            job_status_icon = "⃠"
         else:
-            lines.append(f"{emoji} {name}")
+            job_status_icon = "✗"
 
-    return "\n".join(lines)
+        started_at = parse_iso8601(job.get("started_at"))
+        completed_at = parse_iso8601(job.get("completed_at"))
+        if started_at and completed_at:
+            job_duration = compute_duration(started_at, completed_at)
+            value = f"{job_status_icon} <{html_url}|{name}> ({job_duration})"
+        else:
+            value = f"{job_status_icon} <{html_url}|{name}>"
+
+        fields.append(
+            {
+                "title": "",  # Matches the TS hack: empty title, short field
+                "short": True,
+                "value": value,
+            }
+        )
+
+    return fields
+
+
+def build_pull_request_string(workflow_run: Dict[str, Any]) -> str:
+    """
+    Build the pull request description string, excluding PRs from external repos.
+
+    Format mirrors TS:
+      "<repo_url/pull/num|#num> from `head.ref` to `base.ref`"
+    """
+    repository = workflow_run.get("repository") or {}
+    repo_url = str(repository.get("url") or "")
+    html_url = str(repository.get("html_url") or "")
+
+    pull_requests = workflow_run.get("pull_requests") or []
+    if not isinstance(pull_requests, list):
+        pull_requests = []
+
+    parts: List[str] = []
+
+    for pr in pull_requests:
+        if not isinstance(pr, dict):
+            continue
+
+        base = pr.get("base") or {}
+        head = pr.get("head") or {}
+
+        base_repo = base.get("repo") or {}
+        base_repo_url = str(base_repo.get("url") or "")
+
+        # Exclude PRs from external repositories
+        if base_repo_url != repo_url:
+            continue
+
+        number = pr.get("number")
+        head_ref = str((head.get("ref") or "")).strip()
+        base_ref = str((base.get("ref") or "")).strip()
+
+        if number is None:
+            continue
+
+        link = f"{html_url}/pull/{number}" if html_url else ""
+        if link:
+            parts.append(
+                f"<{link}|#{number}> from `{head_ref}` to `{base_ref}`"
+            )
+
+    return ", ".join(parts)
 
 
 def build_slack_payload(
-    run: Dict[str, Any],
-    jobs: List[Dict[str, Any]],
-    overall_result: str,
+    workflow_run: Dict[str, Any],
+    completed_jobs: List[Dict[str, Any]],
     include_jobs_mode: str,
     include_commit_message: bool,
 ) -> Dict[str, Any]:
     """
-    Build the JSON payload for the Slack Incoming Webhook.
-
-    This aims to mirror the information content of Gamesight/slack-workflow-status:
-    - Actor, Event, Branch, Workflow Name, Status, Run Duration
-    - Optional job statuses and durations
-    - Optional commit message
+    Build the Slack webhook payload, mirroring Gamesight's formatting.
     """
-    repo = os.environ.get("GITHUB_REPOSITORY", "")
-    run_id = os.environ.get("GITHUB_RUN_ID", "")
-    actor_env = os.environ.get("GITHUB_ACTOR", "")
-    event_env = os.environ.get("GITHUB_EVENT_NAME", "")
-    branch_env = os.environ.get("GITHUB_REF_NAME", "")
-    workflow_env = os.environ.get("GITHUB_WORKFLOW", "")
+    workflow_color, workflow_msg = determine_workflow_color_and_msg(completed_jobs)
+    workflow_conclusion = get_workflow_conclusion(workflow_run)
 
-    # Run-level fields from the API
-    head_branch = str(run.get("head_branch") or "").strip()
-    head_sha = str(run.get("head_sha") or "").strip()
-    event = str(run.get("event") or event_env or "").strip()
-    workflow_name = str(run.get("name") or workflow_env or "").strip()
-    actor = actor_env or (run.get("actor") or {}).get("login", "") or ""
+    # Duration of the whole workflow
+    created_at = parse_iso8601(workflow_run.get("created_at"))
+    updated_at = parse_iso8601(workflow_run.get("updated_at"))
+    workflow_duration = ""
+    if created_at and updated_at:
+        workflow_duration = compute_duration(created_at, updated_at)
 
-    # Duration for the whole workflow
-    started_at = parse_iso8601(run.get("run_started_at") or run.get("created_at"))
-    updated_at = parse_iso8601(run.get("updated_at"))
-    duration_str = ""
-    if started_at and updated_at:
-        duration_str = format_duration((updated_at - started_at).total_seconds())
+    repository = workflow_run.get("repository") or {}
+    repo_full_name = str(repository.get("full_name") or "").strip()
+    repo_html_url = str(repository.get("html_url") or "").strip()
 
-    emoji, color = status_emoji_and_color(overall_result)
-    status_phrase = human_status_phrase(overall_result)
+    head_branch = str(workflow_run.get("head_branch") or "").strip()
+    head_commit = workflow_run.get("head_commit") or {}
+    head_commit_message = str(head_commit.get("message") or "").strip()
 
-    branch = branch_env or head_branch
-    run_url = f"https://github.com/{repo}/actions/runs/{run_id}" if repo and run_id else ""
+    workflow_run_html_url = str(workflow_run.get("html_url") or "").strip()
+    run_number = workflow_run.get("run_number")
 
-    # Commit message (first line)
-    commit_message_title = ""
-    if include_commit_message:
-        head_commit = run.get("head_commit") or {}
-        raw_msg = str(head_commit.get("message") or "").strip()
-        if raw_msg:
-            first_line = raw_msg.splitlines()[0].strip()
-            if len(first_line) > 200:
-                first_line = first_line[:197] + "..."
-            commit_message_title = first_line
+    # repo_url and branch_url (Slack links)
+    repo_url = f"<{repo_html_url}|*{repo_full_name}*>" if repo_html_url and repo_full_name else ""
+    branch_url = (
+        f"<{repo_html_url}/tree/{head_branch}|*{head_branch}*>"
+        if repo_html_url and head_branch
+        else head_branch
+    )
+    workflow_run_url = (
+        f"<{workflow_run_html_url}|#{run_number}>" if workflow_run_html_url and run_number else ""
+    )
 
-    pr_number, pr_title = maybe_read_pr_metadata()
+    # Context env variables
+    actor = os.environ.get("GITHUB_ACTOR", "")
+    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+    workflow_name = os.environ.get("GITHUB_WORKFLOW", "")
 
-    # Summary line at the top of the Slack message
-    summary_parts: List[str] = []
+    # Build status_string
+    # Default:
+    #   `${workflow_msg} ${context.actor}'s \`${context.eventName}\` on \`${branch_url}\``
+    status_string = (
+        f"{workflow_msg} {actor}'s `{event_name}` on `{branch_url}`"
+        if branch_url
+        else f"{workflow_msg} {actor}'s `{event_name}`"
+    )
 
+    # Build PR string, override status_string if PR present
+    pull_requests_string = build_pull_request_string(workflow_run)
+    if pull_requests_string:
+        status_string = (
+            f"{workflow_msg} {actor}'s `pull_request` {pull_requests_string}"
+        )
+
+    # details_string:
+    #   `Workflow: ${context.workflow} ${workflow_run_url} completed in \`${workflow_duration}\``
+    details_parts: List[str] = []
+    details_parts.append("Workflow:")
     if workflow_name:
-        summary_parts.append(f"*{workflow_name}*")
-    if repo:
-        summary_parts.append(f"in `{repo}`")
-    if branch:
-        summary_parts.append(f"on `{branch}`")
+        details_parts.append(workflow_name)
+    if workflow_run_url:
+        details_parts.append(workflow_run_url)
+    details_text = " ".join(details_parts).strip()
 
-    summary_text = " ".join(summary_parts) if summary_parts else "Workflow run"
-
-    if duration_str:
-        summary_text = f"{summary_text} {status_phrase} in `{duration_str}`"
+    if workflow_duration:
+        details_text = f"{details_text} completed in `{workflow_duration}`"
     else:
-        summary_text = f"{summary_text} {status_phrase}"
+        details_text = f"{details_text} completed"
 
-    summary_text = f"{emoji} {summary_text}"
+    # Commit message string
+    commit_message_text = f"Commit: {head_commit_message}" if head_commit_message else ""
 
-    # Build fields
-    fields: List[Dict[str, Any]] = []
+    # Job fields
+    job_fields = build_job_fields(
+        completed_jobs=completed_jobs,
+        include_jobs_mode=include_jobs_mode,
+        workflow_color_msg=(workflow_color, workflow_msg),
+        workflow_conclusion=workflow_conclusion,
+    )
 
-    if actor:
-        fields.append({"title": "Actor", "value": actor, "short": True})
-    if event:
-        fields.append({"title": "Event", "value": event, "short": True})
-    if branch:
-        fields.append({"title": "Branch", "value": branch, "short": True})
-    if workflow_name:
-        fields.append({"title": "Workflow", "value": workflow_name, "short": True})
+    # Build Slack attachment
+    text_lines: List[str] = [status_string, details_text]
+    if include_commit_message and commit_message_text:
+        text_lines.append(commit_message_text)
 
-    fields.append({"title": "Status", "value": overall_result or "unknown", "short": True})
-    if duration_str:
-        fields.append({"title": "Duration", "value": duration_str, "short": True})
+    attachment: Dict[str, Any] = {
+        "mrkdwn_in": ["text"],
+        "color": workflow_color,
+        "text": "\n".join(text_lines),
+        "footer": repo_url,
+        "footer_icon": "https://github.githubassets.com/favicon.ico",
+        "fields": job_fields,
+    }
 
-    if run_url:
-        fields.append({"title": "Run URL", "value": run_url, "short": False})
-
-    if head_sha:
-        fields.append({"title": "Commit SHA", "value": head_sha, "short": True})
-
-    if pr_number:
-        pr_link = f"https://github.com/{repo}/pull/{pr_number}" if repo else ""
-        if pr_link:
-            fields.append(
-                {
-                    "title": "Pull Request",
-                    "value": f"<{pr_link}|#{pr_number}: {pr_title}>",
-                    "short": False,
-                }
-            )
-
-    if commit_message_title:
-        fields.append(
-            {
-                "title": "Commit message",
-                "value": commit_message_title,
-                "short": False,
-            }
-        )
-
-    # Jobs (optional)
-    jobs_text = build_jobs_text(jobs, include_jobs_mode, overall_result)
-    if jobs_text:
-        fields.append(
-            {
-                "title": "Jobs",
-                "value": jobs_text,
-                "short": False,
-            }
-        )
-
-    # Top-level payload
+    # Base payload
     payload: Dict[str, Any] = {
-        "attachments": [
-            {
-                "color": color,
-                "mrkdwn_in": ["text", "fields"],
-                "text": summary_text,
-                "fields": fields,
-            }
-        ]
+        "attachments": [attachment],
     }
 
     # Optional cosmetics
-    channel = os.environ.get("SEND_TO_SLACK_CHANNEL")
+    channel = os.environ.get("SEND_TO_SLACK_CHANNEL") or os.environ.get("SLACK_CHANNEL")
     if channel:
         payload["channel"] = channel
 
-    username = os.environ.get("SEND_TO_SLACK_USERNAME")
+    username = os.environ.get("SEND_TO_SLACK_NAME") or os.environ.get("SLACK_NAME")
     if username:
         payload["username"] = username
 
-    icon_emoji = os.environ.get("SEND_TO_SLACK_ICON_EMOJI")
+    icon_emoji = os.environ.get("SEND_TO_SLACK_ICON_EMOJI") or os.environ.get("SLACK_ICON_EMOJI")
     if icon_emoji:
         payload["icon_emoji"] = icon_emoji
 
-    icon_url = os.environ.get("SEND_TO_SLACK_ICON_URL")
+    icon_url = os.environ.get("SEND_TO_SLACK_ICON_URL") or os.environ.get("SLACK_ICON_URL")
     if icon_url:
         payload["icon_url"] = icon_url
 
@@ -488,21 +507,21 @@ def build_slack_payload(
 
 
 def post_to_slack(webhook_url: str, payload: Dict[str, Any]) -> None:
-    """Send the payload to the Slack Incoming Webhook URL."""
+    """
+    Send the payload to the Slack Incoming Webhook URL.
+    """
     body = json.dumps(payload).encode("utf-8")
-    headers = {
-        "Content-Type": "application/json",
-    }
+    headers = {"Content-Type": "application/json"}
     req = urllib.request.Request(webhook_url, data=body, headers=headers, method="POST")
 
     try:
         with urllib.request.urlopen(req) as resp:
             status = resp.getcode()
-            resp_body = resp.read().decode("utf-8", errors="replace").strip()
+            _ = resp.read()
     except HTTPError as exc:
-        body_err = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
-        if body_err:
-            print(body_err, file=sys.stderr)
+        resp_body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
+        if resp_body:
+            print(resp_body, file=sys.stderr)
         error(f"Slack webhook returned HTTP {exc.code}: {exc.reason}", code=1)
     except URLError as exc:
         error(f"Failed to reach Slack webhook: {exc.reason}", code=1)
@@ -510,7 +529,7 @@ def post_to_slack(webhook_url: str, payload: Dict[str, Any]) -> None:
         error(f"Unexpected error when calling Slack webhook: {exc}", code=1)
 
     if not (200 <= status < 300):
-        error(f"Slack webhook returned HTTP {status}: {resp_body}", code=1)
+        error(f"Slack webhook returned HTTP {status}", code=1)
 
 
 # --------------------------------------------------------------------------- #
@@ -520,13 +539,13 @@ def post_to_slack(webhook_url: str, payload: Dict[str, Any]) -> None:
 
 def main() -> None:
     """
-    Entry point for the Slack notifier.
+    Entry point:
 
-    Behaviour:
-      - Fetch the workflow run and its jobs from the GitHub API.
-      - Decide whether to notify based on SEND_TO_SLACK_RESULTS.
-      - Build a Slack payload with summary + metadata + optional jobs & commit.
-      - POST to SLACK_WEBHOOK_URL.
+      - Load env configuration
+      - Fetch workflow run + jobs
+      - Optionally skip based on SEND_TO_SLACK_RESULTS
+      - Build Slack payload mirroring Gamesight format
+      - POST to Slack
     """
     webhook_url = os.environ.get("SLACK_WEBHOOK_URL") or os.environ.get("slack_webhook_url")
     if not webhook_url:
@@ -541,34 +560,37 @@ def main() -> None:
     if not token:
         error("GITHUB_TOKEN (or ACTIONS_RUNTIME_TOKEN) is not set; cannot call GitHub API.", code=1)
 
-    run, jobs = fetch_run_and_jobs(repo, run_id, token)
-    overall_result = get_overall_result(run)
+    jobs_to_fetch_raw = os.environ.get("SEND_TO_SLACK_JOBS_TO_FETCH", "30")
+    try:
+        jobs_to_fetch = int(jobs_to_fetch_raw)
+    except ValueError:
+        jobs_to_fetch = 30
 
-    # Decide whether to notify at all, based on SEND_TO_SLACK_RESULTS
+    workflow_run, completed_jobs = fetch_run_and_jobs(repo, run_id, token, jobs_to_fetch)
+    workflow_conclusion = get_workflow_conclusion(workflow_run)
+
+    # Decide whether to notify at all (extension: not in original TS, but useful)
     results_setting = os.environ.get("SEND_TO_SLACK_RESULTS", "all").strip().lower()
     if results_setting != "all":
         allowed = {s.strip() for s in results_setting.split(",") if s.strip()}
-        if allowed and overall_result not in allowed:
+        if allowed and workflow_conclusion not in allowed:
             print(
-                f"Overall result '{overall_result}' not in SEND_TO_SLACK_RESULTS; "
-                "skipping Slack notification.",
+                f"Workflow conclusion '{workflow_conclusion}' not in "
+                f"SEND_TO_SLACK_RESULTS={results_setting!r}; skipping Slack notification.",
                 file=sys.stderr,
             )
             return
 
     include_jobs_mode = os.environ.get("SEND_TO_SLACK_INCLUDE_JOBS", "true")
-    include_commit_message = (
-        os.environ.get("SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE", "true").strip().lower() == "true"
-    )
+    include_commit_message_raw = os.environ.get("SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE", "true")
+    include_commit_message = include_commit_message_raw.strip().lower() == "true"
 
     payload = build_slack_payload(
-        run=run,
-        jobs=jobs,
-        overall_result=overall_result,
+        workflow_run=workflow_run,
+        completed_jobs=completed_jobs,
         include_jobs_mode=include_jobs_mode,
         include_commit_message=include_commit_message,
     )
-
     post_to_slack(webhook_url, payload)
 
 
