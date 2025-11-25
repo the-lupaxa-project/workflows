@@ -21,7 +21,7 @@ There are two layers:
 
 1. **Reusable workflows**
    - Live in this repo: `.github/workflows/reusable-*.yml`
-   - Called by other repos via `uses: the-lupaxa-project/.github/...@master`
+   - Called by other repos via `uses: the-lupaxa-project/workflows/.github/workflows/...@master`
 
 2. **Local workflows**
    - Live in this repo: `.github/workflows/local-*.yml`
