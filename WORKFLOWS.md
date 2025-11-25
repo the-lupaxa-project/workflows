@@ -6,8 +6,6 @@
 
 <h1 align="center">The Lupaxa Project: Workflow Catalog</h1>
 
-<h2>Overview</h2>
-
 This document describes the shared GitHub Actions reusable workflows provided by
 The Lupaxa Project via the .github repository.
 
@@ -45,12 +43,12 @@ These security-hardening workflows:
 > [!NOTE]
 > **There is one deliberate exception:**
 >
-> Calls to the-lupaxa-project/.github/.github/workflows/*.yml are **explicitly** allow-listed in the security-hardening configuration.
+> Calls to the-lupaxa-project/workflows/.github/workflows/*.yml are **explicitly** allow-listed in the security-hardening configuration.
 
 This allows all Lupaxa Project repos to reference organisation workflows using @master, for example:
 
 ```yml
-  uses: the-lupaxa-project/.github/.github/workflows/reusable-markdown-lint.yml@master
+  uses: the-lupaxa-project/workflows/.github/workflows/reusable-markdown-lint.yml@master
 ```
 
 This provides:
