@@ -1505,6 +1505,7 @@ All logic and guardrails around if we should send the message to slack comes fro
 | :--------------------- | :------ | :------: | :------ | :----------------------------------------------------------------------------------------- |
 | include_jobs           | string  | No       | "true"  | Controls inclusion of per-job status details. Valid values: "true", "false", "on-failure". |
 | include_commit_message | boolean | No       | true    | If true, include the commit message in the Slack notification.                             |
+| notify_on_results      | string  | No       | "all"   | Comma-separated list of results to notify on (e.g. "failure,cancelled,timed_out").         |
 
 <br>
 </details>
