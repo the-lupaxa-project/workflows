@@ -1,0 +1,41 @@
+name: Check send-to-slack.py
+
+on:
+  push:
+    paths:
+      - ".github/scripts/send-to-slack.py"
+      - ".github/workflows/local-send-to-slack-ci.yml"
+  pull_request:
+    paths:
+      - ".github/scripts/send-to-slack.py"
+      - ".github/workflows/local-send-to-slack-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  python-ci:
+    name: Lint & type-check Python code
+    uses: ./.github/workflows/reusable-python-ci.yml
+    with:
+      paths: ".github/scripts/send-to-slack.py"
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - python-ci
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml
+
+  slack-workflow-status:
+    name: Slack Workflow Status
+    needs:
+      - python-ci
+    if: always()
+
+    uses: ./.github/workflows/reusable-slack-workflow-status.yml
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

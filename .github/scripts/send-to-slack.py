@@ -187,6 +187,21 @@ def fetch_json(url: str, token: str, user_agent: str) -> Dict[str, Any]:
     return data
 
 
+def normalise_job_name(raw: str) -> str:
+    """
+    Normalise a job name like check-jobs.py does:
+
+      - If it contains '/', keep only the right-hand side.
+      - Strip leading/trailing whitespace.
+
+    Example:
+      "TruffleHog / TruffleHog secret scan" -> "TruffleHog secret scan"
+    """
+    if "/" in raw:
+        raw = raw.rsplit("/", 1)[-1]
+    return raw.strip()
+
+
 # --------------------------------------------------------------------------- #
 # GitHub data loading (run + jobs)
 # --------------------------------------------------------------------------- #
@@ -291,8 +306,6 @@ def build_job_fields(
 
     # For "on-failure", if the overall conclusion is success/skipped-only, skip jobs
     if include_jobs_mode == "on-failure":
-        # We mimic Gamesight's logic (they only look at job conclusions),
-        # but here we use workflow_conclusion as a proxy.
         if workflow_conclusion == "success":
             return []
 
@@ -300,7 +313,8 @@ def build_job_fields(
 
     for job in completed_jobs:
         conclusion = str(job.get("conclusion") or "").lower()
-        name = str(job.get("name") or "").strip()
+        raw_name = str(job.get("name") or "")
+        name = normalise_job_name(raw_name)
         html_url = str(job.get("html_url") or "").strip()
 
         if not name or not html_url:
@@ -569,7 +583,7 @@ def main() -> None:
     workflow_run, completed_jobs = fetch_run_and_jobs(repo, run_id, token, jobs_to_fetch)
     workflow_conclusion = get_workflow_conclusion(workflow_run)
 
-    # Decide whether to notify at all (extension: not in original TS, but useful)
+    # Decide whether to notify at all
     results_setting = os.environ.get("SEND_TO_SLACK_RESULTS", "all").strip().lower()
     if results_setting != "all":
         allowed = {s.strip() for s in results_setting.split(",") if s.strip()}
