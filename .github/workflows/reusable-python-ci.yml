@@ -1,4 +1,4 @@
-name: Reusable Python CI for check-jobs.py
+name: Reusable Python CI
 
 on:
   workflow_call:
@@ -8,8 +8,9 @@ on:
         required: false
         type: string
         default: '["3.10","3.11","3.12","3.13","3.14"]'
+
       paths:
-        description: "Comma-separated list of files and/or directories to check"
+        description: "Comma-separated list of Python files and/or directories to validate"
         required: true
         type: string
 
@@ -17,8 +18,8 @@ permissions:
   contents: read
 
 jobs:
-  check-jobs:
-    name: Check check-jobs.py
+  python-ci:
+    name: Python CI
     runs-on: ubuntu-latest
 
     strategy:
@@ -50,77 +51,57 @@ jobs:
         run: |
           python -m pip install ruff mypy pytest
 
-      - name: Basic import / syntax check for paths
+      - name: Expand PATHS into ARGS
+        id: expand_paths
+        run: |
+          IFS=',' read -r -a RAW <<< "${PATHS}"
+          ARGS=()
+
+          for p in "${RAW[@]}"; do
+            p="$(echo "${p}" | xargs)"  # trim whitespace
+            [ -z "${p}" ] && continue
+            ARGS+=("${p}")
+          done
+
+          printf "%s\n" "${ARGS[@]}" > args_list.txt
+          echo "args=$(printf '%s,' "${ARGS[@]}" | sed 's/,$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Syntax checks (py_compile / compileall)
         run: |
           set -e
+          echo "Checking syntax for:"
+          cat args_list.txt
 
-          echo "Paths to check: ${PATHS}"
-
-          IFS=',' read -r -a PATH_ARRAY <<< "${PATHS}"
-
-          for p in "${PATH_ARRAY[@]}"; do
-            p="$(echo "${p}" | xargs)"  # trim
-            [ -z "${p}" ] && continue
-
+          while IFS= read -r p; do
             if [ -f "${p}" ]; then
               echo "Syntax checking file: ${p}"
               python -m py_compile "${p}"
             elif [ -d "${p}" ]; then
-              echo "Syntax checking directory (compileall): ${p}"
+              echo "Syntax checking directory: ${p}"
               python -m compileall "${p}"
             else
               echo "ERROR: Path '${p}' does not exist." >&2
               exit 1
             fi
-          done
+          done < args_list.txt
 
       - name: Ruff lint
         run: |
-          set -e
-
-          IFS=',' read -r -a PATH_ARRAY <<< "${PATHS}"
-          ARGS=()
-
-          for p in "${PATH_ARRAY[@]}"; do
-            p="$(echo "${p}" | xargs)"  # trim
-            [ -z "${p}" ] && continue
-            ARGS+=("${p}")
-          done
-
-          if [ "${#ARGS[@]}" -eq 0 ]; then
-            echo "No valid paths specified for Ruff; skipping."
-            exit 0
-          fi
-
-          echo "Running Ruff on: ${ARGS[*]}"
-          ruff check "${ARGS[@]}"
+          echo "Running Ruff on:"
+          cat args_list.txt
+          ruff check $(cat args_list.txt)
 
       - name: mypy type checking
         run: |
-          set -e
-
-          IFS=',' read -r -a PATH_ARRAY <<< "${PATHS}"
-          ARGS=()
-
-          for p in "${PATH_ARRAY[@]}"; do
-            p="$(echo "${p}" | xargs)"  # trim
-            [ -z "${p}" ] && continue
-            ARGS+=("${p}")
-          done
-
-          if [ "${#ARGS[@]}" -eq 0 ]; then
-            echo "No valid paths specified for mypy; skipping."
-            exit 0
-          fi
-
-          echo "Running mypy on: ${ARGS[*]}"
-          mypy "${ARGS[@]}"
+          echo "Running mypy on:"
+          cat args_list.txt
+          mypy $(cat args_list.txt)
 
       - name: Run pytest (if tests/ exists)
         run: |
           if [ -d "tests" ]; then
-            echo "Running pytest against tests/ ..."
+            echo "Running pytest..."
             pytest -v
           else
-            echo "No tests/ directory found; skipping pytest."
+            echo "No tests directory found — skipping pytest."
           fi
