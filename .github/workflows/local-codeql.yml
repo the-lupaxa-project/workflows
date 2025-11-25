@@ -37,3 +37,24 @@ jobs:
     if: always()
     # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+
+  slack-workflow-status:
+    if: >
+      always() &&
+      (
+        github.event_name != 'pull_request' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+    name: Slack Post Workflow Notification
+    needs:
+      - codeql
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Slack Workflow Notifications
+        uses: Gamesight/slack-workflow-status@68bf00d0dbdbcb206c278399aa1ef6c14f74347a  # v1.3.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          include_jobs: true
+          include_commit_message: true
