@@ -68,7 +68,6 @@ from datetime import datetime
 from typing import Any, Dict, List, NoReturn, Optional, Tuple
 from urllib.error import HTTPError, URLError
 
-
 # --------------------------------------------------------------------------- #
 # Utility helpers
 # --------------------------------------------------------------------------- #
@@ -282,68 +281,160 @@ def determine_workflow_color_and_msg(completed_jobs: List[Dict[str, Any]]) -> Tu
     return "danger", "Failed:"
 
 
+def _should_include_jobs(include_jobs_mode: str, workflow_conclusion: str) -> bool:
+    """
+    Decide whether job fields should be included in the Slack payload
+    based on the configured mode and the overall workflow conclusion.
+
+    Modes:
+      - "false"      -> never include jobs
+      - "on-failure" -> include jobs only when workflow_conclusion != "success"
+      - anything else (incl. "true") -> always include jobs
+    """
+    mode = (include_jobs_mode or "true").strip().lower()
+
+    if mode == "false":
+        return False
+
+    if mode == "on-failure" and workflow_conclusion == "success":
+        return False
+
+    # "true" or any unknown value => treat as always include
+    return True
+
+
+def _job_status_icon(conclusion: str) -> str:
+    """
+    Map a job conclusion to a single-character icon.
+
+    Mirrors the original TS logic:
+      - success     -> "✓"
+      - cancelled,
+        skipped     -> "⃠"
+      - anything else (incl. failure) -> "✗"
+    """
+    conclusion = (conclusion or "").lower()
+
+    if conclusion == "success":
+        return "✓"
+    if conclusion in ("cancelled", "skipped"):
+        return "⃠"
+    return "✗"
+
+
+def _build_single_job_field(job: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Build a single Slack field object for a completed job.
+
+    Returns:
+      - A dict of the form:
+            {
+              "title": "",
+              "short": True,
+              "value": "✓ <job_url|Job name> (1m 23s)"
+            }
+        - None if the job is missing required data.
+    """
+    conclusion = str(job.get("conclusion") or "").lower()
+    raw_name = str(job.get("name") or "")
+    name = normalise_job_name(raw_name)
+    html_url = str(job.get("html_url") or "").strip()
+
+    if not name or not html_url:
+        return None
+
+    icon = _job_status_icon(conclusion)
+
+    started_at = parse_iso8601(job.get("started_at"))
+    completed_at = parse_iso8601(job.get("completed_at"))
+
+    if started_at and completed_at:
+        job_duration = compute_duration(started_at, completed_at)
+        value = f"{icon} <{html_url}|{name}> ({job_duration})"
+    else:
+        value = f"{icon} <{html_url}|{name}>"
+
+    return {
+        "title": "",  # Matches the TS hack: empty title, short field
+        "short": True,
+        "value": value,
+    }
+
+
 def build_job_fields(
     completed_jobs: List[Dict[str, Any]],
     include_jobs_mode: str,
-    workflow_color_msg: Tuple[str, str],
     workflow_conclusion: str,
 ) -> List[Dict[str, Any]]:
     """
-    Build the Slack fields array for jobs, respecting include_jobs_mode.
-
-    Job field format:
-      {
-        "title": "",
-        "short": true,
-        "value": "✓ <job_html_url|job.name> (1m 23s)"
-      }
+    Build and sort Slack job fields.
+    Sorting is alphabetical by job name (case-insensitive),
+    matching Gamesight's behaviour.
     """
-    include_jobs_mode = (include_jobs_mode or "true").strip().lower()
-    workflow_color, workflow_msg = workflow_color_msg  # noqa: F841 (may be unused)
-
-    if include_jobs_mode == "false":
+    if not _should_include_jobs(include_jobs_mode, workflow_conclusion):
         return []
 
-    # For "on-failure", if the overall conclusion is success/skipped-only, skip jobs
-    if include_jobs_mode == "on-failure":
-        if workflow_conclusion == "success":
-            return []
-
-    fields: List[Dict[str, Any]] = []
+    sortable_fields: List[Tuple[str, Dict[str, Any]]] = []
 
     for job in completed_jobs:
-        conclusion = str(job.get("conclusion") or "").lower()
-        raw_name = str(job.get("name") or "")
-        name = normalise_job_name(raw_name)
-        html_url = str(job.get("html_url") or "").strip()
-
-        if not name or not html_url:
+        field = _build_single_job_field(job)
+        if field is None:
             continue
 
-        if conclusion == "success":
-            job_status_icon = "✓"
-        elif conclusion in ("cancelled", "skipped"):
-            job_status_icon = "⃠"
-        else:
-            job_status_icon = "✗"
+        # Extract job name for sorting
+        raw_name = str(job.get("name") or "")
+        name = normalise_job_name(raw_name)
+        sort_key = name.casefold()
 
-        started_at = parse_iso8601(job.get("started_at"))
-        completed_at = parse_iso8601(job.get("completed_at"))
-        if started_at and completed_at:
-            job_duration = compute_duration(started_at, completed_at)
-            value = f"{job_status_icon} <{html_url}|{name}> ({job_duration})"
-        else:
-            value = f"{job_status_icon} <{html_url}|{name}>"
+        sortable_fields.append((sort_key, field))
 
-        fields.append(
-            {
-                "title": "",  # Matches the TS hack: empty title, short field
-                "short": True,
-                "value": value,
-            }
-        )
+    # Sort by job name field
+    sortable_fields.sort(key=lambda x: x[0])
 
-    return fields
+    # Return Slack field dicts only
+    return [field for _, field in sortable_fields]
+
+
+def _get_pull_requests(workflow_run: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Return the workflow_run.pull_requests as a list of dicts."""
+    pull_requests = workflow_run.get("pull_requests") or []
+    if not isinstance(pull_requests, list):
+        return []
+    return [pr for pr in pull_requests if isinstance(pr, dict)]
+
+
+def _is_internal_pull_request(pr: Dict[str, Any], repo_url: str) -> bool:
+    """
+    Return True if this PR targets the same repository (exclude external PRs).
+    """
+    base = pr.get("base") or {}
+    base_repo = base.get("repo") or {}
+    base_repo_url = str(base_repo.get("url") or "")
+    return bool(repo_url) and base_repo_url == repo_url
+
+
+def _format_pull_request_segment(pr: Dict[str, Any], html_url: str) -> Optional[str]:
+    """
+    Format a single PR entry like:
+      "<repo_html_url/pull/num|#num> from `head.ref` to `base.ref`"
+
+    Returns None if required data is missing.
+    """
+    if not html_url:
+        return None
+
+    number = pr.get("number")
+    if number is None:
+        return None
+
+    head = pr.get("head") or {}
+    base = pr.get("base") or {}
+
+    head_ref = str(head.get("ref") or "").strip()
+    base_ref = str(base.get("ref") or "").strip()
+
+    link = f"{html_url}/pull/{number}"
+    return f"<{link}|#{number}> from `{head_ref}` to `{base_ref}`"
 
 
 def build_pull_request_string(workflow_run: Dict[str, Any]) -> str:
@@ -351,79 +442,49 @@ def build_pull_request_string(workflow_run: Dict[str, Any]) -> str:
     Build the pull request description string, excluding PRs from external repos.
 
     Format mirrors TS:
-      "<repo_url/pull/num|#num> from `head.ref` to `base.ref`"
+      "<repo_html_url/pull/num|#num> from `head.ref` to `base.ref`"
     """
     repository = workflow_run.get("repository") or {}
     repo_url = str(repository.get("url") or "")
     html_url = str(repository.get("html_url") or "")
 
-    pull_requests = workflow_run.get("pull_requests") or []
-    if not isinstance(pull_requests, list):
-        pull_requests = []
+    prs = _get_pull_requests(workflow_run)
 
-    parts: List[str] = []
-
-    for pr in pull_requests:
-        if not isinstance(pr, dict):
+    segments: List[str] = []
+    for pr in prs:
+        if not _is_internal_pull_request(pr, repo_url):
             continue
+        segment = _format_pull_request_segment(pr, html_url)
+        if segment:
+            segments.append(segment)
 
-        base = pr.get("base") or {}
-        head = pr.get("head") or {}
-
-        base_repo = base.get("repo") or {}
-        base_repo_url = str(base_repo.get("url") or "")
-
-        # Exclude PRs from external repositories
-        if base_repo_url != repo_url:
-            continue
-
-        number = pr.get("number")
-        head_ref = str((head.get("ref") or "")).strip()
-        base_ref = str((base.get("ref") or "")).strip()
-
-        if number is None:
-            continue
-
-        link = f"{html_url}/pull/{number}" if html_url else ""
-        if link:
-            parts.append(
-                f"<{link}|#{number}> from `{head_ref}` to `{base_ref}`"
-            )
-
-    return ", ".join(parts)
+    return ", ".join(segments)
 
 
-def build_slack_payload(
-    workflow_run: Dict[str, Any],
-    completed_jobs: List[Dict[str, Any]],
-    include_jobs_mode: str,
-    include_commit_message: bool,
-) -> Dict[str, Any]:
-    """
-    Build the Slack webhook payload, mirroring Gamesight's formatting.
-    """
-    workflow_color, workflow_msg = determine_workflow_color_and_msg(completed_jobs)
-    workflow_conclusion = get_workflow_conclusion(workflow_run)
-
-    # Duration of the whole workflow
+def _workflow_duration_string(workflow_run: Dict[str, Any]) -> str:
+    """Compute a human-readable duration string for the workflow run."""
     created_at = parse_iso8601(workflow_run.get("created_at"))
     updated_at = parse_iso8601(workflow_run.get("updated_at"))
-    workflow_duration = ""
-    if created_at and updated_at:
-        workflow_duration = compute_duration(created_at, updated_at)
+    if not (created_at and updated_at):
+        return ""
+    return compute_duration(created_at, updated_at)
 
+
+def _extract_repo_context(workflow_run: Dict[str, Any]) -> Tuple[str, str, str, str, str]:
+    """
+    Extract repository + URL context.
+
+    Returns:
+        (repo_full_name, repo_html_url, repo_url, branch_url, workflow_run_url)
+    """
     repository = workflow_run.get("repository") or {}
     repo_full_name = str(repository.get("full_name") or "").strip()
     repo_html_url = str(repository.get("html_url") or "").strip()
 
     head_branch = str(workflow_run.get("head_branch") or "").strip()
-    head_commit = workflow_run.get("head_commit") or {}
-    head_commit_message = str(head_commit.get("message") or "").strip()
-
     workflow_run_html_url = str(workflow_run.get("html_url") or "").strip()
     run_number = workflow_run.get("run_number")
 
-    # repo_url and branch_url (Slack links)
     repo_url = f"<{repo_html_url}|*{repo_full_name}*>" if repo_html_url and repo_full_name else ""
     branch_url = (
         f"<{repo_html_url}/tree/{head_branch}|*{head_branch}*>"
@@ -434,73 +495,74 @@ def build_slack_payload(
         f"<{workflow_run_html_url}|#{run_number}>" if workflow_run_html_url and run_number else ""
     )
 
-    # Context env variables
-    actor = os.environ.get("GITHUB_ACTOR", "")
-    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
-    workflow_name = os.environ.get("GITHUB_WORKFLOW", "")
+    return repo_full_name, repo_html_url, repo_url, branch_url, workflow_run_url
 
-    # Build status_string
-    # Default:
-    #   `${workflow_msg} ${context.actor}'s \`${context.eventName}\` on \`${branch_url}\``
-    status_string = (
+
+def _build_status_string(
+    workflow_msg: str,
+    actor: str,
+    event_name: str,
+    branch_url: str,
+    workflow_run: Dict[str, Any],
+) -> str:
+    """
+    Build the main status line, optionally overridden by PR info.
+
+    Default:
+      "Success: actor's `push` on `branch_url`"
+
+    If internal PRs exist, becomes:
+      "Success: actor's `pull_request` <PR info>"
+    """
+    default_status = (
         f"{workflow_msg} {actor}'s `{event_name}` on `{branch_url}`"
         if branch_url
         else f"{workflow_msg} {actor}'s `{event_name}`"
     )
 
-    # Build PR string, override status_string if PR present
     pull_requests_string = build_pull_request_string(workflow_run)
-    if pull_requests_string:
-        status_string = (
-            f"{workflow_msg} {actor}'s `pull_request` {pull_requests_string}"
-        )
+    if not pull_requests_string:
+        return default_status
 
-    # details_string:
-    #   `Workflow: ${context.workflow} ${workflow_run_url} completed in \`${workflow_duration}\``
-    details_parts: List[str] = []
-    details_parts.append("Workflow:")
+    return f"{workflow_msg} {actor}'s `pull_request` {pull_requests_string}"
+
+
+def _build_details_text(
+    workflow_name: str,
+    workflow_run_url: str,
+    workflow_duration: str,
+) -> str:
+    """
+    Build the 'Workflow: ...' line.
+
+    Example:
+      "Workflow: CI #14 completed in `1m 30s`"
+    """
+    parts: List[str] = ["Workflow:"]
     if workflow_name:
-        details_parts.append(workflow_name)
+        parts.append(workflow_name)
     if workflow_run_url:
-        details_parts.append(workflow_run_url)
-    details_text = " ".join(details_parts).strip()
+        parts.append(workflow_run_url)
 
+    details = " ".join(parts).strip()
     if workflow_duration:
-        details_text = f"{details_text} completed in `{workflow_duration}`"
-    else:
-        details_text = f"{details_text} completed"
+        return f"{details} completed in `{workflow_duration}`"
+    return f"{details} completed"
 
-    # Commit message string
-    commit_message_text = f"Commit: {head_commit_message}" if head_commit_message else ""
 
-    # Job fields
-    job_fields = build_job_fields(
-        completed_jobs=completed_jobs,
-        include_jobs_mode=include_jobs_mode,
-        workflow_color_msg=(workflow_color, workflow_msg),
-        workflow_conclusion=workflow_conclusion,
-    )
+def _build_commit_message_text(head_commit_message: str, include_commit_message: bool) -> str:
+    """Optionally build the 'Commit: ...' line."""
+    if not include_commit_message:
+        return ""
+    if not head_commit_message:
+        return ""
+    return f"Commit: {head_commit_message}"
 
-    # Build Slack attachment
-    text_lines: List[str] = [status_string, details_text]
-    if include_commit_message and commit_message_text:
-        text_lines.append(commit_message_text)
 
-    attachment: Dict[str, Any] = {
-        "mrkdwn_in": ["text"],
-        "color": workflow_color,
-        "text": "\n".join(text_lines),
-        "footer": repo_url,
-        "footer_icon": "https://github.githubassets.com/favicon.ico",
-        "fields": job_fields,
-    }
-
-    # Base payload
-    payload: Dict[str, Any] = {
-        "attachments": [attachment],
-    }
-
-    # Optional cosmetics
+def _apply_slack_cosmetics(payload: Dict[str, Any]) -> None:
+    """
+    Apply optional Slack cosmetics (channel, username, icons) to the payload.
+    """
     channel = os.environ.get("SEND_TO_SLACK_CHANNEL") or os.environ.get("SLACK_CHANNEL")
     if channel:
         payload["channel"] = channel
@@ -517,6 +579,81 @@ def build_slack_payload(
     if icon_url:
         payload["icon_url"] = icon_url
 
+
+def build_slack_payload(
+    workflow_run: Dict[str, Any],
+    completed_jobs: List[Dict[str, Any]],
+    include_jobs_mode: str,
+    include_commit_message: bool,
+) -> Dict[str, Any]:
+    """
+    Build the Slack webhook payload, mirroring Gamesight's formatting.
+    """
+    workflow_color, workflow_msg = determine_workflow_color_and_msg(completed_jobs)
+    workflow_conclusion = get_workflow_conclusion(workflow_run)
+
+    workflow_duration = _workflow_duration_string(workflow_run)
+
+    (
+        repo_full_name,      # unused directly, but extracted for completeness
+        repo_html_url,       # unused directly here
+        repo_url,
+        branch_url,
+        workflow_run_url,
+    ) = _extract_repo_context(workflow_run)
+
+    # Context env variables
+    actor = os.environ.get("GITHUB_ACTOR", "")
+    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+    workflow_name = os.environ.get("GITHUB_WORKFLOW", "")
+
+    status_string = _build_status_string(
+        workflow_msg=workflow_msg,
+        actor=actor,
+        event_name=event_name,
+        branch_url=branch_url,
+        workflow_run=workflow_run,
+    )
+
+    details_text = _build_details_text(
+        workflow_name=workflow_name,
+        workflow_run_url=workflow_run_url,
+        workflow_duration=workflow_duration,
+    )
+
+    head_commit = workflow_run.get("head_commit") or {}
+    head_commit_message = str(head_commit.get("message") or "").strip()
+    commit_message_text = _build_commit_message_text(
+        head_commit_message=head_commit_message,
+        include_commit_message=include_commit_message,
+    )
+
+    # Job fields
+    job_fields = build_job_fields(
+        completed_jobs=completed_jobs,
+        include_jobs_mode=include_jobs_mode,
+        workflow_conclusion=workflow_conclusion,
+    )
+
+    # Build Slack attachment text block
+    text_lines: List[str] = [status_string, details_text]
+    if commit_message_text:
+        text_lines.append(commit_message_text)
+
+    attachment: Dict[str, Any] = {
+        "mrkdwn_in": ["text"],
+        "color": workflow_color,
+        "text": "\n".join(text_lines),
+        "footer": repo_url,
+        "footer_icon": "https://github.githubassets.com/favicon.ico",
+        "fields": job_fields,
+    }
+
+    payload: Dict[str, Any] = {
+        "attachments": [attachment],
+    }
+
+    _apply_slack_cosmetics(payload)
     return payload
 
 
