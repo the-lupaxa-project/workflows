@@ -4,7 +4,7 @@
     </a>
 </p>
 
-<h1 align="center">Reusable Workflows</h1>
+<h1 align="center">The Lupaxa Project: Reusable Workflows</h1>
 
 This repository also acts as a **central catalog of reusable workflows** for:
 
@@ -27,7 +27,7 @@ There are two layers:
    - Live in this repo: `.github/workflows/local-*.yml`
    - Use `uses: ./.github/workflows/reusable-*.yml` to call the shared logic.
 
-A complete description of each reusable workflow is available in [WORKFLOWS.md](WORKFLOWS.md) which also includes input tables, behaviour notes, and consumer examples.
+A complete description of each reusable workflow is available in the [workflow catalogue](WORKFLOWS.md) which also includes input tables, behaviour notes, and consumer examples.
 
 <h2>License</h2>
 
