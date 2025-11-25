@@ -36,5 +36,7 @@ jobs:
     if: always()
 
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
+    with:
+      notify_on_results: "failed,timed_out"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
