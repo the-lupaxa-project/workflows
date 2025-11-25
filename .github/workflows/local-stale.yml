@@ -27,3 +27,15 @@ jobs:
     if: always()
     # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+
+  slack-workflow-status:
+    name: Slack Post Workflow Notification
+    needs:
+      - status-check
+    if: always()
+
+    uses: ./.github/workflows/reusable-slack-workflow-status.yml
+    with:
+      workflow_result: ${{ needs.status-check.result }}
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

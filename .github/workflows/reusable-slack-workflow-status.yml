@@ -7,10 +7,9 @@ on:
         description: >
           Controls whether job details are included in the Slack notification.
           Valid values:
-            - "true"       -> include all jobs
-            - "false"      -> no job details
-            - "on-failure" -> only include job details if the workflow fails
-          Defaults to "on-failure".
+            - "true"
+            - "false"
+            - "on-failure"
         required: false
         type: string
         default: "true"
@@ -20,6 +19,14 @@ on:
         required: false
         type: boolean
         default: true
+
+      notify_on_results:
+        description: >
+          Comma-separated list of results that should trigger a Slack
+          notification, or "all" to notify on every result.
+        required: false
+        type: string
+        default: "all"
 
     secrets:
       slack_webhook_url:
@@ -34,11 +41,31 @@ jobs:
   slack-workflow-status:
     name: Slack Workflow Status
     runs-on: ubuntu-latest
+
+    # Only run when secrets are available (skip external PRs)
+    if: >
+      always() &&
+      (
+        github.event_name != 'pull_request' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+
+    env:
+      # Passed directly to send-to-slack.py
+      SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+      SEND_TO_SLACK_RESULTS: ${{ inputs.notify_on_results }}
+      SEND_TO_SLACK_INCLUDE_JOBS: ${{ inputs.include_jobs }}
+      SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE: ${{ inputs.include_commit_message }}
+
     steps:
-      - name: Post Slack Workflow Status
-        uses: Gamesight/slack-workflow-status@68bf00d0dbdbcb206c278399aa1ef6c14f74347a  # v1.3.0
+      - name: Checkout workflows repo
+        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
         with:
-          repo_token: ${{ github.token }}
-          slack_webhook_url: ${{ secrets.slack_webhook_url }}
-          include_jobs: ${{ inputs.include_jobs }}
-          include_commit_message: ${{ inputs.include_commit_message }}
+          repository: the-lupaxa-project/workflows
+          path: lupaxa-dotgithub
+
+      - name: Send Slack workflow status
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python lupaxa-dotgithub/.github/scripts/send-to-slack.py

@@ -288,6 +288,8 @@ def should_skip_status_job(name: str) -> bool:
     name_stripped = name.strip()
     if (name_stripped.endswith(" Status") or name_stripped == "Status" or name_stripped.endswith("Status")):
         return True
+    if (name_stripped.startswith("Slack")):
+        return True
     return False
 
 
