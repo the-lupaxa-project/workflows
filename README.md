@@ -6,7 +6,7 @@
 
 <h1 align="center">The Lupaxa Project: Reusable Workflows</h1>
 
-This repository also acts as a **central catalog of reusable workflows** for:
+This repository acts as a **central catalog of reusable workflows** for:
 
 - Standardised linting
 - Security scanning
@@ -28,10 +28,6 @@ There are two layers:
    - Use `uses: ./.github/workflows/reusable-*.yml` to call the shared logic.
 
 A complete description of each reusable workflow is available in the [workflow catalogue](WORKFLOWS.md) which also includes input tables, behaviour notes, and consumer examples.
-
-<h2>License</h2>
-
-Unless explicitly stated otherwise, repositories under The Lupaxa Project follow the [MIT License](LICENSE.md).
 
 <h1></h1>
 

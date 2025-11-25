@@ -167,9 +167,11 @@ These workflows are not CI/CD Toolbox based, but provide core services like depe
 | [reusable-greetings.yml][106]                      | Greet first-time issue and PR authors.                                                              | [Example](#reusable-greetings)                      |
 | [reusable-publish-mkdocs.yml][107]                 | Generate and publish mkdocs to GitHug Pages.                                                        | [Example](#reusable-publish-mkdocs)                 |
 | [reusable-purge-deprecated-workflow-runs.yml][108] | Purge obsolete / cancelled / failed / skipped workflow runs.                                        | [Example](#reusable-purge-deprecated-workflow-runs) |
-| [reusable-python-make-ci.yml][109]                 | Test and Lint Python code (using Makefile).                                                         | [Example](#reusable-python-make-ci)                 |
-| [reusable-slack-workflow-status.yml][110]          | Posts final workflow status to Slack via webhook.                                                   | [Example](#reusable-slack-workflow-status)          |
-| [reusable-stale.yml][111]                          | Mark and close stale issues/PRs.                                                                    | [Example](#reusable-stale)                          |
+| [reusable-python-ci.yml][109]                      | Test and Lint Python code.                                                                          | [Example](#reusable-python-ci)                      |
+| [reusable-python-make-ci.yml][110]                 | Test and Lint Python code (using Makefile).                                                         | [Example](#reusable-python-make-ci)                 |
+| [reusable-secrets-scan.yml][111]                   | Check repositories for leaked secrets.                                                              | [Example](#reusable-secrets-scan)                   |
+| [reusable-slack-workflow-status.yml][112]          | Posts final workflow status to Slack via webhook.                                                   | [Example](#reusable-slack-workflow-status)          |
+| [reusable-stale.yml][113]                          | Mark and close stale issues/PRs.                                                                    | [Example](#reusable-stale)                          |
 
 [101]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-check-job-status.yml
 [102]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-codeql.yml
@@ -179,9 +181,11 @@ These workflows are not CI/CD Toolbox based, but provide core services like depe
 [106]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-greetings.yml
 [107]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-publish-mkdocs.yml
 [108]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-purge-deprecated-workflow-runs.yml
-[109]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-python-make-ci.yml
-[110]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-slack-workflow-status.yml
-[111]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-stale.yml
+[109]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-python-ci.yml
+[110]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-python-make-ci.yml
+[111]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-secrets-scak.yml
+[112]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-slack-workflow-status.yml
+[113]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-stale.yml
 
 <h2>Minimal Usage Examples (Alphabetical by Workflow File)</h2>
 
@@ -1016,6 +1020,46 @@ jobs:
     uses: the-lupaxa-project/.github/.github/workflows/reusable-purge-deprecated-workflow-runs.yml@master
 ```
 
+<h3 id="reusable-python-ci">Python Linting and Testing (reusable-python-ci.yml)</h3>
+
+Reusable wrapper for the `reusable-python-ci.yml` to Lint and Test python code.
+
+<details>
+<summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
+<br>
+
+| Input           | Type   | Required | Default                                | Description                                                |
+| :-------------- | :----- | :------: | :------------------------------------- | :--------------------------------------------------------- |
+| python-versions | string | No       | '["3.10","3.11","3.12","3.13","3.14"]' | JSON array of Python versions.                             |
+| script-path     | string | Yes      |                                        | Comma-separated list of files and/or directories to check. |
+
+<br>
+</details>
+
+<h4>Minimal Usage Example</h4>
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-ci:
+    name: Lint & Test
+    uses: the-lupaxa-project/.github/.github/workflows/reusable-python-make-ci.yml@master
+    secrets: inherit
+```
+
 <h3 id="reusable-python-make-ci">Python Linting and Testing (using Make) (reusable-python-make-ci.yml)</h3>
 
 Reusable wrapper for the `reusable-python-make-ci.yml` to Lint and Test python code using standardised Make.
@@ -1337,6 +1381,57 @@ permissions:
 jobs:
   rubocop:
     uses: the-lupaxa-project/.github/.github/workflows/reusable-rubocop.yml@master
+```
+
+<h3 id="reusable-secrets-scan">Secrets Leak Scanning (reusable-secrets-scan.yml)</h3>
+
+FILL ME IN!
+
+<details>
+<summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
+<br>
+
+| Input      | Type   | Required | Default                      | Description                                                                   |
+| :--------- | :----- | :------: | :--------------------------- | :---------------------------------------------------------------------------- |
+| path       | string | No       | "."                          | Repository path to scan (relative to workspace)                               |
+| base       | string | No       | ""                           | Base ref (maps to --since-commit); leave empty for default PR/push behaviour. |
+| head       | string | No       | ""                           | Head ref (maps to --branch); leave empty for default PR/push behaviour.       |
+| extra_args | string | No       | "--results=verified,unknown" | Extra arguments passed to TruffleHog CLI.                                     |
+
+<br>
+</details>
+
+<h4>Minimal Usage Example</h4>
+
+```yaml
+name: ShellCheck
+
+on:
+  pull_request:
+    paths:
+      - "**/*.sh"
+      - "**/*.bash"
+      - "**/*.ksh"
+      - "**/*.dash"
+  push:
+    branches:
+      - "**"
+    paths:
+      - "**/*.sh"
+      - "**/*.bash"
+      - "**/*.ksh"
+      - "**/*.dash"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  shellcheck:
+    uses: the-lupaxa-project/.github/.github/workflows/reusable-shellcheck.yml@master
 ```
 
 <h3 id="reusable-shellcheck">Shell Script Linting (reusable-shellcheck.yml)</h3>

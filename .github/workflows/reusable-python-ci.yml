@@ -8,11 +8,10 @@ on:
         required: false
         type: string
         default: '["3.10","3.11","3.12","3.13","3.14"]'
-      script-path:
-        description: "Path to the check-jobs script"
-        required: false
+      paths:
+        description: "Comma-separated list of files and/or directories to check"
+        required: true
         type: string
-        default: ".github/scripts/check-jobs.py"
 
 permissions:
   contents: read
@@ -27,7 +26,7 @@ jobs:
         python-version: ${{ fromJson(inputs.python-versions) }}
 
     env:
-      SCRIPT_PATH: ${{ inputs.script-path }}
+      PATHS: ${{ inputs.paths }}
 
     steps:
       - name: Checkout repository
@@ -52,20 +51,73 @@ jobs:
         run: |
           python -m pip install ruff mypy pytest
 
-      - name: Basic import / syntax check
+      - name: Basic import / syntax check for paths
         run: |
-          python -m py_compile "${SCRIPT_PATH}"
-          python -c "import runpy; runpy.run_path('${SCRIPT_PATH}', run_name='__main__') if False else None"
+          set -e
+
+          echo "Paths to check: ${PATHS}"
+
+          IFS=',' read -r -a PATH_ARRAY <<< "${PATHS}"
+
+          for p in "${PATH_ARRAY[@]}"; do
+            p="$(echo "${p}" | xargs)"  # trim
+            [ -z "${p}" ] && continue
+
+            if [ -f "${p}" ]; then
+              echo "Syntax checking file: ${p}"
+              python -m py_compile "${p}"
+            elif [ -d "${p}" ]; then
+              echo "Syntax checking directory (compileall): ${p}"
+              python -m compileall "${p}"
+            else
+              echo "ERROR: Path '${p}' does not exist." >&2
+              exit 1
+            fi
+          done
 
       - name: Ruff lint
         run: |
-          ruff check "${SCRIPT_PATH}"
+          set -e
+
+          IFS=',' read -r -a PATH_ARRAY <<< "${PATHS}"
+          ARGS=()
+
+          for p in "${PATH_ARRAY[@]}"; do
+            p="$(echo "${p}" | xargs)"  # trim
+            [ -z "${p}" ] && continue
+            ARGS+=("${p}")
+          done
+
+          if [ "${#ARGS[@]}" -eq 0 ]; then
+            echo "No valid paths specified for Ruff; skipping."
+            exit 0
+          fi
+
+          echo "Running Ruff on: ${ARGS[*]}"
+          ruff check "${ARGS[@]}"
 
       - name: mypy type checking
         run: |
-          mypy "${SCRIPT_PATH}"
+          set -e
 
-      - name: Run pytest (tests targeting check-jobs.py)
+          IFS=',' read -r -a PATH_ARRAY <<< "${PATHS}"
+          ARGS=()
+
+          for p in "${PATH_ARRAY[@]}"; do
+            p="$(echo "${p}" | xargs)"  # trim
+            [ -z "${p}" ] && continue
+            ARGS+=("${p}")
+          done
+
+          if [ "${#ARGS[@]}" -eq 0 ]; then
+            echo "No valid paths specified for mypy; skipping."
+            exit 0
+          fi
+
+          echo "Running mypy on: ${ARGS[*]}"
+          mypy "${ARGS[@]}"
+
+      - name: Run pytest (if tests/ exists)
         run: |
           if [ -d "tests" ]; then
             echo "Running pytest against tests/ ..."
