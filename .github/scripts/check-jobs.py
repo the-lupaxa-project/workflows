@@ -134,24 +134,16 @@ def build_human_timestamp() -> str:
 # Input loading (API / file)
 # ---------------------------------------------------------------------------#
 
-
-def fetch_jobs_json_from_api() -> Dict[str, Any]:
+def _get_github_context_from_env() -> Tuple[str, str, str]:
     """
-    Fetch job metadata for the current workflow run via the GitHub REST API.
-
-    Environment variables used:
-        - GITHUB_REPOSITORY        (required)
-        - GITHUB_RUN_ID            (required)
-        - GITHUB_TOKEN             (preferred)
-        - ACTIONS_RUNTIME_TOKEN    (fallback if GITHUB_TOKEN is unset)
+    Read and validate the core GitHub context from environment variables.
 
     Returns:
-        A dictionary representing the JSON response from the GitHub API.
+        A 3-tuple of (repo, run_id, token).
 
     Raises:
-        SystemExit: If required environment variables are missing, the network
-            request fails, a non-200 HTTP status is returned, or the response
-            body is not valid JSON.
+        SystemExit:
+            If any required value is missing.
     """
     repo = os.environ.get("GITHUB_REPOSITORY")
     run_id = os.environ.get("GITHUB_RUN_ID")
@@ -163,14 +155,35 @@ def fetch_jobs_json_from_api() -> Dict[str, Any]:
     if not token:
         error("GITHUB_TOKEN (or ACTIONS_RUNTIME_TOKEN) is not set; cannot call GitHub API.", code=1)
 
-    url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"
+    return repo, run_id, token
+
+
+def _fetch_jobs_json(repo: str, run_id: str, token: str) -> Dict[str, Any]:
+    """
+    Fetch job metadata for a given workflow run.
+
+    This is a required call: failures are treated as fatal.
+
+    Args:
+        repo: Repository slug, e.g. "owner/repo".
+        run_id: Workflow run ID.
+        token: GitHub token for authentication.
+
+    Returns:
+        Parsed JSON dictionary from the jobs API.
+
+    Raises:
+        SystemExit:
+            On network/HTTP/JSON errors or unexpected response structure.
+    """
+    jobs_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "User-Agent": "lupaxa-check-jobs-status",
     }
 
-    req = urllib.request.Request(url, headers=headers)
+    req = urllib.request.Request(jobs_url, headers=headers)
 
     status: int = 0
     body_bytes: bytes = b""
@@ -185,25 +198,97 @@ def fetch_jobs_json_from_api() -> Dict[str, Any]:
             print(body, file=sys.stderr)
         error(f"GitHub API returned HTTP {exc.code} when fetching jobs: {exc.reason}", code=1)
     except URLError as exc:
-        error(f"Failed to reach GitHub API: {exc.reason}", code=1)
+        error(f"Failed to reach GitHub API when fetching jobs: {exc.reason}", code=1)
     except Exception as exc:  # pragma: no cover - defensive catch-all
-        error(f"Unexpected error when calling GitHub API: {exc}", code=1)
+        error(f"Unexpected error when calling GitHub jobs API: {exc}", code=1)
 
     if status != 200:
         body = body_bytes.decode("utf-8", errors="replace")
-        print("GitHub API response body:", file=sys.stderr)
+        print("GitHub API response body (jobs):", file=sys.stderr)
         print(body, file=sys.stderr)
         error(f"GitHub API returned HTTP {status} when fetching jobs.", code=1)
 
     try:
         data = json.loads(body_bytes)
     except json.JSONDecodeError as exc:
-        error(f"Failed to decode GitHub API JSON: {exc}", code=1)
+        error(f"Failed to decode GitHub jobs API JSON: {exc}", code=1)
 
     if not isinstance(data, dict):
-        error("GitHub API returned JSON, but the top-level structure is not an object as expected.", code=1)
+        error(
+            "GitHub jobs API returned JSON, but the top-level structure is not an object as expected.",
+            code=1,
+        )
 
     return data
+
+
+def _maybe_set_commit_message_env(repo: str, run_id: str, token: str) -> None:
+    """
+    Best-effort fetch of the workflow run to capture the head commit message.
+
+    On success, stores the commit message in the GITHUB_COMMIT_MESSAGE
+    environment variable for later use in the summary.
+
+    Any errors here are non-fatal and silently ignored.
+
+    Args:
+        repo: Repository slug, e.g. "owner/repo".
+        run_id: Workflow run ID.
+        token: GitHub token for authentication.
+    """
+    run_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "lupaxa-check-jobs-status",
+    }
+
+    req = urllib.request.Request(run_url, headers=headers)
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            status = resp.getcode()
+            body_bytes = resp.read()
+    except Exception:
+        return
+
+    if status != 200 or not body_bytes:
+        return
+
+    try:
+        data = json.loads(body_bytes)
+    except json.JSONDecodeError:
+        return
+
+    if not isinstance(data, dict):
+        return
+
+    head_commit = data.get("head_commit") or {}
+    message = str(head_commit.get("message") or "").strip()
+    if message:
+        os.environ["GITHUB_COMMIT_MESSAGE"] = message
+
+
+def fetch_jobs_json_from_api() -> Dict[str, Any]:
+    """
+    Fetch job metadata for the current workflow run via the GitHub REST API.
+
+    This function:
+
+      1. Reads and validates the GitHub context from environment variables.
+      2. Fetches the jobs JSON (fatal on failure).
+      3. Best-effort fetches the workflow run to capture the head commit
+         message for use in the step summary.
+
+    Returns:
+        A dictionary representing the JSON response from the GitHub jobs API.
+    """
+    repo, run_id, token = _get_github_context_from_env()
+
+    jobs_data = _fetch_jobs_json(repo, run_id, token)
+    _maybe_set_commit_message_env(repo, run_id, token)
+
+    return jobs_data
 
 
 def load_jobs_json_from_file(path: str) -> Dict[str, Any]:
@@ -604,6 +689,18 @@ def write_step_summary(success: List[str], failure: List[str], cancelled: List[s
 
             print(f"| Ref | {ref_name} |", file=out)
             print(f"| Commit SHA | {sha} |", file=out)
+            # Try commit message from PR event first
+            commit_message = ""
+            if pr_title:
+                commit_message = pr_title
+            else:
+                # Fallback to commit message if available
+                commit = os.environ.get("GITHUB_COMMIT_MESSAGE", "")
+                if commit:
+                    commit_message = commit
+
+            if commit_message:
+                print(f"| Commit Message | {commit_message} |", file=out)
             if repo and run_id:
                 print(f"| Run URL | https://github.com/{repo}/actions/runs/{run_id} |", file=out)
 
