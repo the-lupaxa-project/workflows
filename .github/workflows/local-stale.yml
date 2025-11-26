@@ -31,7 +31,7 @@ jobs:
   slack-workflow-status:
     name: Slack Post Workflow Notification
     needs:
-      - status-check
+      - stale
     if: always()
 
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
