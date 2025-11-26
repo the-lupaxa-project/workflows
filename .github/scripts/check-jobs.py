@@ -301,10 +301,14 @@ def _extract_api_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
     The expected shape is:
         {
           "jobs": [
-            { "name": "...", "conclusion": "success", ... },
+            { "name": "...", "conclusion": "success", "status": "completed", ... },
             ...
           ]
         }
+
+    Only jobs with ``status == "completed"`` are included. Jobs that are
+    still in progress, queued, or otherwise not completed are ignored to
+    avoid showing them as "unknown" in the summary.
 
     Args:
         data: Parsed JSON dictionary from the GitHub jobs API.
@@ -321,9 +325,17 @@ def _extract_api_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
     for job in jobs:
         if not isinstance(job, dict):
             continue
+
+        status = str(job.get("status") or "").lower()
+        if status != "completed":
+            # Skip jobs that have not completed yet; they don't have a stable
+            # conclusion and would otherwise be shown as "unknown".
+            continue
+
         raw_name = str(job.get("name", ""))
         conclusion = str(job.get("conclusion", "unknown") or "unknown")
         records.append((raw_name, conclusion))
+
     return records
 
 
