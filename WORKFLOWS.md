@@ -312,8 +312,9 @@ The workflow:
 <summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
 <br>
 
-| Input         | Type    | Required | Default                                                                                          | Description                                    |
-| :------------ | :------ | :------: | :----------------------------------------------------------------------------------------------- | :--------------------------------------------- |
+| Input       | Type   | Required | Default | Description                                                                                                                                      |
+| :---------- | :----- | :------: | :------ | :----------------------------------------------------------------------------------------------------------------------------------------------- |
+| ignore_jobs | string | No       | ""      | Comma-separated list of job names to exclude from the summary. Names are normalised (segment after the last "/") and matched case-insensitively. |
 
 <br>
 </details>
@@ -1501,11 +1502,12 @@ All logic and guardrails around if we should send the message to slack comes fro
 <summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
 <br>
 
-| Input                  | Type    | Required | Default | Description                                                                                |
-| :--------------------- | :------ | :------: | :------ | :----------------------------------------------------------------------------------------- |
-| include_jobs           | string  | No       | "true"  | Controls inclusion of per-job status details. Valid values: "true", "false", "on-failure". |
-| include_commit_message | boolean | No       | true    | If true, include the commit message in the Slack notification.                             |
-| notify_on_results      | string  | No       | "all"   | Comma-separated list of results to notify on (e.g. "failure,cancelled,timed_out").         |
+| Input                  | Type    | Required | Default | Description                                                                                                                                                   |
+| :--------------------- | :------ | :------: | :------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| include_jobs           | string  | No       | "true"  | Controls inclusion of per-job status details. Valid values: "true", "false", "on-failure".                                                                    |
+| include_commit_message | boolean | No       | true    | If true, include the commit message in the Slack notification.                                                                                                |
+| notify_on_results      | string  | No       | "all"   | Comma-separated list of results to notify on (e.g. "failure,cancelled,timed_out").                                                                            |
+| ignore_jobs            | string  | No       | ""      | Comma-separated list of job names to exclude from the per-job Slack fields. Names are normalised (segment after the last "/") and matched case-insensitively. |
 
 <br>
 </details>

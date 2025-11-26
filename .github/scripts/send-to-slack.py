@@ -77,6 +77,12 @@ Optional behaviour controls
     Integer used as ``per_page`` when requesting jobs from the GitHub API.
     Defaults to ``"30"``. Values <= 0 are treated as the default.
 
+- ``SEND_TO_SLACK_IGNORE_JOBS``
+    Comma-separated list of job names to exclude from the per-job Slack
+    fields. Job names are normalised using the same logic as
+    :func:`normalise_job_name` (e.g. stripping prefixes before the last
+    ``"/"`` and trimming whitespace), and matched case-insensitively.
+
 Optional cosmetic configuration
 -------------------------------
 These mirror the Gamesight action inputs and are applied directly to the
@@ -112,7 +118,7 @@ import os
 import sys
 import urllib.request
 from datetime import datetime
-from typing import Any, Dict, List, NoReturn, Optional, Tuple
+from typing import Any, Dict, List, NoReturn, Optional, Tuple, Set
 from urllib.error import HTTPError, URLError
 
 
@@ -335,6 +341,32 @@ def normalise_job_name(raw: str) -> str:
     if "/" in raw:
         raw = raw.rsplit("/", 1)[-1]
     return raw.strip()
+
+
+def parse_ignored_jobs(raw: str) -> Set[str]:
+    """
+    Parse a comma-separated list of job names to ignore.
+
+    Names are normalised via :func:`normalise_job_name` and lowercased
+    so comparisons are case-insensitive and consistent with the way job
+    names are displayed.
+
+    Args:
+        raw:
+            Comma-separated string from ``SEND_TO_SLACK_IGNORE_JOBS``.
+
+    Returns:
+        A set of normalised, lowercased job names to ignore.
+    """
+    ignored: Set[str] = set()
+
+    for part in raw.split(","):
+        name = normalise_job_name(part)
+        if not name:
+            continue
+        ignored.add(name.casefold())
+
+    return ignored
 
 
 # --------------------------------------------------------------------------- #
@@ -596,6 +628,7 @@ def build_job_fields(
     completed_jobs: List[Dict[str, Any]],
     include_jobs_mode: str,
     workflow_conclusion: str,
+    ignored_job_names: Optional[Set[str]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Build the Slack ``fields`` array for completed jobs.
@@ -617,6 +650,9 @@ def build_job_fields(
             ``"false"`` or ``"on-failure"``.
         workflow_conclusion:
             Normalised workflow conclusion string.
+        ignored_job_names:
+            Optional set of normalised job names to exclude from the job
+            fields. Comparisons are case-insensitive.
 
     Returns:
         A list of Slack field dictionaries. The list may be empty if job
@@ -626,6 +662,11 @@ def build_job_fields(
         return []
 
     name_field_pairs: List[Tuple[str, Dict[str, Any]]] = []
+    ignored_normalised: Set[str] = set()
+
+    if ignored_job_names:
+        # Ensure we compare using casefold() to be robust.
+        ignored_normalised = {name.casefold() for name in ignored_job_names}
 
     for job in completed_jobs:
         field = _build_single_job_field(job)
@@ -635,6 +676,10 @@ def build_job_fields(
         raw_name = str(job.get("name") or "")
         name = normalise_job_name(raw_name)
         if not name:
+            continue
+
+        # Skip any job whose normalised name is in the ignore list.
+        if ignored_normalised and name.casefold() in ignored_normalised:
             continue
 
         name_field_pairs.append((name, field))
@@ -964,6 +1009,7 @@ def build_slack_payload(
     completed_jobs: List[Dict[str, Any]],
     include_jobs_mode: str,
     include_commit_message: bool,
+    ignored_job_names: Optional[Set[str]] = None,
 ) -> Dict[str, Any]:
     """
     Build the complete Slack webhook payload for a workflow run.
@@ -1032,6 +1078,7 @@ def build_slack_payload(
         completed_jobs=completed_jobs,
         include_jobs_mode=include_jobs_mode,
         workflow_conclusion=workflow_conclusion,
+        ignored_job_names=ignored_job_names,
     )
 
     text_lines: List[str] = [status_string, details_text]
@@ -1095,11 +1142,9 @@ def post_to_slack(webhook_url: str, payload: Dict[str, Any]) -> None:
     if not (200 <= status < 300):
         error(f"Slack webhook returned HTTP {status}", code=1)
 
-
 # --------------------------------------------------------------------------- #
 # Entry point
 # --------------------------------------------------------------------------- #
-
 
 def main() -> None:
     """
@@ -1111,8 +1156,10 @@ def main() -> None:
       2. Fetch workflow run metadata and jobs from the GitHub API.
       3. Determine whether a Slack notification should be sent based on
          ``SEND_TO_SLACK_RESULTS`` and the workflow conclusion.
-      4. Build a Slack payload mirroring Gamesight's formatting.
-      5. POST the payload to ``SLACK_WEBHOOK_URL``.
+      4. Optionally filter out ignored jobs from the per-job fields using
+         ``SEND_TO_SLACK_IGNORE_JOBS``.
+      5. Build a Slack payload mirroring Gamesight's formatting.
+      6. POST the payload to ``SLACK_WEBHOOK_URL``.
 
     Expected environment variables are described in the module-level
     docstring.
@@ -1149,6 +1196,7 @@ def main() -> None:
     workflow_run, completed_jobs = fetch_run_and_jobs(repo, run_id, token, jobs_to_fetch)
     workflow_conclusion = get_workflow_conclusion(workflow_run)
 
+    # Determine whether this workflow conclusion should trigger a Slack message.
     results_setting = os.environ.get("SEND_TO_SLACK_RESULTS", "all").strip().lower()
     if results_setting != "all":
         allowed = {s.strip() for s in results_setting.split(",") if s.strip()}
@@ -1164,11 +1212,18 @@ def main() -> None:
     include_commit_message_raw = os.environ.get("SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE", "true")
     include_commit_message = include_commit_message_raw.strip().lower() == "true"
 
+    # Optional: list of jobs to ignore in the per-job Slack fields.
+    raw_ignored_jobs = os.environ.get("SEND_TO_SLACK_IGNORE_JOBS", "")
+    ignored_job_names: Optional[Set[str]] = None
+    if raw_ignored_jobs.strip():
+        ignored_job_names = parse_ignored_jobs(raw_ignored_jobs)
+
     payload = build_slack_payload(
         workflow_run=workflow_run,
         completed_jobs=completed_jobs,
         include_jobs_mode=include_jobs_mode,
         include_commit_message=include_commit_message,
+        ignored_job_names=ignored_job_names,
     )
     post_to_slack(webhook_url, payload)
 

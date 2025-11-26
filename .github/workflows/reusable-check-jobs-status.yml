@@ -2,6 +2,15 @@ name: Check Jobs Status Summary
 
 on:
   workflow_call:
+    inputs:
+      ignore_jobs:
+        description: >
+          Comma-separated list of job names to exclude from the summary.
+          Names are normalised (segment after the last "/") and matched
+          case-insensitively.
+        required: false
+        type: string
+        default: ""
 
 permissions:
   actions: read
@@ -23,5 +32,6 @@ jobs:
         env:
           # Prefer explicit secret if the caller provides one, otherwise fall back to the built-in token
           GITHUB_TOKEN: ${{ github.token }}
+          CHECK_JOBS_IGNORE_JOBS: ${{ inputs.ignore_jobs }}
         # run: bash <(curl -fsSL "https://raw.githubusercontent.com/the-lupaxa-project/.github/master/.github/scripts/check-jobs.sh")
         run: python lupaxa-dotgithub/.github/scripts/check-jobs.py

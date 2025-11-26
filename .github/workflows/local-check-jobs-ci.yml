@@ -29,6 +29,8 @@ jobs:
     if: always()
     # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+    with:
+      ignore_jobs: "Check Job Status"
 
   slack-workflow-status:
     name: Slack Workflow Status
@@ -39,5 +41,6 @@ jobs:
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failed,timed_out"
+      ignore_jobs: "Check Job Status"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

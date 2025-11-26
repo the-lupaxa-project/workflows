@@ -41,10 +41,14 @@ The script normalises job results into buckets:
     - timed_out
     - other (for unknown/unsupported result values: stored as "name:result")
 
-Jobs with names ending in "Status" (e.g. "CI Status") are filtered out by
-default, as they are often umbrella status jobs. This behaviour can be
-overridden by setting:
-    CHECK_JOBS_INCLUDE_STATUS=1
+An optional ignore list can be provided via the CHECK_JOBS_IGNORE_JOBS
+environment variable:
+
+    CHECK_JOBS_IGNORE_JOBS
+        Comma-separated list of job names to ignore in the summary. Job
+        names are normalised using the same logic as normalise_job_name
+        (segment after the last "/" and trimmed) and compared
+        case-insensitively.
 
 On success, a Markdown summary is appended to the file pointed to by
 GITHUB_STEP_SUMMARY. On any error (configuration, network, JSON, or structure),
@@ -59,7 +63,7 @@ import os
 import sys
 import urllib.request
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, NoReturn, Optional, TextIO, Tuple
+from typing import Any, Dict, Iterable, List, NoReturn, Optional, Set, TextIO, Tuple
 from urllib.error import HTTPError, URLError
 
 
@@ -240,6 +244,31 @@ def load_jobs_json_from_file(path: str) -> Dict[str, Any]:
     return data
 
 
+def parse_ignored_jobs(raw: str) -> Set[str]:
+    """
+    Parse a comma-separated list of job names to ignore.
+
+    Names are normalised via :func:`normalise_job_name` and lowercased
+    so comparisons are case-insensitive and consistent with the way job
+    names are displayed in the summary.
+
+    Args:
+        raw:
+            Comma-separated string from ``CHECK_JOBS_IGNORE_JOBS``.
+
+    Returns:
+        A set of normalised, lowercased job names to ignore.
+    """
+    ignored: Set[str] = set()
+
+    for part in raw.split(","):
+        name = normalise_job_name(part)
+        if not name:
+            continue
+        ignored.add(name.casefold())
+
+    return ignored
+
 # ---------------------------------------------------------------------------#
 # Normalisation and bucketing
 # ---------------------------------------------------------------------------#
@@ -263,34 +292,6 @@ def normalise_job_name(raw: str) -> str:
     if "/" in raw:
         raw = raw.rsplit("/", 1)[-1]
     return raw.strip()
-
-
-def should_skip_status_job(name: str) -> bool:
-    """
-    Determine whether a job name should be skipped as an umbrella status job.
-
-    Jobs whose names end with "Status" (e.g. "CI Status") or are exactly
-    "Status" are often umbrella jobs aggregating other results. By default,
-    these are skipped to keep the summary focused on the real work jobs.
-
-    This behaviour can be overridden by setting:
-        CHECK_JOBS_INCLUDE_STATUS=1
-
-    Args:
-        name: Normalised job name.
-
-    Returns:
-        True if the job should be skipped, False otherwise.
-    """
-    if os.environ.get("CHECK_JOBS_INCLUDE_STATUS", "0") == "1":
-        return False
-
-    name_stripped = name.strip()
-    if (name_stripped.endswith(" Status") or name_stripped == "Status" or name_stripped.endswith("Status")):
-        return True
-    if (name_stripped.startswith("Slack")):
-        return True
-    return False
 
 
 def _extract_api_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
@@ -360,7 +361,10 @@ def _extract_needs_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
     return records
 
 
-def bucket_jobs(data: Dict[str, Any]) -> Tuple[List[str], List[str], List[str], List[str], List[str], List[str]]:
+def bucket_jobs(
+    data: Dict[str, Any],
+    ignored_job_names: Optional[Set[str]] = None,
+) -> Tuple[List[str], List[str], List[str], List[str], List[str], List[str]]:
     """
     Bucket jobs into status lists from a JSON object.
 
@@ -382,6 +386,9 @@ def bucket_jobs(data: Dict[str, Any]) -> Tuple[List[str], List[str], List[str], 
     Args:
         data: Parsed JSON dictionary representing either a GitHub /jobs response
             or a toJson(needs) mapping.
+        ignored_job_names:
+            Optional set of normalised job names to exclude from the summary.
+            Comparisons are done case-insensitively.
 
     Returns:
         A 6-tuple of lists:
@@ -420,9 +427,18 @@ def bucket_jobs(data: Dict[str, Any]) -> Tuple[List[str], List[str], List[str], 
         "timed_out": timed_out,
     }
 
+    ignored_normalised: Set[str] = set()
+    if ignored_job_names:
+        # Normalise to casefold() for robust comparisons
+        ignored_normalised = {name.casefold() for name in ignored_job_names}
+
     for raw_name, raw_result in job_records:
         job_name = normalise_job_name(raw_name)
-        if not job_name or should_skip_status_job(job_name):
+        if not job_name:
+            continue
+
+        # Skip any job whose normalised name is in the ignore list.
+        if ignored_normalised and job_name.casefold() in ignored_normalised:
             continue
 
         result = raw_result or "unknown"
@@ -608,16 +624,22 @@ def main() -> None:
     (if available). On failure, an error is printed to stderr and the process
     exits with status 1.
     """
-    if len(sys.argv) > 2:
-        error("Too many arguments. Usage: check-jobs.py [path/to/jobs.json]", code=1)
-
     # Decide where to get job JSON from
     if len(sys.argv) == 2:
         data = load_jobs_json_from_file(sys.argv[1])
     else:
         data = fetch_jobs_json_from_api()
 
-    success, failure, cancelled, skipped, timed_out, other = bucket_jobs(data)
+    # Optional: list of jobs to ignore in the summary.
+    raw_ignored_jobs = os.environ.get("CHECK_JOBS_IGNORE_JOBS", "")
+    ignored_job_names: Optional[Set[str]] = None
+    if raw_ignored_jobs.strip():
+        ignored_job_names = parse_ignored_jobs(raw_ignored_jobs)
+
+    success, failure, cancelled, skipped, timed_out, other = bucket_jobs(
+        data,
+        ignored_job_names=ignored_job_names,
+    )
     write_step_summary(success, failure, cancelled, skipped, timed_out, other)
 
 
