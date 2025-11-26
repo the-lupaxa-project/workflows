@@ -39,7 +39,7 @@ jobs:
   slack-workflow-status:
     name: Slack Workflow Status
     needs:
-      - validate
+      - status-check
     if: always()
 
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
