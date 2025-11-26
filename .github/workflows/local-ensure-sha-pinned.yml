@@ -1,0 +1,49 @@
+name: Ensure SHA-Pinned GitHub Actions
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
+  push:
+    branches:
+      - "**"
+    paths:
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+jobs:
+  ensure-sha-pinned:
+    name: Run Ensure SHA-Pinned GitHub Actions (Reusable)
+    uses: ./.github/workflows/reusable-ensure-sha-pinned-actions.yml
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - ensure-sha-pinned
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml
+
+  slack-workflow-status:
+    name: Slack Post Workflow Notification
+    needs:
+      - status-check
+    if: always()
+
+    uses: ./.github/workflows/reusable-slack-workflow-status.yml
+    with:
+      notify_on_results: "failed,timed_out"
+      ignore_jobs: "Check Jobs Status"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
