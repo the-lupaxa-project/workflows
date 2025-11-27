@@ -38,7 +38,7 @@ jobs:
   slack-workflow-status:
     name: Slack Post Workflow Notification
     needs:
-      - status-check
+      - ensure-sha-pinned
     if: always()
 
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
