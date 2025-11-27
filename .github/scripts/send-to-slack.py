@@ -475,6 +475,36 @@ def get_workflow_conclusion(workflow_run: Dict[str, Any]) -> str:
 # Slack payload construction (mirroring Gamesight)
 # --------------------------------------------------------------------------- #
 
+def derive_workflow_conclusion_from_jobs(completed_jobs: List[Dict[str, Any]]) -> str:
+    """
+    Derive a workflow-level conclusion string from completed job conclusions.
+
+    This mirrors the logic in :func:`determine_workflow_color_and_msg`, but
+    returns a canonical conclusion value suitable for filtering:
+
+        - ``"success"``   if all jobs are success or skipped
+        - ``"cancelled"`` if any job is cancelled
+        - ``"timed_out"`` if any job is timed_out (and none cancelled)
+        - ``"failure"``   otherwise
+
+    If there are no completed jobs at all, returns ``"unknown"``.
+    """
+    if not completed_jobs:
+        return "unknown"
+
+    conclusions = [str(job.get("conclusion") or "").lower() for job in completed_jobs]
+
+    if all(c in ("success", "skipped") for c in conclusions):
+        return "success"
+
+    if any(c == "cancelled" for c in conclusions):
+        return "cancelled"
+
+    if any(c == "timed_out" for c in conclusions):
+        return "timed_out"
+
+    return "failure"
+
 
 def determine_workflow_color_and_msg(completed_jobs: List[Dict[str, Any]]) -> Tuple[str, str]:
     """
@@ -1194,9 +1224,18 @@ def main() -> None:
         jobs_to_fetch = 30
 
     workflow_run, completed_jobs = fetch_run_and_jobs(repo, run_id, token, jobs_to_fetch)
-    workflow_conclusion = get_workflow_conclusion(workflow_run)
 
-    # Determine whether this workflow conclusion should trigger a Slack message.
+    # Prefer a conclusion derived from completed jobs, so we can make a
+    # useful decision even while the overall workflow run is still
+    # "in_progress" in GitHub.
+    workflow_conclusion_from_jobs = derive_workflow_conclusion_from_jobs(completed_jobs)
+    if workflow_conclusion_from_jobs != "unknown":
+        workflow_conclusion = workflow_conclusion_from_jobs
+    else:
+        # Fallback to the run-level status/conclusion if we couldn't infer
+        # anything useful from the jobs.
+        workflow_conclusion = get_workflow_conclusion(workflow_run)
+
     results_setting = os.environ.get("SEND_TO_SLACK_RESULTS", "all").strip().lower()
     if results_setting != "all":
         allowed = {s.strip() for s in results_setting.split(",") if s.strip()}
