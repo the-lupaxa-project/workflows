@@ -36,7 +36,7 @@ jobs:
 
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
-      notify_on_results: "failed,timed_out"
+      notify_on_results: "failure,timed_out"
       ignore_jobs: "Check Jobs Status"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
