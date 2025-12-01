@@ -1,4 +1,4 @@
-name: Citation Validation
+name: Local Validate Citations File
 
 on:
   push:

@@ -1,4 +1,4 @@
-name: Dependabot (Approve, Comment, Merge)
+name: Local Dependabot
 
 on:
   pull_request:

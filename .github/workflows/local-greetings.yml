@@ -1,4 +1,4 @@
-name: Greetings
+name: Local Greetings
 
 on:
   pull_request:

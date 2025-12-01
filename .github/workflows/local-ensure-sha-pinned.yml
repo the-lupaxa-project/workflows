@@ -1,4 +1,4 @@
-name: Ensure SHA-Pinned GitHub Actions
+name: Local Ensure SHA-Pinned GitHub Actions
 
 on:
   pull_request:

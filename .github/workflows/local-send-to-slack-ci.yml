@@ -1,4 +1,4 @@
-name: Check send-to-slack.py
+name: Local Check send-to-slack.py
 
 on:
   push:

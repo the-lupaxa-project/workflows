@@ -1,4 +1,4 @@
-name: Shellcheck
+name: Local Shellcheck
 
 on:
   push:

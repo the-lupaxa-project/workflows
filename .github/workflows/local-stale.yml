@@ -1,4 +1,4 @@
-name: Stale Issue & PR Handler
+name: Local Stale Issue & PR Handler
 
 on:
   schedule:

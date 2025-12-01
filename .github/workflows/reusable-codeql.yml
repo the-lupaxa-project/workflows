@@ -16,8 +16,8 @@ permissions:
   security-events: write
 
 jobs:
-  codeql-analyze:
-    name: CodeQL Analyze
+  codeql-analysis:
+    name: CodeQL Analysis
     runs-on: ubuntu-latest
 
     steps:

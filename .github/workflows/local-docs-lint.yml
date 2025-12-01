@@ -1,5 +1,4 @@
-name: Documentation Lint (Markdown + YAML)
-
+name: Local Documentation Lint
 on:
   push:
     branches:

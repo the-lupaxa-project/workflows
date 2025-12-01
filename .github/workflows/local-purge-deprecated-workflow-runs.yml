@@ -1,4 +1,4 @@
-name: Purge Deprecated Workflow Runs
+name: Local Purge Deprecated Workflow Runs
 
 on:
   workflow_dispatch:

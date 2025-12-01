@@ -42,6 +42,7 @@ jobs:
   dependabot:
     name: Dependabot
     runs-on: ubuntu-latest
+
     # Only run for Dependabot PRs
     if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'pull_request' }}
     steps:

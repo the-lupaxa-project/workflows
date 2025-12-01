@@ -1,4 +1,4 @@
-name: Check check-jobs.py
+name: Local Check check-jobs.py
 
 on:
   push:
