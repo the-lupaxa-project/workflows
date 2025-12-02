@@ -13,11 +13,17 @@ on:
         required: false
         default: true
         type: boolean
+      cleanup:
+        description: "Clean up existing deployments in the github-pages environment before deploying"
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: read
   pages: write
   id-token: write
+  deployments: write
 
 jobs:
   build:
@@ -67,6 +73,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      - name: Clean up old GitHub Pages deployments
+        if: ${{ inputs.cleanup }}
+        uses: strumwolf/delete-deployment-environment@a4825dd9648c57da8437a4885c3fcad58beac69c  # v3.0.0
+        with:
+          token: ${{ github.token }}
+          environment: github-pages
+          onlyRemoveDeployments: true
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4.0.5
