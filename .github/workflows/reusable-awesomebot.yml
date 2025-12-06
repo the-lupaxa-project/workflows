@@ -3,6 +3,15 @@ name: Reusable awesomebot (Links & Anchors Validator)
 on:
   workflow_call:
     inputs:
+      flags:
+        description: "Command-line flags to pass to awesomebot"
+        required: false
+        type: string
+        default: "default"
+      whitelist:
+        description: "Comma-separated list of files (or regex) to whitelist"
+        required: false
+        type: string
       include_files:
         description: "Comma-separated list of files (or regex) to include"
         required: false
@@ -46,6 +55,8 @@ jobs:
 
       - name: Run Awesomebot
         env:
+          FLAGS: ${{ inputs.flags }}
+          WHITELIST: ${{ inputs.whitelist }}
           INCLUDE_FILES: ${{ inputs.include_files }}
           EXCLUDE_FILES: ${{ inputs.exclude_files }}
           REPORT_ONLY: ${{ inputs.report_only }}
