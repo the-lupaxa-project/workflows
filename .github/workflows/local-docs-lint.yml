@@ -23,6 +23,11 @@ permissions:
   contents: read
 
 jobs:
+  awesomebot:
+    name: Awesomebot
+    uses: ./.github/workflows/reusable-awesomebot.yml
+    secrets: inherit
+
   markdown-lint:
     name: Markdown Lint
     uses: ./.github/workflows/reusable-markdown-lint.yml
@@ -36,6 +41,7 @@ jobs:
   status-check:
     name: Check Jobs Status
     needs:
+      - awesomebot
       - markdown-lint
       - yaml-lint
     if: always()
