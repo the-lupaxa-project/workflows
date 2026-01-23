@@ -41,7 +41,7 @@ permissions:
 
 jobs:
   markdown-lint:
-    name: Markdown Lint
+    name: Reusable Markdown Lint
     runs-on: ubuntu-latest
 
     steps:
