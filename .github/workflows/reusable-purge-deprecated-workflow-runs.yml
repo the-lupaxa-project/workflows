@@ -55,7 +55,7 @@ jobs:
 
     steps:
       - name: Run Purge Deprecated Workflow Runs
-        uses: otto-de/purge-deprecated-workflow-runs@05bb48958a4a1c5e0e17e8d4a94868266a6548ea  # v4.0.9
+        uses: otto-de/purge-deprecated-workflow-runs@4781dc30eb7236b195e896b9a26b14296341b63a  # v4.0.10
         with:
           token: ${{ inputs.token || github.token }}
           remove-obsolete: ${{ inputs.remove_obsolete }}
