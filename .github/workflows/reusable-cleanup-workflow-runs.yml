@@ -15,41 +15,47 @@ on:
         type: string
         default: "true"
 
+      preserve_branch:
+        description: Branch to preserve representative workflow runs for.
+        required: false
+        type: string
+        default: "master"
+
+      force_delete_non_default_branch:
+        description: Force-delete completed runs not on preserve_branch, ignoring retention and representative keeps.
+        required: false
+        type: string
+        default: "false"
+
       keep_latest_successful:
-        description: Keep the latest successful completed run for each workflow.
+        description: Keep the latest successful completed run for each workflow on preserve_branch.
         required: false
         type: string
         default: "true"
 
       keep_latest_failed:
-        description: Keep the latest failed completed run for each workflow.
+        description: Keep the latest failed completed run for each workflow on preserve_branch.
         required: false
         type: string
         default: "true"
 
       keep_latest_cancelled:
-        description: Keep the latest cancelled completed run for each workflow.
+        description: Keep the latest cancelled completed run for each workflow on preserve_branch.
         required: false
         type: string
         default: "true"
 
       keep_latest_timed_out:
-        description: Keep the latest timed-out completed run for each workflow.
+        description: Keep the latest timed-out completed run for each workflow on preserve_branch.
         required: false
         type: string
         default: "true"
 
       keep_last_n_successful:
-        description: Keep this many recent successful completed runs per workflow.
+        description: Keep this many recent successful completed runs per workflow on preserve_branch.
         required: false
         type: string
         default: "3"
-
-      keep_representatives_default_branch_only:
-        description: Only preserve representative runs from the repository default branch.
-        required: false
-        type: string
-        default: "true"
 
       delete_skipped:
         description: Delete skipped runs when they are older than the retention period.
@@ -102,12 +108,13 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS: ${{ inputs.retention_days }}
           CLEANUP_WORKFLOW_RUNS_DRY_RUN: ${{ inputs.dry_run }}
+          CLEANUP_WORKFLOW_RUNS_PRESERVE_BRANCH: ${{ inputs.preserve_branch }}
+          CLEANUP_WORKFLOW_RUNS_FORCE_DELETE_NON_DEFAULT_BRANCH: ${{ inputs.force_delete_non_default_branch }}
           CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_SUCCESSFUL: ${{ inputs.keep_latest_successful }}
           CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_FAILED: ${{ inputs.keep_latest_failed }}
           CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED: ${{ inputs.keep_latest_cancelled }}
           CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT: ${{ inputs.keep_latest_timed_out }}
           CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL: ${{ inputs.keep_last_n_successful }}
-          CLEANUP_WORKFLOW_RUNS_KEEP_REPRESENTATIVES_DEFAULT_BRANCH_ONLY: ${{ inputs.keep_representatives_default_branch_only }}
           CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED: ${{ inputs.delete_skipped }}
           CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL: ${{ inputs.delete_neutral }}
           CLEANUP_WORKFLOW_RUNS_MAX_DELETES: ${{ inputs.max_deletes_per_run }}
