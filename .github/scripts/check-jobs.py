@@ -24,7 +24,7 @@ import re
 import sys
 import urllib.request
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, List, NoReturn, Optional, Set, TextIO, Tuple
+from typing import Any, Dict, Iterable, List, NoReturn, Optional, Set, TextIO, Tuple, cast
 from urllib.error import HTTPError, URLError
 
 
@@ -181,7 +181,7 @@ def _fetch_jobs_json(repo: str, run_id: str, token: str) -> Dict[str, Any]:
     """
     Fetch all pages of jobs for a workflow run.
     """
-    url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"
+    url: Optional[str] = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"
     all_jobs: List[Dict[str, Any]] = []
 
     while url:
@@ -592,7 +592,7 @@ def write_summaries(buckets: Dict[str, List[Tuple[str, str]]]) -> None:
 
         try:
             with open(path, mode, encoding="utf-8") as out:
-                write_markdown_summary(buckets, out)
+                write_markdown_summary(buckets, cast(TextIO, out))
         except OSError as exc:
             error(f"Failed to write summary file {path}: {exc}")
 
