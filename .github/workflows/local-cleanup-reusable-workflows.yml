@@ -9,8 +9,8 @@ on:
       retention_days:
         description: Delete completed workflow runs older than this many days.
         required: false
-        type: number
-        default: 90
+        type: string
+        default: "90"
       dry_run:
         description: Report what would be deleted without deleting anything.
         required: false
@@ -39,8 +39,8 @@ on:
       keep_last_n_successful:
         description: Keep this many recent successful completed runs per workflow.
         required: false
-        type: number
-        default: 3
+        type: string
+        default: "3"
       delete_skipped:
         description: Delete skipped runs when older than retention period.
         required: false
@@ -60,14 +60,14 @@ jobs:
   cleanup-scheduled:
     name: Cleanup Workflow Runs
     if: github.event_name == 'schedule'
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-cleanup-workflow-runs.yml@master
+    uses: ./.github/workflows/reusable-cleanup-workflow-runs.yml
     with:
       dry_run: false
 
   cleanup-manual:
     name: Cleanup Workflow Runs
     if: github.event_name == 'workflow_dispatch'
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-cleanup-workflow-runs.yml@master
+    uses: ./.github/workflows/reusable-cleanup-workflow-runs.yml
     with:
       retention_days: ${{ inputs.retention_days }}
       dry_run: ${{ inputs.dry_run }}
