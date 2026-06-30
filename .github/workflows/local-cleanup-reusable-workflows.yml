@@ -63,6 +63,15 @@ on:
         type: string
         default: "3"
 
+      keep_representatives_default_branch_only:
+        description: Only preserve representative runs from the repository default branch.
+        required: false
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
       delete_skipped:
         description: Delete skipped runs when older than retention period.
         required: false
@@ -115,6 +124,7 @@ jobs:
       keep_latest_cancelled: ${{ inputs.keep_latest_cancelled || 'true' }}
       keep_latest_timed_out: ${{ inputs.keep_latest_timed_out || 'true' }}
       keep_last_n_successful: ${{ inputs.keep_last_n_successful || '3' }}
+      keep_representatives_default_branch_only: ${{ inputs.keep_representatives_default_branch_only || 'true' }}
       delete_skipped: ${{ inputs.delete_skipped || 'true' }}
       delete_neutral: ${{ inputs.delete_neutral || 'true' }}
       max_deletes_per_run: ${{ inputs.max_deletes_per_run || '250' }}

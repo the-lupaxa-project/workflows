@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
 Cleanup old GitHub Actions workflow runs.
+
+Deletes completed workflow runs older than the configured retention period,
+while preserving selected representative runs per workflow.
+
+Representative preservation defaults to the repository default branch only,
+so old Dependabot/feature-branch runs are not kept just because they are the
+only run for that branch.
 """
 
 import json
@@ -87,6 +94,7 @@ def parse_next_link(link_header: str) -> Optional[str]:
 
     for part in link_header.split(","):
         section = part.strip()
+
         if 'rel="next"' not in section:
             continue
 
@@ -159,6 +167,7 @@ def fetch_all_workflow_runs(repo: str, token: str) -> List[Dict[str, Any]]:
             break
 
         page_runs = data.get("workflow_runs", [])
+
         if isinstance(page_runs, list):
             for run in page_runs:
                 if isinstance(run, dict):
@@ -194,6 +203,7 @@ def run_id_as_int(run: Dict[str, Any]) -> Optional[int]:
     run_id = run.get("id")
     if isinstance(run_id, int):
         return run_id
+
     return None
 
 
@@ -203,6 +213,23 @@ def run_status(run: Dict[str, Any]) -> str:
 
 def run_conclusion(run: Dict[str, Any]) -> str:
     return str(run.get("conclusion") or "").strip().lower()
+
+
+def run_head_branch(run: Dict[str, Any]) -> str:
+    return str(run.get("head_branch") or "").strip()
+
+
+def repository_default_branch_from_runs(runs: List[Dict[str, Any]]) -> str:
+    for run in runs:
+        repository = run.get("repository") or {}
+        if not isinstance(repository, dict):
+            continue
+
+        default_branch = str(repository.get("default_branch") or "").strip()
+        if default_branch:
+            return default_branch
+
+    return "main"
 
 
 def keep_latest_by_conclusion(
@@ -242,6 +269,22 @@ def keep_last_n_by_conclusion(
             return
 
 
+def filter_representative_candidates(
+    runs: List[Dict[str, Any]],
+    *,
+    default_branch: str,
+    default_branch_only: bool,
+) -> List[Dict[str, Any]]:
+    if not default_branch_only:
+        return runs
+
+    return [
+        run
+        for run in runs
+        if run_head_branch(run) == default_branch
+    ]
+
+
 def find_keep_run_ids(
     runs: List[Dict[str, Any]],
     *,
@@ -250,6 +293,8 @@ def find_keep_run_ids(
     keep_latest_cancelled: bool,
     keep_latest_timed_out: bool,
     keep_last_n_successful: int,
+    keep_representatives_default_branch_only: bool,
+    default_branch: str,
 ) -> Set[int]:
     keep_ids: Set[int] = set()
     grouped: Dict[str, List[Dict[str, Any]]] = {}
@@ -257,19 +302,34 @@ def find_keep_run_ids(
     for run in runs:
         if run_status(run) != "completed":
             continue
+
         grouped.setdefault(workflow_key(run), []).append(run)
 
     for workflow_runs in grouped.values():
-        completed_sorted = sorted(workflow_runs, key=run_created_at, reverse=True)
+        candidate_runs = filter_representative_candidates(
+            workflow_runs,
+            default_branch=default_branch,
+            default_branch_only=keep_representatives_default_branch_only,
+        )
+
+        completed_sorted = sorted(
+            candidate_runs,
+            key=run_created_at,
+            reverse=True,
+        )
 
         if keep_latest_successful:
             keep_latest_by_conclusion(completed_sorted, "success", keep_ids)
+
         if keep_latest_failed:
             keep_latest_by_conclusion(completed_sorted, "failure", keep_ids)
+
         if keep_latest_cancelled:
             keep_latest_by_conclusion(completed_sorted, "cancelled", keep_ids)
+
         if keep_latest_timed_out:
             keep_latest_by_conclusion(completed_sorted, "timed_out", keep_ids)
+
         if keep_last_n_successful > 0:
             keep_last_n_by_conclusion(
                 completed_sorted,
@@ -337,11 +397,15 @@ def print_config(
     max_deletes_per_run: int,
     delete_sleep_seconds: float,
     progress_every: int,
+    keep_representatives_default_branch_only: bool,
+    default_branch: str,
 ) -> None:
     log("Workflow run cleanup configuration")
     log("==================================")
     log(f"Mode: {'DRY RUN' if dry_run else 'DELETE'}")
     log(f"Retention days: {retention_days}")
+    log(f"Default branch: {default_branch}")
+    log(f"Keep representatives default branch only: {keep_representatives_default_branch_only}")
     log(f"Keep latest successful: {keep_latest_successful}")
     log(f"Keep latest failed: {keep_latest_failed}")
     log(f"Keep latest cancelled: {keep_latest_cancelled}")
@@ -390,6 +454,7 @@ def main() -> None:
 
     if not repo:
         error("GITHUB_REPOSITORY is required.")
+
     if not token:
         error("GITHUB_TOKEN, GH_TOKEN, or ACTIONS_RUNTIME_TOKEN is required.")
 
@@ -404,22 +469,27 @@ def main() -> None:
         os.environ.get("CLEANUP_WORKFLOW_RUNS_DRY_RUN", ""),
         default=True,
     )
+
     keep_latest_successful = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_SUCCESSFUL", ""),
         default=True,
     )
+
     keep_latest_failed = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_FAILED", ""),
         default=True,
     )
+
     keep_latest_cancelled = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED", ""),
         default=True,
     )
+
     keep_latest_timed_out = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT", ""),
         default=True,
     )
+
     keep_last_n_successful = parse_int(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL", ""),
         default=3,
@@ -431,10 +501,12 @@ def main() -> None:
         os.environ.get("CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED", ""),
         default=True,
     )
+
     delete_neutral = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL", ""),
         default=True,
     )
+
     max_deletes_per_run = parse_int(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_MAX_DELETES", ""),
         default=DEFAULT_MAX_DELETES_PER_RUN,
@@ -456,6 +528,14 @@ def main() -> None:
     if progress_every < 0:
         error("CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY must be 0 or greater.")
 
+    keep_representatives_default_branch_only = parse_bool(
+        os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_REPRESENTATIVES_DEFAULT_BRANCH_ONLY", ""),
+        default=True,
+    )
+
+    runs = fetch_all_workflow_runs(repo, token)
+    default_branch = repository_default_branch_from_runs(runs)
+
     print_config(
         dry_run=dry_run,
         retention_days=retention_days,
@@ -469,10 +549,11 @@ def main() -> None:
         max_deletes_per_run=max_deletes_per_run,
         delete_sleep_seconds=delete_sleep_seconds,
         progress_every=progress_every,
+        keep_representatives_default_branch_only=keep_representatives_default_branch_only,
+        default_branch=default_branch,
     )
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
-    runs = fetch_all_workflow_runs(repo, token)
 
     keep_run_ids = find_keep_run_ids(
         runs,
@@ -481,6 +562,8 @@ def main() -> None:
         keep_latest_cancelled=keep_latest_cancelled,
         keep_latest_timed_out=keep_latest_timed_out,
         keep_last_n_successful=keep_last_n_successful,
+        keep_representatives_default_branch_only=keep_representatives_default_branch_only,
+        default_branch=default_branch,
     )
 
     delete_count = 0
@@ -495,6 +578,7 @@ def main() -> None:
         run_id = run.get("id")
         name = str(run.get("name") or "unknown")
         path = str(run.get("path") or "")
+        branch = run_head_branch(run)
         status = run_status(run)
         conclusion = run_conclusion(run)
         created_at = str(run.get("created_at") or "")
@@ -518,7 +602,7 @@ def main() -> None:
             keep_count += 1
             log(
                 f"[KEEP]   {run_id} | {created_at} | {name} | "
-                f"{status}/{conclusion} | {reason}"
+                f"{branch} | {status}/{conclusion} | {reason}"
             )
             continue
 
@@ -527,14 +611,14 @@ def main() -> None:
             delete_cap_reached = True
             log(
                 f"[KEEP]   {run_id} | {created_at} | {name} | "
-                f"{status}/{conclusion} | delete cap reached"
+                f"{branch} | {status}/{conclusion} | delete cap reached"
             )
             continue
 
         delete_count += 1
         log(
             f"[DELETE] {run_id} | {created_at} | {name} | "
-            f"{status}/{conclusion} | {path}"
+            f"{branch} | {status}/{conclusion} | {path}"
         )
 
         if not dry_run:

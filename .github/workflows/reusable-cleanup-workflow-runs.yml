@@ -45,6 +45,12 @@ on:
         type: string
         default: "3"
 
+      keep_representatives_default_branch_only:
+        description: Only preserve representative runs from the repository default branch.
+        required: false
+        type: string
+        default: "true"
+
       delete_skipped:
         description: Delete skipped runs when they are older than the retention period.
         required: false
@@ -101,6 +107,7 @@ jobs:
           CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED: ${{ inputs.keep_latest_cancelled }}
           CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT: ${{ inputs.keep_latest_timed_out }}
           CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL: ${{ inputs.keep_last_n_successful }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_REPRESENTATIVES_DEFAULT_BRANCH_ONLY: ${{ inputs.keep_representatives_default_branch_only }}
           CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED: ${{ inputs.delete_skipped }}
           CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL: ${{ inputs.delete_neutral }}
           CLEANUP_WORKFLOW_RUNS_MAX_DELETES: ${{ inputs.max_deletes_per_run }}
