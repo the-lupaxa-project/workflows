@@ -44,14 +44,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CHECK_JOBS_IGNORE_JOBS: Check Jobs Status,${{ inputs.ignore_jobs }}
-          CHECK_JOBS_SUMMARY_FILE: check-jobs-summary.md
         run: python lupaxa-dotgithub/.github/scripts/check-jobs.py
 
       - name: Upload Check Jobs summary artifact
         if: ${{ inputs.upload_artifact }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: check-jobs-summary-${{ github.job }}-${{ github.run_attempt }}
-          path: check-jobs-summary.md
+          name: check-jobs-summary
+          path: check-jobs-summary-*.md
           retention-days: ${{ inputs.artifact_retention_days }}
           if-no-files-found: error

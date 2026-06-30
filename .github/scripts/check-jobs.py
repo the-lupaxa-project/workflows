@@ -1,21 +1,6 @@
 #!/usr/bin/env python3
 """
 GitHub Actions job status summariser.
-
-Generates a Markdown summary for the current workflow run and writes it to:
-
-  1. GITHUB_STEP_SUMMARY, for the nice GitHub Actions Summary UI.
-  2. CHECK_JOBS_SUMMARY_FILE, if set, for upload as a retained artifact.
-
-The script is dependency-free and supports:
-
-  - GitHub REST API mode, using GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_TOKEN.
-  - File mode, using a JSON file argument.
-  - GitHub /jobs API JSON shape.
-  - toJson(needs) style JSON mapping.
-  - Ignored jobs via CHECK_JOBS_IGNORE_JOBS.
-  - Paginated GitHub jobs API responses.
-  - Markdown-safe table output.
 """
 
 import json
@@ -24,17 +9,12 @@ import re
 import sys
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, NoReturn, Optional, Set, TextIO, Tuple, cast
 from urllib.error import HTTPError, URLError
 
 
 JobRecord = Tuple[str, str, str, str]
-# (raw_name, raw_result, raw_status, html_url)
-
-
-# ---------------------------------------------------------------------------#
-# Utility helpers
-# ---------------------------------------------------------------------------#
 
 
 def error(message: str, *, code: int = 1) -> NoReturn:
@@ -67,15 +47,48 @@ def build_human_timestamp() -> str:
 
 
 def md_table_value(value: str) -> str:
-    """
-    Escape text for use inside a Markdown table cell.
-    """
     value = str(value)
     value = value.replace("\\", "\\\\")
     value = value.replace("|", "\\|")
     value = value.replace("\r", " ")
     value = value.replace("\n", " ")
     return value.strip()
+
+
+def slugify(value: str, *, fallback: str = "unknown") -> str:
+    value = value.strip().lower()
+    value = re.sub(r"[^a-z0-9._-]+", "-", value)
+    value = re.sub(r"-+", "-", value)
+    value = value.strip("-._")
+    return value or fallback
+
+
+def workflow_file_name_from_ref(workflow_ref: str) -> str:
+    if not workflow_ref:
+        return ""
+
+    path_part = workflow_ref.split("@", 1)[0]
+    filename = path_part.rsplit("/", 1)[-1]
+    stem = filename.rsplit(".", 1)[0]
+    return stem
+
+
+def default_summary_filename() -> str:
+    workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF", "")
+    workflow_file = workflow_file_name_from_ref(workflow_ref)
+
+    workflow_name = os.environ.get("GITHUB_WORKFLOW", "")
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+
+    name_parts = [
+        "check-jobs-summary",
+        slugify(workflow_file or workflow_name),
+        slugify(run_id),
+        f"attempt-{slugify(run_attempt)}",
+    ]
+
+    return "-".join(part for part in name_parts if part) + ".md"
 
 
 def short_sha(sha: str) -> str:
@@ -93,9 +106,6 @@ def make_link(label: str, url: str) -> str:
 
 
 def parse_next_link(link_header: str) -> Optional[str]:
-    """
-    Parse a GitHub REST API Link header and return the 'next' URL if present.
-    """
     if not link_header:
         return None
 
@@ -110,11 +120,6 @@ def parse_next_link(link_header: str) -> Optional[str]:
             return url
 
     return None
-
-
-# ---------------------------------------------------------------------------#
-# Input loading
-# ---------------------------------------------------------------------------#
 
 
 def _get_github_context_from_env() -> Tuple[str, str, str]:
@@ -157,7 +162,7 @@ def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional
         error(f"GitHub API returned HTTP {exc.code}: {exc.reason}")
     except URLError as exc:
         error(f"Failed to reach GitHub API: {exc.reason}")
-    except Exception as exc:  # pragma: no cover - defensive
+    except Exception as exc:
         error(f"Unexpected error when calling GitHub API: {exc}")
 
     if status != 200:
@@ -178,9 +183,6 @@ def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional
 
 
 def _fetch_jobs_json(repo: str, run_id: str, token: str) -> Dict[str, Any]:
-    """
-    Fetch all pages of jobs for a workflow run.
-    """
     url: Optional[str] = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"
     all_jobs: List[Dict[str, Any]] = []
 
@@ -246,11 +248,6 @@ def load_jobs_json_from_file(path: str) -> Dict[str, Any]:
         error(f"Top-level JSON structure in {path} is not an object.")
 
     return data
-
-
-# ---------------------------------------------------------------------------#
-# Normalisation and bucketing
-# ---------------------------------------------------------------------------#
 
 
 def normalise_job_name(raw: str) -> str:
@@ -320,10 +317,6 @@ def bucket_jobs(
     data: Dict[str, Any],
     ignored_job_names: Optional[Set[str]] = None,
 ) -> Dict[str, List[Tuple[str, str]]]:
-    """
-    Returns buckets of:
-        bucket_name -> [(job_name, html_url), ...]
-    """
     buckets: Dict[str, List[Tuple[str, str]]] = {
         "success": [],
         "failure": [],
@@ -371,11 +364,6 @@ def bucket_jobs(
     return buckets
 
 
-# ---------------------------------------------------------------------------#
-# Metadata
-# ---------------------------------------------------------------------------#
-
-
 def maybe_read_pr_metadata() -> Tuple[str, str]:
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     if not event_path or not os.path.isfile(event_path):
@@ -419,11 +407,6 @@ def build_pr_url(repo: str, pr_number: str) -> str:
     if repo and pr_number:
         return f"https://github.com/{repo}/pull/{pr_number}"
     return ""
-
-
-# ---------------------------------------------------------------------------#
-# Output formatting
-# ---------------------------------------------------------------------------#
 
 
 def print_count_summary(buckets: Dict[str, List[Tuple[str, str]]], out: TextIO) -> None:
@@ -483,6 +466,8 @@ def print_sorted_section(
 def print_metadata_table(out: TextIO) -> None:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
     workflow = os.environ.get("GITHUB_WORKFLOW", "")
+    workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF", "")
+    workflow_file = workflow_file_name_from_ref(workflow_ref)
     run_number = os.environ.get("GITHUB_RUN_NUMBER", "")
     run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "")
     event_name = os.environ.get("GITHUB_EVENT_NAME", "")
@@ -517,6 +502,10 @@ def print_metadata_table(out: TextIO) -> None:
 
     print(f"| Repository | {md_table_value(repo)} |", file=out)
     print(f"| Workflow | {md_table_value(workflow)} |", file=out)
+
+    if workflow_file:
+        print(f"| Workflow file | {md_table_value(workflow_file)} |", file=out)
+
     print(f"| Run | {make_link(f'#{run_number}', run_url) if run_url else md_table_value(run_number)} |", file=out)
     print(f"| Attempt | {md_table_value(run_attempt)} |", file=out)
     print(f"| Event | {md_table_value(event_name)} |", file=out)
@@ -574,6 +563,10 @@ def output_paths() -> List[str]:
     if summary_path:
         paths.append(summary_path)
 
+    if not artifact_path:
+        artifact_path = default_summary_filename()
+        os.environ["CHECK_JOBS_SUMMARY_FILE"] = artifact_path
+
     if artifact_path and artifact_path not in paths:
         paths.append(artifact_path)
 
@@ -595,11 +588,6 @@ def write_summaries(buckets: Dict[str, List[Tuple[str, str]]]) -> None:
                 write_markdown_summary(buckets, cast(TextIO, out))
         except OSError as exc:
             error(f"Failed to write summary file {path}: {exc}")
-
-
-# ---------------------------------------------------------------------------#
-# Entry point
-# ---------------------------------------------------------------------------#
 
 
 def main() -> None:
