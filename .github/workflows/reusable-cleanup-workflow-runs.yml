@@ -1,0 +1,38 @@
+name: Cleanup Workflow Runs
+
+on:
+  workflow_call:
+    inputs:
+      retention_days:
+        description: Delete completed workflow runs older than this many days.
+        required: false
+        type: number
+        default: 90
+      dry_run:
+        description: Report what would be deleted without deleting anything.
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup-workflow-runs:
+    name: Cleanup Workflow Runs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout workflows repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          repository: the-lupaxa-project/workflows
+          path: lupaxa-dotgithub
+
+      - name: Cleanup old workflow runs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS: ${{ inputs.retention_days }}
+          CLEANUP_WORKFLOW_RUNS_DRY_RUN: ${{ inputs.dry_run }}
+        run: python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py

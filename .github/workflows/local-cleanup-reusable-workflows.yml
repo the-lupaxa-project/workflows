@@ -1,0 +1,29 @@
+name: Cleanup Workflow Runs
+
+on:
+  schedule:
+    - cron: "17 3 * * 0"
+  workflow_dispatch:
+    inputs:
+      retention_days:
+        description: Delete completed workflow runs older than this many days.
+        required: false
+        type: number
+        default: 90
+      dry_run:
+        description: Report what would be deleted without deleting anything.
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup-workflow-runs:
+    name: Cleanup Workflow Runs
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-cleanup-workflow-runs.yml@master
+    with:
+      retention_days: ${{ inputs.retention_days || 90 }}
+      dry_run: ${{ inputs.dry_run || true }}

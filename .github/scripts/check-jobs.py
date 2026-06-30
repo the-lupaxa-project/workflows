@@ -9,7 +9,6 @@ import re
 import sys
 import urllib.request
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Dict, Iterable, List, NoReturn, Optional, Set, TextIO, Tuple, cast
 from urllib.error import HTTPError, URLError
 
