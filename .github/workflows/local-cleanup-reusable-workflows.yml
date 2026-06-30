@@ -11,46 +11,93 @@ on:
         required: false
         type: string
         default: "90"
+
       dry_run:
         description: Report what would be deleted without deleting anything.
         required: false
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
       keep_latest_successful:
         description: Keep the latest successful completed run for each workflow.
         required: false
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
       keep_latest_failed:
         description: Keep the latest failed completed run for each workflow.
         required: false
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
       keep_latest_cancelled:
         description: Keep the latest cancelled completed run for each workflow.
         required: false
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
       keep_latest_timed_out:
         description: Keep the latest timed-out completed run for each workflow.
         required: false
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
       keep_last_n_successful:
         description: Keep this many recent successful completed runs per workflow.
         required: false
         type: string
         default: "3"
+
       delete_skipped:
         description: Delete skipped runs when older than retention period.
         required: false
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
       delete_neutral:
         description: Delete neutral runs when older than retention period.
         required: false
-        type: boolean
-        default: true
+        type: choice
+        options:
+          - "true"
+          - "false"
+        default: "true"
+
+      max_deletes_per_run:
+        description: Maximum workflow runs to delete in one cleanup execution. Use 0 for unlimited.
+        required: false
+        type: string
+        default: "250"
+
+      delete_sleep_seconds:
+        description: Seconds to sleep between delete calls to reduce API throttling risk.
+        required: false
+        type: string
+        default: "1.0"
+
+      progress_every:
+        description: Print progress after this many inspected workflow runs. Use 0 to disable.
+        required: false
+        type: string
+        default: "50"
 
 permissions:
   actions: write
@@ -62,32 +109,35 @@ jobs:
     uses: ./.github/workflows/reusable-cleanup-workflow-runs.yml
     with:
       retention_days: ${{ inputs.retention_days || '90' }}
-      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
-      keep_latest_successful: ${{ inputs.keep_latest_successful }}
-      keep_latest_failed: ${{ inputs.keep_latest_failed }}
-      keep_latest_cancelled: ${{ inputs.keep_latest_cancelled }}
-      keep_latest_timed_out: ${{ inputs.keep_latest_timed_out }}
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+      keep_latest_successful: ${{ inputs.keep_latest_successful || 'true' }}
+      keep_latest_failed: ${{ inputs.keep_latest_failed || 'true' }}
+      keep_latest_cancelled: ${{ inputs.keep_latest_cancelled || 'true' }}
+      keep_latest_timed_out: ${{ inputs.keep_latest_timed_out || 'true' }}
       keep_last_n_successful: ${{ inputs.keep_last_n_successful || '3' }}
-      delete_skipped: ${{ inputs.delete_skipped }}
-      delete_neutral: ${{ inputs.delete_neutral }}
+      delete_skipped: ${{ inputs.delete_skipped || 'true' }}
+      delete_neutral: ${{ inputs.delete_neutral || 'true' }}
+      max_deletes_per_run: ${{ inputs.max_deletes_per_run || '250' }}
+      delete_sleep_seconds: ${{ inputs.delete_sleep_seconds || '1.0' }}
+      progress_every: ${{ inputs.progress_every || '50' }}
 
   status-check:
     name: Check Jobs Status
     needs:
       - cleanup-workflow-runs
     if: always()
-    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+    with:
+      ignore_jobs: "Slack Workflow Status"
 
   slack-workflow-status:
     name: Slack Workflow Status
     needs:
       - status-check
     if: always()
-
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failure,timed_out"
-      ignore_jobs: "Check Jobs Status"
+      ignore_jobs: "Check Jobs Status,Slack Workflow Status"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

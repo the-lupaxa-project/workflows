@@ -12,32 +12,32 @@ on:
       dry_run:
         description: Report what would be deleted without deleting anything.
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: "true"
 
       keep_latest_successful:
         description: Keep the latest successful completed run for each workflow.
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: "true"
 
       keep_latest_failed:
         description: Keep the latest failed completed run for each workflow.
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: "true"
 
       keep_latest_cancelled:
         description: Keep the latest cancelled completed run for each workflow.
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: "true"
 
       keep_latest_timed_out:
         description: Keep the latest timed-out completed run for each workflow.
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: "true"
 
       keep_last_n_successful:
         description: Keep this many recent successful completed runs per workflow.
@@ -48,14 +48,32 @@ on:
       delete_skipped:
         description: Delete skipped runs when they are older than the retention period.
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: "true"
 
       delete_neutral:
         description: Delete neutral runs when they are older than the retention period.
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: "true"
+
+      max_deletes_per_run:
+        description: Maximum workflow runs to delete in one cleanup execution. Use 0 for unlimited.
+        required: false
+        type: string
+        default: "250"
+
+      delete_sleep_seconds:
+        description: Seconds to sleep between delete calls to reduce API throttling risk.
+        required: false
+        type: string
+        default: "1.0"
+
+      progress_every:
+        description: Print progress after this many inspected workflow runs. Use 0 to disable.
+        required: false
+        type: string
+        default: "50"
 
 permissions:
   actions: write
@@ -85,4 +103,7 @@ jobs:
           CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL: ${{ inputs.keep_last_n_successful }}
           CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED: ${{ inputs.delete_skipped }}
           CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL: ${{ inputs.delete_neutral }}
+          CLEANUP_WORKFLOW_RUNS_MAX_DELETES: ${{ inputs.max_deletes_per_run }}
+          CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS: ${{ inputs.delete_sleep_seconds }}
+          CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY: ${{ inputs.progress_every }}
         run: python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py

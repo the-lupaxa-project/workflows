@@ -1,21 +1,12 @@
 #!/usr/bin/env python3
 """
 Cleanup old GitHub Actions workflow runs.
-
-Deletes completed workflow runs older than the configured retention period,
-while preserving selected representative runs per workflow.
-
-Safe behaviour:
-  - Never deletes the current cleanup run.
-  - Never deletes non-completed runs.
-  - Supports dry-run mode.
-  - Keeps latest successful/failed/cancelled/timed_out runs per workflow.
-  - Can keep the last N successful runs per workflow.
 """
 
 import json
 import os
 import sys
+import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple
@@ -24,10 +15,17 @@ from urllib.error import HTTPError, URLError
 
 DEFAULT_RETENTION_DAYS = 90
 DEFAULT_PER_PAGE = 100
+DEFAULT_MAX_DELETES_PER_RUN = 250
+DEFAULT_DELETE_SLEEP_SECONDS = 1.0
+DEFAULT_PROGRESS_EVERY = 50
+
+
+def log(message: str = "") -> None:
+    print(message, flush=True)
 
 
 def error(message: str, *, code: int = 1) -> NoReturn:
-    print(f"ERROR: {message}", file=sys.stderr)
+    print(f"ERROR: {message}", file=sys.stderr, flush=True)
     raise SystemExit(code)
 
 
@@ -56,6 +54,16 @@ def parse_int(value: str, *, default: int) -> int:
         return default
 
 
+def parse_float(value: str, *, default: float) -> float:
+    if value == "":
+        return default
+
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
+
 def parse_iso8601(value: str) -> Optional[datetime]:
     if not value:
         return None
@@ -79,7 +87,6 @@ def parse_next_link(link_header: str) -> Optional[str]:
 
     for part in link_header.split(","):
         section = part.strip()
-
         if 'rel="next"' not in section:
             continue
 
@@ -115,7 +122,7 @@ def github_request(
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
         if body:
-            print(body, file=sys.stderr)
+            print(body, file=sys.stderr, flush=True)
         error(f"GitHub API returned HTTP {exc.code} for {method} {url}: {exc.reason}")
     except URLError as exc:
         error(f"Failed to reach GitHub API at {url}: {exc.reason}")
@@ -152,12 +159,12 @@ def fetch_all_workflow_runs(repo: str, token: str) -> List[Dict[str, Any]]:
             break
 
         page_runs = data.get("workflow_runs", [])
-
         if isinstance(page_runs, list):
             for run in page_runs:
                 if isinstance(run, dict):
                     runs.append(run)
 
+        log(f"[FETCH] Loaded {len(runs)} workflow runs so far")
         url = next_url
 
     return runs
@@ -172,8 +179,7 @@ def workflow_key(run: Dict[str, Any]) -> str:
     if path:
         return path
 
-    name = str(run.get("name") or "unknown")
-    return name
+    return str(run.get("name") or "unknown")
 
 
 def run_created_at(run: Dict[str, Any]) -> datetime:
@@ -188,66 +194,15 @@ def run_id_as_int(run: Dict[str, Any]) -> Optional[int]:
     run_id = run.get("id")
     if isinstance(run_id, int):
         return run_id
-
     return None
-
-
-def run_conclusion(run: Dict[str, Any]) -> str:
-    return str(run.get("conclusion") or "").strip().lower()
 
 
 def run_status(run: Dict[str, Any]) -> str:
     return str(run.get("status") or "").strip().lower()
 
 
-def find_keep_run_ids(
-    runs: List[Dict[str, Any]],
-    *,
-    keep_latest_successful: bool,
-    keep_latest_failed: bool,
-    keep_latest_cancelled: bool,
-    keep_latest_timed_out: bool,
-    keep_last_n_successful: int,
-) -> Set[int]:
-    keep_ids: Set[int] = set()
-
-    grouped: Dict[str, List[Dict[str, Any]]] = {}
-
-    for run in runs:
-        if run_status(run) != "completed":
-            continue
-
-        key = workflow_key(run)
-        grouped.setdefault(key, []).append(run)
-
-    for workflow_runs in grouped.values():
-        completed_sorted = sorted(
-            workflow_runs,
-            key=run_created_at,
-            reverse=True,
-        )
-
-        if keep_latest_successful:
-            keep_latest_by_conclusion(completed_sorted, "success", keep_ids)
-
-        if keep_latest_failed:
-            keep_latest_by_conclusion(completed_sorted, "failure", keep_ids)
-
-        if keep_latest_cancelled:
-            keep_latest_by_conclusion(completed_sorted, "cancelled", keep_ids)
-
-        if keep_latest_timed_out:
-            keep_latest_by_conclusion(completed_sorted, "timed_out", keep_ids)
-
-        if keep_last_n_successful > 0:
-            keep_last_n_by_conclusion(
-                completed_sorted,
-                "success",
-                keep_last_n_successful,
-                keep_ids,
-            )
-
-    return keep_ids
+def run_conclusion(run: Dict[str, Any]) -> str:
+    return str(run.get("conclusion") or "").strip().lower()
 
 
 def keep_latest_by_conclusion(
@@ -287,6 +242,45 @@ def keep_last_n_by_conclusion(
             return
 
 
+def find_keep_run_ids(
+    runs: List[Dict[str, Any]],
+    *,
+    keep_latest_successful: bool,
+    keep_latest_failed: bool,
+    keep_latest_cancelled: bool,
+    keep_latest_timed_out: bool,
+    keep_last_n_successful: int,
+) -> Set[int]:
+    keep_ids: Set[int] = set()
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+
+    for run in runs:
+        if run_status(run) != "completed":
+            continue
+        grouped.setdefault(workflow_key(run), []).append(run)
+
+    for workflow_runs in grouped.values():
+        completed_sorted = sorted(workflow_runs, key=run_created_at, reverse=True)
+
+        if keep_latest_successful:
+            keep_latest_by_conclusion(completed_sorted, "success", keep_ids)
+        if keep_latest_failed:
+            keep_latest_by_conclusion(completed_sorted, "failure", keep_ids)
+        if keep_latest_cancelled:
+            keep_latest_by_conclusion(completed_sorted, "cancelled", keep_ids)
+        if keep_latest_timed_out:
+            keep_latest_by_conclusion(completed_sorted, "timed_out", keep_ids)
+        if keep_last_n_successful > 0:
+            keep_last_n_by_conclusion(
+                completed_sorted,
+                "success",
+                keep_last_n_successful,
+                keep_ids,
+            )
+
+    return keep_ids
+
+
 def should_delete_run(
     run: Dict[str, Any],
     *,
@@ -315,8 +309,7 @@ def should_delete_run(
     if conclusion == "neutral" and not delete_neutral:
         return False, "neutral deletion disabled"
 
-    created_at = run_created_at(run)
-    if created_at >= cutoff:
+    if run_created_at(run) >= cutoff:
         return False, "newer than cutoff"
 
     return True, "old completed run"
@@ -341,39 +334,49 @@ def print_config(
     keep_last_n_successful: int,
     delete_skipped: bool,
     delete_neutral: bool,
+    max_deletes_per_run: int,
+    delete_sleep_seconds: float,
+    progress_every: int,
 ) -> None:
-    print("Workflow run cleanup configuration")
-    print("==================================")
-    print(f"Mode: {'DRY RUN' if dry_run else 'DELETE'}")
-    print(f"Retention days: {retention_days}")
-    print(f"Keep latest successful: {keep_latest_successful}")
-    print(f"Keep latest failed: {keep_latest_failed}")
-    print(f"Keep latest cancelled: {keep_latest_cancelled}")
-    print(f"Keep latest timed out: {keep_latest_timed_out}")
-    print(f"Keep last N successful: {keep_last_n_successful}")
-    print(f"Delete skipped: {delete_skipped}")
-    print(f"Delete neutral: {delete_neutral}")
-    print()
+    log("Workflow run cleanup configuration")
+    log("==================================")
+    log(f"Mode: {'DRY RUN' if dry_run else 'DELETE'}")
+    log(f"Retention days: {retention_days}")
+    log(f"Keep latest successful: {keep_latest_successful}")
+    log(f"Keep latest failed: {keep_latest_failed}")
+    log(f"Keep latest cancelled: {keep_latest_cancelled}")
+    log(f"Keep latest timed out: {keep_latest_timed_out}")
+    log(f"Keep last N successful: {keep_last_n_successful}")
+    log(f"Delete skipped: {delete_skipped}")
+    log(f"Delete neutral: {delete_neutral}")
+    log(f"Max deletes per run: {max_deletes_per_run}")
+    log(f"Delete sleep seconds: {delete_sleep_seconds}")
+    log(f"Progress every: {progress_every}")
+    log()
 
 
 def print_summary(
     *,
     total: int,
+    inspected: int,
     delete_count: int,
     keep_count: int,
     dry_run: bool,
     retention_days: int,
     preserved_count: int,
+    delete_cap_reached: bool,
 ) -> None:
-    print()
-    print("Workflow run cleanup summary")
-    print("============================")
-    print(f"Mode: {'DRY RUN' if dry_run else 'DELETE'}")
-    print(f"Retention days: {retention_days}")
-    print(f"Workflow runs inspected: {total}")
-    print(f"Preserved representative runs: {preserved_count}")
-    print(f"Runs selected for deletion: {delete_count}")
-    print(f"Runs kept/skipped: {keep_count}")
+    log()
+    log("Workflow run cleanup summary")
+    log("============================")
+    log(f"Mode: {'DRY RUN' if dry_run else 'DELETE'}")
+    log(f"Retention days: {retention_days}")
+    log(f"Workflow runs fetched: {total}")
+    log(f"Workflow runs inspected: {inspected}")
+    log(f"Preserved representative runs: {preserved_count}")
+    log(f"Runs selected for deletion: {delete_count}")
+    log(f"Runs kept/skipped: {keep_count}")
+    log(f"Delete cap reached: {delete_cap_reached}")
 
 
 def main() -> None:
@@ -387,7 +390,6 @@ def main() -> None:
 
     if not repo:
         error("GITHUB_REPOSITORY is required.")
-
     if not token:
         error("GITHUB_TOKEN, GH_TOKEN, or ACTIONS_RUNTIME_TOKEN is required.")
 
@@ -395,7 +397,6 @@ def main() -> None:
         os.environ.get("CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS", ""),
         default=DEFAULT_RETENTION_DAYS,
     )
-
     if retention_days < 14:
         error("CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS must be at least 14.")
 
@@ -403,32 +404,26 @@ def main() -> None:
         os.environ.get("CLEANUP_WORKFLOW_RUNS_DRY_RUN", ""),
         default=True,
     )
-
     keep_latest_successful = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_SUCCESSFUL", ""),
         default=True,
     )
-
     keep_latest_failed = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_FAILED", ""),
         default=True,
     )
-
     keep_latest_cancelled = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED", ""),
         default=True,
     )
-
     keep_latest_timed_out = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT", ""),
         default=True,
     )
-
     keep_last_n_successful = parse_int(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL", ""),
         default=3,
     )
-
     if keep_last_n_successful < 0:
         error("CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL must be 0 or greater.")
 
@@ -436,11 +431,30 @@ def main() -> None:
         os.environ.get("CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED", ""),
         default=True,
     )
-
     delete_neutral = parse_bool(
         os.environ.get("CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL", ""),
         default=True,
     )
+    max_deletes_per_run = parse_int(
+        os.environ.get("CLEANUP_WORKFLOW_RUNS_MAX_DELETES", ""),
+        default=DEFAULT_MAX_DELETES_PER_RUN,
+    )
+    if max_deletes_per_run < 0:
+        error("CLEANUP_WORKFLOW_RUNS_MAX_DELETES must be 0 or greater.")
+
+    delete_sleep_seconds = parse_float(
+        os.environ.get("CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS", ""),
+        default=DEFAULT_DELETE_SLEEP_SECONDS,
+    )
+    if delete_sleep_seconds < 0:
+        error("CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS must be 0 or greater.")
+
+    progress_every = parse_int(
+        os.environ.get("CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY", ""),
+        default=DEFAULT_PROGRESS_EVERY,
+    )
+    if progress_every < 0:
+        error("CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY must be 0 or greater.")
 
     print_config(
         dry_run=dry_run,
@@ -452,10 +466,12 @@ def main() -> None:
         keep_last_n_successful=keep_last_n_successful,
         delete_skipped=delete_skipped,
         delete_neutral=delete_neutral,
+        max_deletes_per_run=max_deletes_per_run,
+        delete_sleep_seconds=delete_sleep_seconds,
+        progress_every=progress_every,
     )
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
-
     runs = fetch_all_workflow_runs(repo, token)
 
     keep_run_ids = find_keep_run_ids(
@@ -469,14 +485,25 @@ def main() -> None:
 
     delete_count = 0
     keep_count = 0
+    inspected = 0
+    delete_cap_reached = False
+    total_runs = len(runs)
 
     for run in sorted(runs, key=run_created_at):
+        inspected += 1
+
         run_id = run.get("id")
         name = str(run.get("name") or "unknown")
         path = str(run.get("path") or "")
         status = run_status(run)
         conclusion = run_conclusion(run)
         created_at = str(run.get("created_at") or "")
+
+        if progress_every and inspected % progress_every == 0:
+            log(
+                f"[PROGRESS] inspected {inspected}/{total_runs}, "
+                f"deleted {delete_count}, kept/skipped {keep_count}"
+            )
 
         should_delete, reason = should_delete_run(
             run,
@@ -489,14 +516,23 @@ def main() -> None:
 
         if not should_delete:
             keep_count += 1
-            print(
+            log(
                 f"[KEEP]   {run_id} | {created_at} | {name} | "
                 f"{status}/{conclusion} | {reason}"
             )
             continue
 
+        if max_deletes_per_run and delete_count >= max_deletes_per_run:
+            keep_count += 1
+            delete_cap_reached = True
+            log(
+                f"[KEEP]   {run_id} | {created_at} | {name} | "
+                f"{status}/{conclusion} | delete cap reached"
+            )
+            continue
+
         delete_count += 1
-        print(
+        log(
             f"[DELETE] {run_id} | {created_at} | {name} | "
             f"{status}/{conclusion} | {path}"
         )
@@ -507,13 +543,18 @@ def main() -> None:
 
             delete_workflow_run(repo, run_id, token)
 
+            if delete_sleep_seconds:
+                time.sleep(delete_sleep_seconds)
+
     print_summary(
-        total=len(runs),
+        total=total_runs,
+        inspected=inspected,
         delete_count=delete_count,
         keep_count=keep_count,
         dry_run=dry_run,
         retention_days=retention_days,
         preserved_count=len(keep_run_ids),
+        delete_cap_reached=delete_cap_reached,
     )
 
 
