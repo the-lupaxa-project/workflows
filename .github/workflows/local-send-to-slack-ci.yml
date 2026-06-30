@@ -29,9 +29,7 @@ jobs:
     needs:
       - python-ci
     if: always()
-    uses: ./.github/workflows/reusable-check-jobs-status.yml
-    with:
-      ignore_jobs: "💬 Slack Notification"
+    uses: ./.github/workflows/reusable-workflow-summary.yml
 
   slack-notification:
     name: 💬 Slack Notification
@@ -41,6 +39,5 @@ jobs:
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failure,timed_out"
-      ignore_jobs: "📊 Workflow Summary,💬 Slack Notification"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

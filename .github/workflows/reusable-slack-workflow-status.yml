@@ -67,6 +67,6 @@ jobs:
           SEND_TO_SLACK_RESULTS: ${{ inputs.notify_on_results }}
           SEND_TO_SLACK_INCLUDE_JOBS: ${{ inputs.include_jobs }}
           SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE: ${{ inputs.include_commit_message }}
-          SEND_TO_SLACK_IGNORE_JOBS: ${{ inputs.ignore_jobs }}
+          SEND_TO_SLACK_IGNORE_JOBS: "📊 Workflow Summary,💬 Slack Notification,${{ inputs.ignore_jobs }}"
         run: |
           python lupaxa-dotgithub/.github/scripts/send-to-slack.py
