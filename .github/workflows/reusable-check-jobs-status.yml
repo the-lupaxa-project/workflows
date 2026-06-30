@@ -1,4 +1,4 @@
-name: Check Jobs Status Summary
+name: Reusable Check Jobs Status Summary
 
 on:
   workflow_call:
