@@ -1,8 +1,9 @@
-name: Local Cleanup Workflow Runs
+name: Cleanup Workflow Runs
 
 on:
   schedule:
-    - cron: "17 3 * * 0"
+    - cron: "17 4 * * 0"
+
   workflow_dispatch:
     inputs:
       retention_days:
@@ -12,6 +13,41 @@ on:
         default: 90
       dry_run:
         description: Report what would be deleted without deleting anything.
+        required: false
+        type: boolean
+        default: true
+      keep_latest_successful:
+        description: Keep the latest successful completed run for each workflow.
+        required: false
+        type: boolean
+        default: true
+      keep_latest_failed:
+        description: Keep the latest failed completed run for each workflow.
+        required: false
+        type: boolean
+        default: true
+      keep_latest_cancelled:
+        description: Keep the latest cancelled completed run for each workflow.
+        required: false
+        type: boolean
+        default: true
+      keep_latest_timed_out:
+        description: Keep the latest timed-out completed run for each workflow.
+        required: false
+        type: boolean
+        default: true
+      keep_last_n_successful:
+        description: Keep this many recent successful completed runs per workflow.
+        required: false
+        type: number
+        default: 3
+      delete_skipped:
+        description: Delete skipped runs when older than retention period.
+        required: false
+        type: boolean
+        default: true
+      delete_neutral:
+        description: Delete neutral runs when older than retention period.
         required: false
         type: boolean
         default: true
@@ -26,4 +62,32 @@ jobs:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-cleanup-workflow-runs.yml@master
     with:
       retention_days: ${{ inputs.retention_days || 90 }}
-      dry_run: ${{ inputs.dry_run || true }}
+      dry_run: ${{ inputs.dry_run || false }}
+      keep_latest_successful: ${{ inputs.keep_latest_successful || true }}
+      keep_latest_failed: ${{ inputs.keep_latest_failed || true }}
+      keep_latest_cancelled: ${{ inputs.keep_latest_cancelled || true }}
+      keep_latest_timed_out: ${{ inputs.keep_latest_timed_out || true }}
+      keep_last_n_successful: ${{ inputs.keep_last_n_successful || 3 }}
+      delete_skipped: ${{ inputs.delete_skipped || true }}
+      delete_neutral: ${{ inputs.delete_neutral || true }}
+
+  status-check:
+    name: Check Jobs Status
+    needs:
+      - cleanup-workflow-runs
+    if: always()
+    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
+    uses: ./.github/workflows/reusable-check-jobs-status.yml
+
+  slack-workflow-status:
+    name: Slack Workflow Status
+    needs:
+      - status-check
+    if: always()
+
+    uses: ./.github/workflows/reusable-slack-workflow-status.yml
+    with:
+      notify_on_results: "failure,timed_out"
+      ignore_jobs: "Check Jobs Status"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

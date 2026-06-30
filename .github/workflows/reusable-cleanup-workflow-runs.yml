@@ -1,4 +1,4 @@
-name: Reusable Cleanup Workflow Runs
+name: Cleanup Workflow Runs
 
 on:
   workflow_call:
@@ -8,8 +8,51 @@ on:
         required: false
         type: number
         default: 90
+
       dry_run:
         description: Report what would be deleted without deleting anything.
+        required: false
+        type: boolean
+        default: true
+
+      keep_latest_successful:
+        description: Keep the latest successful completed run for each workflow.
+        required: false
+        type: boolean
+        default: true
+
+      keep_latest_failed:
+        description: Keep the latest failed completed run for each workflow.
+        required: false
+        type: boolean
+        default: true
+
+      keep_latest_cancelled:
+        description: Keep the latest cancelled completed run for each workflow.
+        required: false
+        type: boolean
+        default: true
+
+      keep_latest_timed_out:
+        description: Keep the latest timed-out completed run for each workflow.
+        required: false
+        type: boolean
+        default: true
+
+      keep_last_n_successful:
+        description: Keep this many recent successful completed runs per workflow.
+        required: false
+        type: number
+        default: 3
+
+      delete_skipped:
+        description: Delete skipped runs when they are older than the retention period.
+        required: false
+        type: boolean
+        default: true
+
+      delete_neutral:
+        description: Delete neutral runs when they are older than the retention period.
         required: false
         type: boolean
         default: true
@@ -35,4 +78,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS: ${{ inputs.retention_days }}
           CLEANUP_WORKFLOW_RUNS_DRY_RUN: ${{ inputs.dry_run }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_SUCCESSFUL: ${{ inputs.keep_latest_successful }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_FAILED: ${{ inputs.keep_latest_failed }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED: ${{ inputs.keep_latest_cancelled }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT: ${{ inputs.keep_latest_timed_out }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL: ${{ inputs.keep_last_n_successful }}
+          CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED: ${{ inputs.delete_skipped }}
+          CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL: ${{ inputs.delete_neutral }}
         run: python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py
