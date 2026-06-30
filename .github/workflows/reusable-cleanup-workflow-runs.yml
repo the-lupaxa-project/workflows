@@ -4,101 +4,121 @@ on:
   workflow_call:
     inputs:
       retention_days:
+        description: Delete completed workflow runs older than this many days.
         required: false
         type: string
         default: "90"
 
       artifact_retention_days:
+        description: Delete artifacts older than this many days when artifact cleanup is enabled.
         required: false
         type: string
         default: "90"
 
       dry_run:
+        description: Report what would be deleted without deleting anything.
         required: false
         type: string
         default: "true"
 
       cleanup_artifacts:
+        description: Also delete old repository workflow artifacts.
         required: false
         type: string
         default: "false"
 
       preserve_branch:
+        description: Branch to preserve representative workflow runs for.
         required: false
         type: string
         default: "master"
 
       force_delete_non_default_branch:
+        description: Force-delete completed runs not on preserve_branch, ignoring retention and representative keeps.
         required: false
         type: string
         default: "false"
 
       keep_latest_successful:
+        description: Keep the latest successful completed run for each workflow on preserve_branch.
         required: false
         type: string
         default: "true"
 
       keep_latest_failed:
+        description: Keep the latest failed completed run for each workflow on preserve_branch.
         required: false
         type: string
         default: "true"
 
       keep_latest_cancelled:
+        description: Keep the latest cancelled completed run for each workflow on preserve_branch.
         required: false
         type: string
         default: "true"
 
       keep_latest_timed_out:
+        description: Keep the latest timed-out completed run for each workflow on preserve_branch.
         required: false
         type: string
         default: "true"
 
       keep_last_n_successful:
+        description: Keep this many recent successful completed runs per workflow on preserve_branch.
         required: false
         type: string
         default: "3"
 
       delete_skipped:
+        description: Delete skipped runs when they are older than the retention period.
         required: false
         type: string
         default: "true"
 
       delete_neutral:
+        description: Delete neutral runs when they are older than the retention period.
         required: false
         type: string
         default: "true"
 
       max_deletes_per_run:
+        description: Maximum workflow runs to delete in one cleanup execution. Use 0 for unlimited.
         required: false
         type: string
         default: "250"
 
       max_artifact_deletes_per_run:
+        description: Maximum artifacts to delete in one cleanup execution. Use 0 for unlimited.
         required: false
         type: string
         default: "250"
 
       delete_sleep_seconds:
+        description: Seconds to sleep between delete calls to reduce API throttling risk.
         required: false
         type: string
         default: "1.0"
 
       progress_every:
+        description: Print progress after this many inspected workflow runs. Use 0 to disable.
         required: false
         type: string
         default: "50"
 
       verbosity:
+        description: Log verbosity. Use quiet, normal, or verbose.
         required: false
         type: string
         default: "normal"
 
       upload_report_artifact:
+        description: Upload the generated Markdown cleanup report as a workflow artifact.
         required: false
         type: string
         default: "true"
 
       report_artifact_retention_days:
+        description: Number of days to retain the uploaded cleanup report artifact.
         required: false
         type: string
         default: "90"

@@ -15,9 +15,27 @@ from urllib.error import HTTPError, URLError
 
 JobRecord = Tuple[str, str, str, str]
 
+EMOJI_SUMMARY = "📊"
+EMOJI_SUCCESS = "✅"
+EMOJI_FAILURE = "❌"
+EMOJI_TIMEOUT = "⏱️"
+EMOJI_CANCELLED = "🚫"
+EMOJI_SKIPPED = "⏭️"
+EMOJI_NEUTRAL = "⚪"
+EMOJI_WARNING = "⚠️"
+EMOJI_STALE = "🕰️"
+EMOJI_RUNNING = "🔄"
+EMOJI_OTHER = "❔"
+EMOJI_METADATA = "🧾"
+EMOJI_WORKFLOW = "🏃"
+EMOJI_BRANCH = "🌿"
+EMOJI_COMMIT = "🔖"
+EMOJI_PR = "🔀"
+EMOJI_REPO = "📦"
+
 
 def error(message: str, *, code: int = 1) -> NoReturn:
-    print(f"ERROR: {message}", file=sys.stderr)
+    print(f"{EMOJI_WARNING} ERROR: {message}", file=sys.stderr, flush=True)
     raise SystemExit(code)
 
 
@@ -121,6 +139,38 @@ def parse_next_link(link_header: str) -> Optional[str]:
     return None
 
 
+def status_label(key: str) -> str:
+    labels = {
+        "success": f"{EMOJI_SUCCESS} Successful",
+        "failure": f"{EMOJI_FAILURE} Failed",
+        "timed_out": f"{EMOJI_TIMEOUT} Timed out",
+        "cancelled": f"{EMOJI_CANCELLED} Cancelled",
+        "skipped": f"{EMOJI_SKIPPED} Skipped",
+        "neutral": f"{EMOJI_NEUTRAL} Neutral",
+        "action_required": f"{EMOJI_WARNING} Action required",
+        "stale": f"{EMOJI_STALE} Stale",
+        "not_completed": f"{EMOJI_RUNNING} Not completed",
+        "other": f"{EMOJI_OTHER} Other",
+    }
+    return labels.get(key, f"{EMOJI_OTHER} {key}")
+
+
+def section_title(key: str) -> str:
+    titles = {
+        "success": f"{EMOJI_SUCCESS} Successful jobs",
+        "failure": f"{EMOJI_FAILURE} Failed jobs",
+        "timed_out": f"{EMOJI_TIMEOUT} Timed out jobs",
+        "cancelled": f"{EMOJI_CANCELLED} Cancelled jobs",
+        "skipped": f"{EMOJI_SKIPPED} Skipped jobs",
+        "neutral": f"{EMOJI_NEUTRAL} Neutral jobs",
+        "action_required": f"{EMOJI_WARNING} Action required jobs",
+        "stale": f"{EMOJI_STALE} Stale jobs",
+        "not_completed": f"{EMOJI_RUNNING} Not completed jobs",
+        "other": f"{EMOJI_OTHER} Other statuses",
+    }
+    return titles.get(key, key)
+
+
 def _get_github_context_from_env() -> Tuple[str, str, str]:
     repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
     run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
@@ -157,7 +207,7 @@ def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
         if body:
-            print(body, file=sys.stderr)
+            print(body, file=sys.stderr, flush=True)
         error(f"GitHub API returned HTTP {exc.code}: {exc.reason}")
     except URLError as exc:
         error(f"Failed to reach GitHub API: {exc.reason}")
@@ -166,8 +216,8 @@ def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional
 
     if status != 200:
         body = body_bytes.decode("utf-8", errors="replace")
-        print("GitHub API response body:", file=sys.stderr)
-        print(body, file=sys.stderr)
+        print("GitHub API response body:", file=sys.stderr, flush=True)
+        print(body, file=sys.stderr, flush=True)
         error(f"GitHub API returned HTTP {status}.")
 
     try:
@@ -196,6 +246,7 @@ def _fetch_jobs_json(repo: str, run_id: str, token: str) -> Dict[str, Any]:
             if isinstance(job, dict):
                 all_jobs.append(job)
 
+        print(f"{EMOJI_WORKFLOW} Loaded {len(all_jobs)} jobs so far", flush=True)
         url = next_url
 
     return {
@@ -410,26 +461,26 @@ def build_pr_url(repo: str, pr_number: str) -> str:
 
 def print_count_summary(buckets: Dict[str, List[Tuple[str, str]]], out: TextIO) -> None:
     rows = [
-        ("✅ Successful", "success"),
-        ("❌ Failed", "failure"),
-        ("⏱️ Timed out", "timed_out"),
-        ("🚫 Cancelled", "cancelled"),
-        ("⏭️ Skipped", "skipped"),
-        ("⚪ Neutral", "neutral"),
-        ("⚠️ Action required", "action_required"),
-        ("🕰️ Stale", "stale"),
-        ("🔄 Not completed", "not_completed"),
-        ("❔ Other", "other"),
+        "success",
+        "failure",
+        "timed_out",
+        "cancelled",
+        "skipped",
+        "neutral",
+        "action_required",
+        "stale",
+        "not_completed",
+        "other",
     ]
 
-    print("### Result summary", file=out)
+    print(f"### {EMOJI_SUMMARY} Result summary", file=out)
     print(file=out)
     print("| Status | Count |", file=out)
     print("| :----- | ----: |", file=out)
 
-    for label, key in rows:
+    for key in rows:
         count = len(buckets.get(key, []))
-        print(f"| {label} | {count} |", file=out)
+        print(f"| {status_label(key)} | {count} |", file=out)
 
     print(file=out)
 
@@ -494,18 +545,18 @@ def print_metadata_table(out: TextIO) -> None:
     if commit_message:
         commit_message = commit_message.splitlines()[0].strip()
 
-    print("### Workflow metadata", file=out)
+    print(f"### {EMOJI_METADATA} Workflow metadata", file=out)
     print(file=out)
     print("| Field | Value |", file=out)
     print("| :---- | :---- |", file=out)
 
-    print(f"| Repository | {md_table_value(repo)} |", file=out)
-    print(f"| Workflow | {md_table_value(workflow)} |", file=out)
+    print(f"| {EMOJI_REPO} Repository | {md_table_value(repo)} |", file=out)
+    print(f"| {EMOJI_WORKFLOW} Workflow | {md_table_value(workflow)} |", file=out)
 
     if workflow_file:
-        print(f"| Workflow file | {md_table_value(workflow_file)} |", file=out)
+        print(f"| {EMOJI_WORKFLOW} Workflow file | {md_table_value(workflow_file)} |", file=out)
 
-    print(f"| Run | {make_link(f'#{run_number}', run_url) if run_url else md_table_value(run_number)} |", file=out)
+    print(f"| {EMOJI_WORKFLOW} Run | {make_link(f'#{run_number}', run_url) if run_url else md_table_value(run_number)} |", file=out)
     print(f"| Attempt | {md_table_value(run_attempt)} |", file=out)
     print(f"| Event | {md_table_value(event_name)} |", file=out)
     print(f"| Actor | {md_table_value(actor)} |", file=out)
@@ -513,18 +564,18 @@ def print_metadata_table(out: TextIO) -> None:
     if triggering_actor and triggering_actor != actor:
         print(f"| Triggering actor | {md_table_value(triggering_actor)} |", file=out)
 
-    print(f"| Ref | {md_table_value(ref_name)} |", file=out)
+    print(f"| {EMOJI_BRANCH} Ref | {md_table_value(ref_name)} |", file=out)
 
     if sha:
         commit_label = f"`{short_sha(sha)}`"
-        print(f"| Commit | {make_link(commit_label, commit_url) if commit_url else md_table_value(sha)} |", file=out)
+        print(f"| {EMOJI_COMMIT} Commit | {make_link(commit_label, commit_url) if commit_url else md_table_value(sha)} |", file=out)
 
     if commit_message:
-        print(f"| Commit message | {md_table_value(commit_message)} |", file=out)
+        print(f"| {EMOJI_COMMIT} Commit message | {md_table_value(commit_message)} |", file=out)
 
     if pr_number:
         pr_label = f"#{pr_number}: {pr_title}" if pr_title else f"#{pr_number}"
-        print(f"| Pull request | {make_link(pr_label, pr_url) if pr_url else md_table_value(pr_label)} |", file=out)
+        print(f"| {EMOJI_PR} Pull request | {make_link(pr_label, pr_url) if pr_url else md_table_value(pr_label)} |", file=out)
 
     print(f"| Generated at (UTC) | {generated_at} |", file=out)
     print(file=out)
@@ -534,21 +585,24 @@ def write_markdown_summary(
     buckets: Dict[str, List[Tuple[str, str]]],
     out: TextIO,
 ) -> None:
-    print("## Job Status Overview", file=out)
+    print(f"# {EMOJI_SUMMARY} Job Status Overview", file=out)
     print(file=out)
 
     print_count_summary(buckets, out)
 
-    print_sorted_section(buckets["failure"], "Failed jobs", out)
-    print_sorted_section(buckets["timed_out"], "Timed out jobs", out)
-    print_sorted_section(buckets["cancelled"], "Cancelled jobs", out)
-    print_sorted_section(buckets["not_completed"], "Not completed jobs", out)
-    print_sorted_section(buckets["action_required"], "Action required jobs", out)
-    print_sorted_section(buckets["stale"], "Stale jobs", out)
-    print_sorted_section(buckets["neutral"], "Neutral jobs", out)
-    print_sorted_section(buckets["skipped"], "Skipped jobs", out)
-    print_sorted_section(buckets["other"], "Other statuses", out)
-    print_sorted_section(buckets["success"], "Successful jobs", out)
+    for key in (
+        "failure",
+        "timed_out",
+        "cancelled",
+        "not_completed",
+        "action_required",
+        "stale",
+        "neutral",
+        "skipped",
+        "other",
+        "success",
+    ):
+        print_sorted_section(buckets[key], section_title(key), out)
 
     print_metadata_table(out)
 

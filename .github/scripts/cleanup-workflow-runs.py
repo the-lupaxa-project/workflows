@@ -25,6 +25,19 @@ DEFAULT_PROGRESS_EVERY = 50
 DEFAULT_PRESERVE_BRANCH = "master"
 DEFAULT_VERBOSITY = "normal"
 
+EMOJI_CLEANUP = "🧹"
+EMOJI_DELETE = "🔥"
+EMOJI_KEEP = "🛡️"
+EMOJI_SKIP = "⏭️"
+EMOJI_WARNING = "⚠️"
+EMOJI_SUCCESS = "✅"
+EMOJI_ARTIFACT = "📦"
+EMOJI_RUN = "🏃"
+EMOJI_BRANCH = "🌿"
+EMOJI_STAR = "⭐"
+EMOJI_SUMMARY = "📊"
+EMOJI_SLEEP = "⏱️"
+EMOJI_VERBOSITY = "🔊"
 
 Run = Dict[str, Any]
 Artifact = Dict[str, Any]
@@ -35,7 +48,7 @@ def log(message: str = "") -> None:
 
 
 def error(message: str, *, code: int = 1) -> NoReturn:
-    print(f"ERROR: {message}", file=sys.stderr, flush=True)
+    print(f"{EMOJI_WARNING} ERROR: {message}", file=sys.stderr, flush=True)
     raise SystemExit(code)
 
 
@@ -127,6 +140,14 @@ def md_value(value: str) -> str:
     return value.strip()
 
 
+def action_emoji(action: str) -> str:
+    if action == "DELETE":
+        return EMOJI_DELETE
+    if action == "KEEP":
+        return EMOJI_KEEP
+    return EMOJI_SKIP
+
+
 def github_request(
     url: str,
     token: str,
@@ -193,7 +214,7 @@ def fetch_all_workflow_runs(repo: str, token: str) -> List[Run]:
                 if isinstance(run, dict):
                     runs.append(run)
 
-        log(f"[FETCH] Loaded {len(runs)} workflow runs so far")
+        log(f"{EMOJI_RUN} [FETCH] Loaded {len(runs)} workflow runs so far")
         url = next_url
 
     return runs
@@ -220,7 +241,7 @@ def fetch_all_artifacts(repo: str, token: str) -> List[Artifact]:
                 if isinstance(artifact, dict):
                     artifacts.append(artifact)
 
-        log(f"[FETCH] Loaded {len(artifacts)} artifacts so far")
+        log(f"{EMOJI_ARTIFACT} [FETCH] Loaded {len(artifacts)} artifacts so far")
         url = next_url
 
     return artifacts
@@ -488,10 +509,10 @@ def write_markdown_report(
         mode = "a" if str(path) == os.environ.get("GITHUB_STEP_SUMMARY", "").strip() else "w"
 
         with path.open(mode, encoding="utf-8") as out:
-            print("## Workflow Run Cleanup Report", file=out)
+            print(f"# {EMOJI_CLEANUP} Workflow Run Cleanup Report", file=out)
             print(file=out)
 
-            print("### Summary", file=out)
+            print(f"## {EMOJI_SUMMARY} Summary", file=out)
             print(file=out)
             print("| Field | Value |", file=out)
             print("| :---- | :---- |", file=out)
@@ -499,7 +520,7 @@ def write_markdown_report(
                 print(f"| {md_value(key)} | {md_value(str(value))} |", file=out)
             print(file=out)
 
-            print("### Configuration", file=out)
+            print(f"## {EMOJI_STAR} Configuration", file=out)
             print(file=out)
             print("| Field | Value |", file=out)
             print("| :---- | :---- |", file=out)
@@ -507,10 +528,10 @@ def write_markdown_report(
                 print(f"| {md_value(key)} | {md_value(str(value))} |", file=out)
             print(file=out)
 
-            print("### Per-workflow totals", file=out)
+            print(f"## {EMOJI_RUN} Per-workflow totals", file=out)
             print(file=out)
-            print("| Workflow | Deleted | Kept |", file=out)
-            print("| :------- | ------: | ---: |", file=out)
+            print(f"| Workflow | {EMOJI_DELETE} Deleted | {EMOJI_KEEP} Kept |", file=out)
+            print("| :------- | ---------: | ------: |", file=out)
             for workflow, totals in sorted(workflow_totals.items(), key=lambda item: item[0].casefold()):
                 print(
                     f"| {md_value(workflow)} | {totals.get('deleted', 0)} | {totals.get('kept', 0)} |",
@@ -518,18 +539,19 @@ def write_markdown_report(
                 )
             print(file=out)
 
-            print("### Workflow run actions", file=out)
+            print(f"## {EMOJI_RUN} Workflow run actions", file=out)
             print(file=out)
             print("| Action | Run ID | Created | Workflow | Branch | Status | Reason |", file=out)
             print("| :----- | :----- | :------ | :------- | :----- | :----- | :----- |", file=out)
             for item in run_actions:
+                action = item["action"]
                 print(
                     "| "
-                    f"{md_value(item['action'])} | "
+                    f"{action_emoji(action)} {md_value(action)} | "
                     f"{md_value(item['id'])} | "
                     f"{md_value(item['created'])} | "
                     f"{md_value(item['workflow'])} | "
-                    f"{md_value(item['branch'])} | "
+                    f"{EMOJI_BRANCH} {md_value(item['branch'])} | "
                     f"{md_value(item['status'])} | "
                     f"{md_value(item['reason'])} |",
                     file=out,
@@ -537,14 +559,15 @@ def write_markdown_report(
             print(file=out)
 
             if artifact_actions:
-                print("### Artifact actions", file=out)
+                print(f"## {EMOJI_ARTIFACT} Artifact actions", file=out)
                 print(file=out)
                 print("| Action | Artifact ID | Created | Name | Size | Reason |", file=out)
                 print("| :----- | :---------- | :------ | :--- | ---: | :----- |", file=out)
                 for item in artifact_actions:
+                    action = item["action"]
                     print(
                         "| "
-                        f"{md_value(item['action'])} | "
+                        f"{action_emoji(action)} {md_value(action)} | "
                         f"{md_value(item['id'])} | "
                         f"{md_value(item['created'])} | "
                         f"{md_value(item['name'])} | "
@@ -556,7 +579,7 @@ def write_markdown_report(
 
 
 def print_config(config: Dict[str, Any]) -> None:
-    log("Workflow run cleanup configuration")
+    log(f"{EMOJI_CLEANUP} Workflow run cleanup configuration")
     log("==================================")
     for key, value in config.items():
         log(f"{key}: {value}")
@@ -692,24 +715,24 @@ def main() -> None:
         verbosity = DEFAULT_VERBOSITY
 
     config: Dict[str, Any] = {
-        "Mode": "DRY RUN" if dry_run else "DELETE",
-        "Retention days": retention_days,
-        "Artifact retention days": artifact_retention_days,
-        "Cleanup artifacts": cleanup_artifacts,
-        "Preserve branch": preserve_branch,
-        "Force delete non-default branch": force_delete_non_default_branch,
-        "Keep latest successful": keep_latest_successful,
-        "Keep latest failed": keep_latest_failed,
-        "Keep latest cancelled": keep_latest_cancelled,
-        "Keep latest timed out": keep_latest_timed_out,
-        "Keep last N successful": keep_last_n_successful,
-        "Delete skipped": delete_skipped,
-        "Delete neutral": delete_neutral,
-        "Max deletes per run": max_deletes_per_run,
-        "Max artifact deletes per run": max_artifact_deletes_per_run,
-        "Delete sleep seconds": delete_sleep_seconds,
-        "Progress every": progress_every,
-        "Verbosity": verbosity,
+        f"{EMOJI_CLEANUP} Mode": "DRY RUN" if dry_run else "DELETE",
+        f"{EMOJI_RUN} Retention days": retention_days,
+        f"{EMOJI_ARTIFACT} Artifact retention days": artifact_retention_days,
+        f"{EMOJI_ARTIFACT} Cleanup artifacts": cleanup_artifacts,
+        f"{EMOJI_BRANCH} Preserve branch": preserve_branch,
+        f"{EMOJI_DELETE} Force delete non-default branch": force_delete_non_default_branch,
+        f"{EMOJI_KEEP} Keep latest successful": keep_latest_successful,
+        f"{EMOJI_KEEP} Keep latest failed": keep_latest_failed,
+        f"{EMOJI_KEEP} Keep latest cancelled": keep_latest_cancelled,
+        f"{EMOJI_KEEP} Keep latest timed out": keep_latest_timed_out,
+        f"{EMOJI_KEEP} Keep last N successful": keep_last_n_successful,
+        f"{EMOJI_DELETE} Delete skipped": delete_skipped,
+        f"{EMOJI_DELETE} Delete neutral": delete_neutral,
+        f"{EMOJI_DELETE} Max deletes per run": max_deletes_per_run,
+        f"{EMOJI_ARTIFACT} Max artifact deletes per run": max_artifact_deletes_per_run,
+        f"{EMOJI_SLEEP} Delete sleep seconds": delete_sleep_seconds,
+        f"{EMOJI_SUMMARY} Progress every": progress_every,
+        f"{EMOJI_VERBOSITY} Verbosity": verbosity,
     }
 
     if verbosity != "quiet":
@@ -752,8 +775,9 @@ def main() -> None:
 
         if progress_every and inspected_runs % progress_every == 0:
             log(
-                f"[PROGRESS] inspected runs {inspected_runs}/{total_runs}, "
-                f"deleted {run_delete_count}, kept/skipped {run_keep_count}"
+                f"{EMOJI_SUMMARY} [PROGRESS] inspected runs {inspected_runs}/{total_runs}, "
+                f"{EMOJI_DELETE} deleted {run_delete_count}, "
+                f"{EMOJI_KEEP} kept/skipped {run_keep_count}"
             )
 
         should_delete, reason = should_delete_run(
@@ -786,8 +810,8 @@ def main() -> None:
 
         if should_log_action(verbosity, action):
             log(
-                f"[{action}] {run_id} | {created_at} | {workflow} | "
-                f"{branch} | {status}/{conclusion} | {reason}"
+                f"{action_emoji(action)} [{action}] {run_id} | {created_at} | {workflow} | "
+                f"{EMOJI_BRANCH} {branch} | {status}/{conclusion} | {reason}"
             )
 
         run_actions.append(
@@ -844,7 +868,7 @@ def main() -> None:
                 action = "DELETE"
 
             if should_log_action(verbosity, action):
-                log(f"[ARTIFACT {action}] {artifact_id} | {created_at} | {name} | {reason}")
+                log(f"{EMOJI_ARTIFACT} {action_emoji(action)} [{action}] {artifact_id} | {created_at} | {name} | {reason}")
 
             artifact_actions.append(
                 {
@@ -868,17 +892,17 @@ def main() -> None:
 
     summary: Dict[str, Any] = {
         "Repository": repo,
-        "Mode": "DRY RUN" if dry_run else "DELETE",
-        "Workflow runs fetched": total_runs,
-        "Workflow runs inspected": inspected_runs,
-        "Workflow runs selected for deletion": run_delete_count,
-        "Workflow runs kept/skipped": run_keep_count,
-        "Preserved representative runs": len(keep_run_ids),
-        "Workflow run delete cap reached": run_delete_cap_reached,
-        "Artifacts fetched": total_artifacts,
-        "Artifacts selected for deletion": artifact_delete_count,
-        "Artifacts kept/skipped": artifact_keep_count,
-        "Artifact delete cap reached": artifact_delete_cap_reached,
+        f"{EMOJI_CLEANUP} Mode": "DRY RUN" if dry_run else "DELETE",
+        f"{EMOJI_RUN} Workflow runs fetched": total_runs,
+        f"{EMOJI_RUN} Workflow runs inspected": inspected_runs,
+        f"{EMOJI_DELETE} Workflow runs selected for deletion": run_delete_count,
+        f"{EMOJI_KEEP} Workflow runs kept/skipped": run_keep_count,
+        f"{EMOJI_KEEP} Preserved representative runs": len(keep_run_ids),
+        f"{EMOJI_WARNING} Workflow run delete cap reached": run_delete_cap_reached,
+        f"{EMOJI_ARTIFACT} Artifacts fetched": total_artifacts,
+        f"{EMOJI_DELETE} Artifacts selected for deletion": artifact_delete_count,
+        f"{EMOJI_KEEP} Artifacts kept/skipped": artifact_keep_count,
+        f"{EMOJI_WARNING} Artifact delete cap reached": artifact_delete_cap_reached,
     }
 
     write_markdown_report(
@@ -891,10 +915,12 @@ def main() -> None:
     )
 
     log()
-    log("Workflow run cleanup summary")
+    log(f"{EMOJI_SUMMARY} Workflow run cleanup summary")
     log("============================")
     for key, value in summary.items():
         log(f"{key}: {value}")
+
+    log(f"{EMOJI_SUCCESS} Cleanup report generated")
 
 
 if __name__ == "__main__":

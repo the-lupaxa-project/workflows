@@ -3,17 +3,6 @@
 Slack workflow status notifier for GitHub Actions.
 
 Dependency-free Slack notifier for GitHub Actions workflow runs.
-
-It fetches the current workflow run and its jobs from the GitHub REST API,
-derives a workflow status from completed jobs, and posts a Slack Incoming
-Webhook message.
-
-Key behaviour:
-  - Fetches all GitHub job pages.
-  - Ignores selected jobs case-insensitively after normalising job names.
-  - Ignores common notification/status jobs by default.
-  - Uses only the first line of the commit message.
-  - Can include per-job Slack fields.
 """
 
 import json
@@ -32,15 +21,29 @@ DEFAULT_IGNORED_JOBS = {
     "slack workflow status",
 }
 
-
-# --------------------------------------------------------------------------- #
-# Utility helpers
-# --------------------------------------------------------------------------- #
+EMOJI_NOTIFY = "📣"
+EMOJI_SUCCESS = "✅"
+EMOJI_FAILURE = "❌"
+EMOJI_CANCELLED = "🚫"
+EMOJI_SKIPPED = "⏭️"
+EMOJI_TIMEOUT = "⏱️"
+EMOJI_WARNING = "⚠️"
+EMOJI_NEUTRAL = "⚪"
+EMOJI_UNKNOWN = "❔"
+EMOJI_WORKFLOW = "🏃"
+EMOJI_BRANCH = "🌿"
+EMOJI_COMMIT = "🔖"
+EMOJI_PR = "🔀"
+EMOJI_REPO = "📦"
 
 
 def error(message: str, *, code: int = 1) -> NoReturn:
-    print(f"ERROR: {message}", file=sys.stderr)
+    print(f"{EMOJI_WARNING} ERROR: {message}", file=sys.stderr, flush=True)
     raise SystemExit(code)
+
+
+def log(message: str = "") -> None:
+    print(message, flush=True)
 
 
 def parse_iso8601(value: Optional[str]) -> Optional[datetime]:
@@ -136,18 +139,18 @@ def fetch_json_with_next(
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
         if body:
-            print(body, file=sys.stderr)
+            print(body, file=sys.stderr, flush=True)
         error(f"GitHub API returned HTTP {exc.code} for {url}: {exc.reason}")
     except URLError as exc:
         error(f"Failed to reach GitHub API at {url}: {exc.reason}")
-    except Exception as exc:  # pragma: no cover - defensive
+    except Exception as exc:
         error(f"Unexpected error when calling GitHub API at {url}: {exc}")
 
     if status != 200:
         body = body_bytes.decode("utf-8", errors="replace")
         if body:
-            print(f"GitHub API response body from {url}:", file=sys.stderr)
-            print(body, file=sys.stderr)
+            print(f"GitHub API response body from {url}:", file=sys.stderr, flush=True)
+            print(body, file=sys.stderr, flush=True)
         error(f"GitHub API returned HTTP {status} for {url}.")
 
     try:
@@ -197,9 +200,23 @@ def first_line(value: str) -> str:
     return value.splitlines()[0].strip() if value.strip() else ""
 
 
-# --------------------------------------------------------------------------- #
-# GitHub data loading
-# --------------------------------------------------------------------------- #
+def workflow_status_emoji(conclusion: str) -> str:
+    conclusion = conclusion.lower()
+
+    if conclusion == "success":
+        return EMOJI_SUCCESS
+    if conclusion == "failure":
+        return EMOJI_FAILURE
+    if conclusion == "cancelled":
+        return EMOJI_CANCELLED
+    if conclusion == "timed_out":
+        return EMOJI_TIMEOUT
+    if conclusion == "action_required":
+        return EMOJI_WARNING
+    if conclusion in ("skipped", "neutral"):
+        return EMOJI_NEUTRAL
+
+    return EMOJI_UNKNOWN
 
 
 def fetch_run_and_jobs(
@@ -234,6 +251,7 @@ def fetch_run_and_jobs(
                 if isinstance(job, dict):
                     all_jobs.append(job)
 
+        log(f"{EMOJI_WORKFLOW} Loaded {len(all_jobs)} jobs so far")
         jobs_url = next_url
 
     completed_jobs = [
@@ -242,9 +260,10 @@ def fetch_run_and_jobs(
 
     if not completed_jobs:
         print(
-            "Warning: No completed jobs found for this workflow run. "
+            f"{EMOJI_WARNING} Warning: No completed jobs found for this workflow run. "
             "Slack notification will contain no job fields.",
             file=sys.stderr,
+            flush=True,
         )
 
     return run, completed_jobs
@@ -294,11 +313,6 @@ def derive_workflow_conclusion_from_jobs(
     return "failure"
 
 
-# --------------------------------------------------------------------------- #
-# Slack payload construction
-# --------------------------------------------------------------------------- #
-
-
 def determine_workflow_color_and_msg(
     completed_jobs: List[Dict[str, Any]],
     ignored_job_names: Optional[Set[str]] = None,
@@ -313,23 +327,23 @@ def determine_workflow_color_and_msg(
         filtered_jobs.append(job)
 
     if not filtered_jobs:
-        return "warning", "Unknown:"
+        return "warning", f"{EMOJI_UNKNOWN} Unknown:"
 
     conclusions = [str(job.get("conclusion") or "").lower() for job in filtered_jobs]
 
     if all(conclusion in ("success", "skipped", "neutral") for conclusion in conclusions):
-        return "good", "Success:"
+        return "good", f"{EMOJI_SUCCESS} Success:"
 
     if any(conclusion == "cancelled" for conclusion in conclusions):
-        return "warning", "Cancelled:"
+        return "warning", f"{EMOJI_CANCELLED} Cancelled:"
 
     if any(conclusion == "timed_out" for conclusion in conclusions):
-        return "danger", "Timed out:"
+        return "danger", f"{EMOJI_TIMEOUT} Timed out:"
 
     if any(conclusion == "action_required" for conclusion in conclusions):
-        return "warning", "Action required:"
+        return "warning", f"{EMOJI_WARNING} Action required:"
 
-    return "danger", "Failed:"
+    return "danger", f"{EMOJI_FAILURE} Failed:"
 
 
 def _should_include_jobs(include_jobs_mode: str, workflow_conclusion: str) -> bool:
@@ -348,18 +362,27 @@ def _job_status_icon(conclusion: str) -> str:
     conclusion = (conclusion or "").lower()
 
     if conclusion == "success":
-        return "✓"
+        return EMOJI_SUCCESS
 
-    if conclusion in ("cancelled", "skipped", "neutral"):
-        return "⃠"
+    if conclusion == "failure":
+        return EMOJI_FAILURE
 
     if conclusion == "timed_out":
-        return "⏱"
+        return EMOJI_TIMEOUT
+
+    if conclusion == "cancelled":
+        return EMOJI_CANCELLED
+
+    if conclusion == "skipped":
+        return EMOJI_SKIPPED
+
+    if conclusion == "neutral":
+        return EMOJI_NEUTRAL
 
     if conclusion == "action_required":
-        return "!"
+        return EMOJI_WARNING
 
-    return "✗"
+    return EMOJI_UNKNOWN
 
 
 def _build_single_job_field(job: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -506,10 +529,10 @@ def _extract_repo_context(workflow_run: Dict[str, Any]) -> Tuple[str, str, str, 
     workflow_run_html_url = str(workflow_run.get("html_url") or "").strip()
     run_number = workflow_run.get("run_number")
 
-    repo_url = f"<{repo_html_url}|*{repo_full_name}*>" if repo_html_url and repo_full_name else ""
+    repo_url = f"<{repo_html_url}|{EMOJI_REPO} *{repo_full_name}*>" if repo_html_url and repo_full_name else ""
 
     branch_url = (
-        f"<{repo_html_url}/tree/{head_branch}|*{head_branch}*>"
+        f"<{repo_html_url}/tree/{head_branch}|{EMOJI_BRANCH} *{head_branch}*>"
         if repo_html_url and head_branch
         else head_branch
     )
@@ -531,7 +554,7 @@ def _build_status_string(
     workflow_run: Dict[str, Any],
 ) -> str:
     default_status = (
-        f"{workflow_msg} {actor}'s `{event_name}` on `{branch_url}`"
+        f"{workflow_msg} {actor}'s `{event_name}` on {branch_url}"
         if branch_url
         else f"{workflow_msg} {actor}'s `{event_name}`"
     )
@@ -540,7 +563,7 @@ def _build_status_string(
     if not pull_requests_string:
         return default_status
 
-    return f"{workflow_msg} {actor}'s `pull_request` {pull_requests_string}"
+    return f"{workflow_msg} {actor}'s `{event_name}` {EMOJI_PR} {pull_requests_string}"
 
 
 def _build_details_text(
@@ -548,7 +571,7 @@ def _build_details_text(
     workflow_run_url: str,
     workflow_duration: str,
 ) -> str:
-    parts: List[str] = ["Workflow:"]
+    parts: List[str] = [f"{EMOJI_WORKFLOW} Workflow:"]
 
     if workflow_name:
         parts.append(workflow_name)
@@ -575,7 +598,7 @@ def _build_commit_message_text(
     if not commit_subject:
         return ""
 
-    return f"Commit: {commit_subject}"
+    return f"{EMOJI_COMMIT} Commit: {commit_subject}"
 
 
 def _apply_slack_cosmetics(payload: Dict[str, Any]) -> None:
@@ -670,7 +693,7 @@ def build_slack_payload(
         text_lines.append(commit_message_text)
 
     attachment: Dict[str, Any] = {
-        "mrkdwn_in": ["text"],
+        "mrkdwn_in": ["text", "fields"],
         "color": workflow_color,
         "text": "\n".join(text_lines),
         "footer": repo_url,
@@ -679,6 +702,7 @@ def build_slack_payload(
     }
 
     payload: Dict[str, Any] = {
+        "text": f"{EMOJI_NOTIFY} GitHub Actions workflow status",
         "attachments": [attachment],
     }
 
@@ -703,20 +727,15 @@ def post_to_slack(webhook_url: str, payload: Dict[str, Any]) -> None:
     except HTTPError as exc:
         resp_body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
         if resp_body:
-            print(resp_body, file=sys.stderr)
+            print(resp_body, file=sys.stderr, flush=True)
         error(f"Slack webhook returned HTTP {exc.code}: {exc.reason}")
     except URLError as exc:
         error(f"Failed to reach Slack webhook: {exc.reason}")
-    except Exception as exc:  # pragma: no cover - defensive
+    except Exception as exc:
         error(f"Unexpected error when calling Slack webhook: {exc}")
 
     if not (200 <= status < 300):
         error(f"Slack webhook returned HTTP {status}")
-
-
-# --------------------------------------------------------------------------- #
-# Entry point
-# --------------------------------------------------------------------------- #
 
 
 def should_send_notification(
@@ -756,9 +775,10 @@ def main() -> None:
         jobs_to_fetch = int(jobs_to_fetch_raw)
     except ValueError:
         print(
-            f"Warning: SEND_TO_SLACK_JOBS_TO_FETCH={jobs_to_fetch_raw!r} is not an integer; "
-            f"defaulting to {DEFAULT_JOBS_PER_PAGE}.",
+            f"{EMOJI_WARNING} Warning: SEND_TO_SLACK_JOBS_TO_FETCH={jobs_to_fetch_raw!r} "
+            f"is not an integer; defaulting to {DEFAULT_JOBS_PER_PAGE}.",
             file=sys.stderr,
+            flush=True,
         )
         jobs_to_fetch = DEFAULT_JOBS_PER_PAGE
 
@@ -785,15 +805,21 @@ def main() -> None:
 
     if not should_send_notification(workflow_conclusion, results_setting):
         print(
-            f"Workflow conclusion '{workflow_conclusion}' not in "
+            f"{EMOJI_SKIPPED} Workflow conclusion '{workflow_conclusion}' not in "
             f"SEND_TO_SLACK_RESULTS={results_setting!r}; skipping Slack notification.",
             file=sys.stderr,
+            flush=True,
         )
         return
 
     include_jobs_mode = os.environ.get("SEND_TO_SLACK_INCLUDE_JOBS", "true")
     include_commit_message_raw = os.environ.get("SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE", "true")
     include_commit_message = include_commit_message_raw.strip().lower() == "true"
+
+    log(
+        f"{EMOJI_NOTIFY} Sending Slack notification for workflow conclusion: "
+        f"{workflow_status_emoji(workflow_conclusion)} {workflow_conclusion}"
+    )
 
     payload = build_slack_payload(
         workflow_run=workflow_run,
@@ -804,6 +830,8 @@ def main() -> None:
     )
 
     post_to_slack(webhook_url, payload)
+
+    log(f"{EMOJI_SUCCESS} Slack notification sent")
 
 
 if __name__ == "__main__":
