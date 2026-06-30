@@ -11,6 +11,18 @@ on:
         required: false
         type: string
         default: ""
+      upload_artifact:
+        description: Upload the generated Markdown summary as a workflow artifact.
+        required: false
+        type: boolean
+        default: true
+      artifact_retention_days:
+        description: >
+          Number of days to retain the uploaded Markdown summary artifact.
+          Must not exceed the repository, organisation, or enterprise limit.
+        required: false
+        type: number
+        default: 90
 
 permissions:
   actions: read
@@ -22,16 +34,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout workflows repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
-      - name: Run Check Jobs (Python)
+      - name: Run Check Jobs Python summary
         env:
-          # Prefer explicit secret if the caller provides one, otherwise fall back to the built-in token
           GITHUB_TOKEN: ${{ github.token }}
           CHECK_JOBS_IGNORE_JOBS: ${{ inputs.ignore_jobs }}
-        # run: bash <(curl -fsSL "https://raw.githubusercontent.com/the-lupaxa-project/.github/master/.github/scripts/check-jobs.sh")
+          CHECK_JOBS_SUMMARY_FILE: check-jobs-summary.md
         run: python lupaxa-dotgithub/.github/scripts/check-jobs.py
+
+      - name: Upload Check Jobs summary artifact
+        if: ${{ inputs.upload_artifact }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: check-jobs-summary-${{ github.job }}-${{ github.run_attempt }}
+          path: check-jobs-summary.md
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error
