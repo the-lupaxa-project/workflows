@@ -1,4 +1,4 @@
-name: Cleanup Workflow Runs
+name: Reusable Cleanup Workflow Runs
 
 on:
   workflow_call:
