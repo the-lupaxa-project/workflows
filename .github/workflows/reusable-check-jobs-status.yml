@@ -43,7 +43,7 @@ jobs:
       - name: Run Check Jobs Python summary
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          CHECK_JOBS_IGNORE_JOBS: ${{ inputs.ignore_jobs }}
+          CHECK_JOBS_IGNORE_JOBS: Check Jobs Status,${{ inputs.ignore_jobs }}
           CHECK_JOBS_SUMMARY_FILE: check-jobs-summary.md
         run: python lupaxa-dotgithub/.github/scripts/check-jobs.py
 

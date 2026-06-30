@@ -31,6 +31,7 @@ jobs:
     if: always()
     uses: ./.github/workflows/reusable-check-jobs-status.yml
     with:
+      ignore_jobs: "Slack Workflow Status"
       artifact_retention_days: 90
 
   slack-workflow-status:
