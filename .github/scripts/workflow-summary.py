@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-GitHub Actions job status summariser.
+GitHub Actions workflow summary generator.
 """
 
 import json
@@ -26,12 +26,19 @@ EMOJI_WARNING = "⚠️"
 EMOJI_STALE = "🕰️"
 EMOJI_RUNNING = "🔄"
 EMOJI_OTHER = "❔"
-EMOJI_METADATA = "🧾"
+EMOJI_METADATA = "ℹ️"
 EMOJI_WORKFLOW = "🏃"
+EMOJI_WORKFLOW_FILE = "📄"
+EMOJI_REPO = "📦"
+EMOJI_RUN = "🏃"
+EMOJI_ATTEMPT = "🔁"
+EMOJI_EVENT = "⚡"
+EMOJI_ACTOR = "👤"
+EMOJI_TRIGGERING_ACTOR = "👥"
 EMOJI_BRANCH = "🌿"
 EMOJI_COMMIT = "🔖"
 EMOJI_PR = "🔀"
-EMOJI_REPO = "📦"
+EMOJI_GENERATED = "🕒"
 
 
 def error(message: str, *, code: int = 1) -> NoReturn:
@@ -547,37 +554,49 @@ def print_metadata_table(out: TextIO) -> None:
 
     print(f"### {EMOJI_METADATA} Workflow metadata", file=out)
     print(file=out)
-    print("| Field | Value |", file=out)
-    print("| :---- | :---- |", file=out)
+    print("|  |  |", file=out)
+    print("| :-- | :-- |", file=out)
 
     print(f"| {EMOJI_REPO} Repository | {md_table_value(repo)} |", file=out)
     print(f"| {EMOJI_WORKFLOW} Workflow | {md_table_value(workflow)} |", file=out)
 
     if workflow_file:
-        print(f"| {EMOJI_WORKFLOW} Workflow file | {md_table_value(workflow_file)} |", file=out)
+        print(f"| {EMOJI_WORKFLOW_FILE} Workflow file | {md_table_value(workflow_file)} |", file=out)
 
-    print(f"| {EMOJI_WORKFLOW} Run | {make_link(f'#{run_number}', run_url) if run_url else md_table_value(run_number)} |", file=out)
-    print(f"| Attempt | {md_table_value(run_attempt)} |", file=out)
-    print(f"| Event | {md_table_value(event_name)} |", file=out)
-    print(f"| Actor | {md_table_value(actor)} |", file=out)
+    print(
+        f"| {EMOJI_RUN} Run | "
+        f"{make_link(f'#{run_number}', run_url) if run_url else md_table_value(run_number)} |",
+        file=out,
+    )
+    print(f"| {EMOJI_ATTEMPT} Attempt | {md_table_value(run_attempt)} |", file=out)
+    print(f"| {EMOJI_EVENT} Event | {md_table_value(event_name)} |", file=out)
+    print(f"| {EMOJI_ACTOR} Actor | {md_table_value(actor)} |", file=out)
 
     if triggering_actor and triggering_actor != actor:
-        print(f"| Triggering actor | {md_table_value(triggering_actor)} |", file=out)
+        print(f"| {EMOJI_TRIGGERING_ACTOR} Triggering actor | {md_table_value(triggering_actor)} |", file=out)
 
     print(f"| {EMOJI_BRANCH} Ref | {md_table_value(ref_name)} |", file=out)
 
     if sha:
         commit_label = f"`{short_sha(sha)}`"
-        print(f"| {EMOJI_COMMIT} Commit | {make_link(commit_label, commit_url) if commit_url else md_table_value(sha)} |", file=out)
+        print(
+            f"| {EMOJI_COMMIT} Commit | "
+            f"{make_link(commit_label, commit_url) if commit_url else md_table_value(sha)} |",
+            file=out,
+        )
 
     if commit_message:
         print(f"| {EMOJI_COMMIT} Commit message | {md_table_value(commit_message)} |", file=out)
 
     if pr_number:
         pr_label = f"#{pr_number}: {pr_title}" if pr_title else f"#{pr_number}"
-        print(f"| {EMOJI_PR} Pull request | {make_link(pr_label, pr_url) if pr_url else md_table_value(pr_label)} |", file=out)
+        print(
+            f"| {EMOJI_PR} Pull request | "
+            f"{make_link(pr_label, pr_url) if pr_url else md_table_value(pr_label)} |",
+            file=out,
+        )
 
-    print(f"| Generated at (UTC) | {generated_at} |", file=out)
+    print(f"| {EMOJI_GENERATED} Generated at (UTC) | {generated_at} |", file=out)
     print(file=out)
 
 
