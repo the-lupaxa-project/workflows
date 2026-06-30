@@ -6,14 +6,13 @@ on:
       ignore_jobs:
         description: >
           Comma-separated list of job names to exclude from the summary.
-          Names are normalised (segment after the last "/") and matched
-          case-insensitively.
+          Names are normalised and matched case-insensitively.
         required: false
         type: string
         default: ""
 
       upload_artifact:
-        description: Upload the generated Markdown summary as a workflow artifact.
+        description: "Upload the generated Markdown summary as a workflow artifact."
         required: false
         type: boolean
         default: true
@@ -32,23 +31,24 @@ permissions:
 
 jobs:
   workflow-summary:
-    name: 🔍 Workflow Summary
+    name: 📊 Workflow Summary
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout workflows repository
+      - name: 📥 Checkout Workflows Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
-      - name: 📊 Generate workflow summary
+      - name: 📊 Generate Workflow Summary
         env:
           GITHUB_TOKEN: ${{ github.token }}
           WORKFLOW_IGNORE_JOBS: "📊 Workflow Summary,💬 Slack Notification,${{ inputs.ignore_jobs }}"
-        run: python lupaxa-dotgithub/.github/scripts/workflow-summary.py
+        run: |
+          python lupaxa-dotgithub/.github/scripts/workflow-summary.py
 
-      - name: 📦 Upload job status summary artifact
+      - name: 📦 Upload Workflow Summary Artifact
         if: ${{ inputs.upload_artifact }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:

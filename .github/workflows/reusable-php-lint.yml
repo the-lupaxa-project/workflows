@@ -1,31 +1,36 @@
-name: 🐘 Reusable PHP Lint (Syntax Checker)
+name: 🐘 Reusable PHP Lint
 
 on:
   workflow_call:
     inputs:
       include_files:
-        description: "Comma-separated list of PHP files / globs to include (regex supported)"
+        description: "Comma-separated list of PHP files, globs, or regex patterns to include"
         required: false
         type: string
+
       exclude_files:
-        description: "Comma-separated list of PHP files / globs to exclude (regex supported)"
+        description: "Comma-separated list of PHP files, globs, or regex patterns to exclude"
         required: false
         type: string
+
       report_only:
-        description: "Generate report but do not fail build"
+        description: "Generate a report but do not fail the build"
         required: false
         type: boolean
         default: false
+
       show_errors:
-        description: "Show individual errors instead of only per-file summary"
+        description: "Show individual errors instead of only a per-file summary"
         required: false
         type: boolean
         default: true
+
       show_skipped:
-        description: "Show files that are skipped"
+        description: "Show skipped files"
         required: false
         type: boolean
         default: false
+
       no_color:
         description: "Disable coloured output"
         required: false
@@ -41,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
       - name: 🐘 Run PHP Lint

@@ -1,16 +1,16 @@
-name: 🐚 Reusable ShellCheck (Shell Script Linting)
+name: 🐚 Reusable ShellCheck
 
 on:
   workflow_call:
     inputs:
       include_files:
-        description: "Comma-separated list or regex patterns to include"
+        description: "Comma-separated list of files or regex patterns to include"
         required: false
         type: string
         default: ""
 
       exclude_files:
-        description: "Comma-separated list or regex patterns to exclude"
+        description: "Comma-separated list of files or regex patterns to exclude"
         required: false
         type: string
         default: ""
@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
       - name: 🐚 Run ShellCheck

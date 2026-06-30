@@ -1,4 +1,4 @@
-name: 👋 Reusable Greetings (First Interaction)
+name: 👋 Reusable First-Time Contributor Greetings
 
 on:
   workflow_call:
@@ -26,12 +26,12 @@ permissions:
   pull-requests: write
 
 jobs:
-  greetings:
-    name: 👋 First-time Contributor Greetings
+  first-time-contributor-greetings:
+    name: 👋 First-Time Contributor Greetings
     runs-on: ubuntu-latest
 
     steps:
-      - name: 👋 Welcome first-time contributors
+      - name: 👋 Welcome First-Time Contributors
         uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d  # v3.1.0
         with:
           repo_token: ${{ secrets.repo-token }}

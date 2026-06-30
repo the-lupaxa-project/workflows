@@ -1,15 +1,15 @@
-name: 📄 Reusable YAML Lint (YAML Formatting & Validation)
+name: 📄 Reusable YAML Lint
 
 on:
   workflow_call:
     inputs:
       include_files:
-        description: "Comma-separated list or regex patterns to include"
+        description: "Comma-separated list of files or regex patterns to include"
         required: false
         type: string
 
       exclude_files:
-        description: "Comma-separated list or regex patterns to exclude"
+        description: "Comma-separated list of files or regex patterns to exclude"
         required: false
         type: string
 
@@ -26,13 +26,13 @@ on:
         default: true
 
       show_skipped:
-        description: "Show skipped / ignored files in the output"
+        description: "Show skipped or ignored files in the output"
         required: false
         type: boolean
         default: false
 
       no_color:
-        description: "Disable ANSI colours."
+        description: "Disable ANSI colours"
         required: false
         type: boolean
         default: false
@@ -46,10 +46,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: 🐍 Set up Python 3.x
+      - name: 🐍 Set Up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: "3.x"

@@ -16,7 +16,7 @@ on:
         type: boolean
 
       cleanup:
-        description: "Clean up existing deployments in the github-pages environment before deploying"
+        description: "Clean up existing GitHub Pages deployments before deploying"
         required: false
         default: true
         type: boolean
@@ -28,20 +28,20 @@ permissions:
   deployments: write
 
 jobs:
-  build:
+  build-documentation:
     name: 🏗️ Build Documentation
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: 🐍 Set up Python
+      - name: 🐍 Set Up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: ${{ inputs.python-version }}
 
-      - name: 📦 Install documentation dependencies
+      - name: 📦 Install Documentation Dependencies
         run: |
           python -m pip install --upgrade pip
 
@@ -58,17 +58,18 @@ jobs:
             python -m pip install mkdocs mkdocs-material
           fi
 
-      - name: 📚 Build MkDocs site
+      - name: 📚 Build MkDocs Site
         run: mkdocs build --strict
 
-      - name: 📦 Upload GitHub Pages artifact
+      - name: 📦 Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
         with:
           path: site
 
-  deploy:
+  deploy-github-pages:
     name: 🚀 Deploy to GitHub Pages
-    needs: build
+    needs:
+      - build-documentation
     runs-on: ubuntu-latest
 
     environment:
@@ -76,7 +77,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
-      - name: 🧹 Clean up old GitHub Pages deployments
+      - name: 🧹 Clean Up Existing GitHub Pages Deployments
         if: ${{ inputs.cleanup }}
         uses: strumwolf/delete-deployment-environment@035f6d27c8b8951729f4d71b2d3d6a7975139476  # v4.0.0
         with:

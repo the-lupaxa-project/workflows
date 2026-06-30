@@ -10,13 +10,13 @@ on:
         default: '["3.10","3.11","3.12","3.13","3.14"]'
 
       install-target:
-        description: "Make target for installing dev deps"
+        description: "Make target for installing development dependencies"
         required: false
         type: string
         default: "install-dev"
 
       ci-target:
-        description: "Make target that runs lint/type/tests"
+        description: "Make target that runs lint, type checks, and tests"
         required: false
         type: string
         default: "check"
@@ -25,8 +25,8 @@ permissions:
   contents: read
 
 jobs:
-  lint-and-test:
-    name: 🧪 Lint & Test
+  python-ci:
+    name: 🐍 Python CI
     runs-on: ubuntu-latest
 
     strategy:
@@ -34,23 +34,23 @@ jobs:
         python-version: ${{ fromJson(inputs.python-versions) }}
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: 🐍 Set up Python ${{ matrix.python-version }}
+      - name: 🐍 Set Up Python ${{ matrix.python-version }}
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: ℹ️ Show Python version
+      - name: ℹ️ Show Python Version
         run: |
           python --version
           which python
 
-      - name: 📦 Install dev dependencies via Make
+      - name: 📦 Install Development Dependencies
         run: |
           make PYTHON=python ${{ inputs.install-target }}
 
-      - name: 🧪 Run CI checks via Make
+      - name: 🧪 Run CI Checks
         run: |
           make PYTHON=python ${{ inputs.ci-target }}

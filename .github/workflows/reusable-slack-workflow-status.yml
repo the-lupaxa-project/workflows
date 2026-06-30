@@ -1,11 +1,12 @@
-name: 💬 Reusable Slack Workflow Status
+name: 💬 Reusable Slack Notification
 
 on:
   workflow_call:
     inputs:
       include_jobs:
         description: >
-          "true" (all jobs), "false" (no jobs), "on-failure" (jobs only if failure)
+          "true" includes all jobs, "false" excludes jobs, and "on-failure"
+          includes jobs only when the workflow did not succeed.
         required: false
         type: string
         default: "true"
@@ -18,8 +19,8 @@ on:
 
       notify_on_results:
         description: >
-          Comma-separated list of results to notify on (e.g. "failure,cancelled,timed_out").
-          Use "all" to notify on every result.
+          Comma-separated list of results to notify on, for example
+          "failure,cancelled,timed_out". Use "all" to notify on every result.
         required: false
         type: string
         default: "all"
@@ -27,8 +28,7 @@ on:
       ignore_jobs:
         description: >
           Comma-separated list of job names to exclude from the per-job Slack fields.
-          Names are normalised (segment after the last "/") and matched
-          case-insensitively.
+          Names are normalised and matched case-insensitively.
         required: false
         type: string
         default: ""
@@ -42,8 +42,8 @@ permissions:
   contents: read
 
 jobs:
-  slack-workflow-status:
-    name: 💬 Slack Workflow Status
+  slack-notification:
+    name: 💬 Slack Notification
     runs-on: ubuntu-latest
     if: >
       always() &&
@@ -54,13 +54,13 @@ jobs:
       )
 
     steps:
-      - name: 📥 Checkout workflows repository
+      - name: 📥 Checkout Workflows Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
-      - name: 💬 Send workflow status to Slack
+      - name: 💬 Send Slack Notification
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}

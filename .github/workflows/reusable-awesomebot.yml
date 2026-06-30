@@ -1,4 +1,4 @@
-name: 🔗 Reusable Awesomebot (Links & Anchors Validator)
+name: 🔗 Reusable Link & Anchor Validation
 
 on:
   workflow_call:
@@ -8,33 +8,40 @@ on:
         required: false
         type: string
         default: "default"
+
       whitelist:
-        description: "Comma-separated list of files (or regex) to whitelist"
+        description: "Comma-separated list of files or regex patterns to whitelist"
         required: false
         type: string
+
       include_files:
-        description: "Comma-separated list of files (or regex) to include"
+        description: "Comma-separated list of files or regex patterns to include"
         required: false
         type: string
+
       exclude_files:
-        description: "Comma-separated list of files (or regex) to exclude"
+        description: "Comma-separated list of files or regex patterns to exclude"
         required: false
         type: string
+
       report_only:
         description: "Generate a report but do not fail the build"
         required: false
         type: boolean
         default: false
+
       show_errors:
         description: "Show detailed errors"
         required: false
         type: boolean
         default: true
+
       show_skipped:
         description: "Show skipped files"
         required: false
         type: boolean
         default: false
+
       no_color:
         description: "Disable coloured output"
         required: false
@@ -45,20 +52,20 @@ permissions:
   contents: read
 
 jobs:
-  awesomebot:
+  link-anchor-validation:
     name: 🔗 Link & Anchor Validation
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: 💎 Setup Ruby 3.4
+      - name: 💎 Set Up Ruby 3.4
         uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74  # v1.314.0
         with:
           ruby-version: "3.4"
 
-      - name: 🔗 Run Awesomebot
+      - name: 🔗 Run Link & Anchor Validation
         env:
           FLAGS: ${{ inputs.flags }}
           WHITELIST: ${{ inputs.whitelist }}

@@ -1,4 +1,4 @@
-name: 🧹 Reusable Cleanup Workflow Runs
+name: 🧹 Reusable Workflow Run Cleanup
 
 on:
   workflow_call:
@@ -128,18 +128,18 @@ permissions:
   contents: read
 
 jobs:
-  cleanup-workflow-runs:
-    name: 🧹 Cleanup Workflow Runs
+  workflow-run-cleanup:
+    name: 🧹 Workflow Run Cleanup
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout workflows repository
+      - name: 📥 Checkout Workflows Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
-      - name: 🧹 Cleanup old workflow runs
+      - name: 🧹 Run Workflow Run Cleanup
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS: ${{ inputs.retention_days }}
@@ -162,7 +162,7 @@ jobs:
           CLEANUP_WORKFLOW_RUNS_VERBOSITY: ${{ inputs.verbosity }}
         run: python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py
 
-      - name: 📦 Upload cleanup report artifact
+      - name: 📦 Upload Cleanup Report Artifact
         if: ${{ inputs.upload_report_artifact == 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:

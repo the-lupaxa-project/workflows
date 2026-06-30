@@ -1,4 +1,4 @@
-name: 🔒 Reusable Ensure SHA-Pinned GitHub Actions
+name: 🔒 Reusable SHA-Pinned Actions Validation
 
 on:
   workflow_call:
@@ -23,15 +23,15 @@ permissions:
   pull-requests: write
 
 jobs:
-  ensure-sha-pinned:
-    name: 🔒 Ensure SHA-Pinned GitHub Actions
+  sha-pinned-actions-validation:
+    name: 🔒 SHA-Pinned Actions Validation
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: 🔒 Verify SHA-pinned GitHub Actions
+      - name: 🔒 Verify SHA-Pinned GitHub Actions
         uses: zgosalvez/github-actions-ensure-sha-pinned-actions@3db98c0363e2fa5df3e1c4c471777a7c10b24cc9  # v5.0.5
         with:
           allowlist: |

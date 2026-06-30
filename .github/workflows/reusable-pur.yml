@@ -1,15 +1,15 @@
-name: 🐍 Reusable PUR (Python Requirements Updater)
+name: 🐍 Reusable PUR
 
 on:
   workflow_call:
     inputs:
       include_files:
-        description: "Comma-separated list of files (or regex) to include"
+        description: "Comma-separated list of files or regex patterns to include"
         required: false
         type: string
 
       exclude_files:
-        description: "Comma-separated list of files (or regex) to exclude"
+        description: "Comma-separated list of files or regex patterns to exclude"
         required: false
         type: string
 
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
       - name: 🐍 Run PUR

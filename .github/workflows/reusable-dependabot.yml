@@ -1,4 +1,4 @@
-name: 🤖 Reusable Dependabot Automation (Approve, Comment, Merge)
+name: 🤖 Reusable Dependabot Automation
 
 on:
   workflow_call:
@@ -8,26 +8,31 @@ on:
         required: false
         type: boolean
         default: true
+
       auto-merge:
         description: "Automatically merge patch and minor updates"
         required: false
         type: boolean
         default: true
+
       handle-major:
-        description: "Comment and label major updates (no auto-merge)"
+        description: "Comment and label major updates without auto-merging"
         required: false
         type: boolean
         default: true
+
       label-auto-approve:
         description: "Label to apply to auto-approved PRs"
         required: false
         type: string
         default: "dependabot: auto approve"
+
       label-auto-merge:
         description: "Label to apply to auto-merged PRs"
         required: false
         type: string
         default: "dependabot: auto merge"
+
       label-manual-merge:
         description: "Label to apply to PRs needing manual review"
         required: false
@@ -39,21 +44,20 @@ permissions:
   pull-requests: write
 
 jobs:
-  dependabot:
+  dependabot-automation:
     name: 🤖 Dependabot Automation
     runs-on: ubuntu-latest
 
-    # Only run for Dependabot PRs
     if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'pull_request' }}
 
     steps:
-      - name: 📋 Fetch Dependabot metadata
+      - name: 📋 Fetch Dependabot Metadata
         id: dependabot-metadata
         uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98  # v3.1.0
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: ✅ Approve patch/minor updates
+      - name: 🛡️ Approve Patch/Minor Updates
         if: >
           inputs.auto-approve == true &&
           (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
@@ -66,7 +70,7 @@ jobs:
           LABEL_AUTO_APPROVE: ${{ inputs.label-auto-approve }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 🚀 Auto-merge patch/minor updates
+      - name: 🚀 Auto-Merge Patch/Minor Updates
         if: >
           inputs.auto-merge == true &&
           (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
@@ -80,7 +84,7 @@ jobs:
           LABEL_AUTO_MERGE: ${{ inputs.label-auto-merge }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 💬 Comment & label major updates
+      - name: 💬 Comment and Label Major Updates
         if: >
           inputs.handle-major == true &&
           steps.dependabot-metadata.outputs.update-type == 'version-update:semver-major'
