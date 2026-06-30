@@ -99,7 +99,7 @@ def default_summary_filename() -> str:
     run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
 
     name_parts = [
-        "check-jobs-summary",
+        "workflow-summary",
         slugify(workflow_file or workflow_name),
         slugify(run_id),
         f"attempt-{slugify(run_attempt)}",
@@ -193,7 +193,7 @@ def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
-        "User-Agent": "lupaxa-check-jobs-status",
+        "User-Agent": "lupaxa-workflow-summary",
         "X-GitHub-Api-Version": "2022-11-28",
     }
 
@@ -611,14 +611,14 @@ def output_paths() -> List[str]:
     paths: List[str] = []
 
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
-    artifact_path = os.environ.get("CHECK_JOBS_SUMMARY_FILE", "").strip()
+    artifact_path = os.environ.get("WORKFLOW_SUMMARY_FILE", "").strip()
 
     if summary_path:
         paths.append(summary_path)
 
     if not artifact_path:
         artifact_path = default_summary_filename()
-        os.environ["CHECK_JOBS_SUMMARY_FILE"] = artifact_path
+        os.environ["WORKFLOW_SUMMARY_FILE"] = artifact_path
 
     if artifact_path and artifact_path not in paths:
         paths.append(artifact_path)
@@ -647,11 +647,11 @@ def main() -> None:
     if len(sys.argv) == 2:
         data = load_jobs_json_from_file(sys.argv[1])
     elif len(sys.argv) > 2:
-        error("Usage: check-jobs.py [jobs.json]")
+        error("Usage: workflow-summary.py [jobs.json]")
     else:
         data = fetch_jobs_json_from_api()
 
-    raw_ignored_jobs = os.environ.get("CHECK_JOBS_IGNORE_JOBS", "")
+    raw_ignored_jobs = os.environ.get("WORKFLOW_IGNORE_JOBS", "")
     ignored_job_names: Optional[Set[str]] = None
 
     if raw_ignored_jobs.strip():

@@ -1,4 +1,4 @@
-name: Reusable RuboCop (Ruby Style Guide Linter)
+name: 💎 Reusable RuboCop (Ruby Style Guide Linter)
 
 on:
   workflow_call:
@@ -37,14 +37,14 @@ permissions:
 
 jobs:
   rubocop:
-    name: Rubocop
+    name: 💎 RuboCop
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Run Rubocop
+      - name: 💎 Run RuboCop
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}
           EXCLUDE_FILES: ${{ inputs.exclude_files }}

@@ -1,4 +1,4 @@
-name: Reusable Validate Citations File (CITATION.cff)
+name: 📚 Reusable Validate Citations File (CITATION.cff)
 
 on:
   workflow_call:
@@ -37,14 +37,14 @@ permissions:
 
 jobs:
   validate-citations-file:
-    name: Validate Citations File
+    name: 📚 Validate Citations File
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Run validate citations file
+      - name: 📚 Validate CITATION.cff
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}
           EXCLUDE_FILES: ${{ inputs.exclude_files }}

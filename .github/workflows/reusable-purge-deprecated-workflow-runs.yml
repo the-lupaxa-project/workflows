@@ -1,4 +1,4 @@
-name: Reusable Purge Deprecated Workflow Runs
+name: 🧹 Reusable Purge Deprecated Workflow Runs
 
 on:
   workflow_call:
@@ -50,11 +50,11 @@ permissions:
 
 jobs:
   purge-deprecated-workflows:
-    name: Purge Deprecated Workflow Runs
+    name: 🧹 Purge Deprecated Workflow Runs
     runs-on: ubuntu-latest
 
     steps:
-      - name: Run Purge Deprecated Workflow Runs
+      - name: 🧹 Purge deprecated workflow runs
         uses: otto-de/purge-deprecated-workflow-runs@ad569cd76e698bfe428cecc611bf23c477b9f8dd  # v4.0.12
         with:
           token: ${{ inputs.token || github.token }}

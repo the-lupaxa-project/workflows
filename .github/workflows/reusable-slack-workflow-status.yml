@@ -1,4 +1,4 @@
-name: Reusable Slack Workflow Status
+name: 💬 Reusable Slack Workflow Status
 
 on:
   workflow_call:
@@ -9,11 +9,13 @@ on:
         required: false
         type: string
         default: "true"
+
       include_commit_message:
         description: "Include the commit message in the notification."
         required: false
         type: boolean
         default: true
+
       notify_on_results:
         description: >
           Comma-separated list of results to notify on (e.g. "failure,cancelled,timed_out").
@@ -21,6 +23,7 @@ on:
         required: false
         type: string
         default: "all"
+
       ignore_jobs:
         description: >
           Comma-separated list of job names to exclude from the per-job Slack fields.
@@ -29,6 +32,7 @@ on:
         required: false
         type: string
         default: ""
+
     secrets:
       slack_webhook_url:
         required: true
@@ -39,7 +43,7 @@ permissions:
 
 jobs:
   slack-workflow-status:
-    name: Slack Workflow Status
+    name: 💬 Slack Workflow Status
     runs-on: ubuntu-latest
     if: >
       always() &&
@@ -50,13 +54,13 @@ jobs:
       )
 
     steps:
-      - name: Checkout workflows repo
+      - name: 📥 Checkout workflows repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
-      - name: Post workflow status to Slack (Python)
+      - name: 💬 Send workflow status to Slack
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}

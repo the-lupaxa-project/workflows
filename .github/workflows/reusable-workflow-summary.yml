@@ -1,4 +1,4 @@
-name: Reusable Check Jobs Status Summary
+name: 📊 Reusable Workflow Summary
 
 on:
   workflow_call:
@@ -11,11 +11,13 @@ on:
         required: false
         type: string
         default: ""
+
       upload_artifact:
         description: Upload the generated Markdown summary as a workflow artifact.
         required: false
         type: boolean
         default: true
+
       artifact_retention_days:
         description: >
           Number of days to retain the uploaded Markdown summary artifact.
@@ -29,28 +31,28 @@ permissions:
   contents: read
 
 jobs:
-  check-jobs-status:
-    name: Check Jobs Status
+  workflow-summary:
+    name: 🔍 Workflow Summary
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout workflows repository
+      - name: 📥 Checkout workflows repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
-      - name: Run Check Jobs Python summary
+      - name: 📊 Generate workflow summary
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          CHECK_JOBS_IGNORE_JOBS: Check Jobs Status,${{ inputs.ignore_jobs }}
-        run: python lupaxa-dotgithub/.github/scripts/check-jobs.py
+          WORKFLOW_IGNORE_JOBS: "📊 Workflow Summary,💬 Slack Notification,${{ inputs.ignore_jobs }}"
+        run: python lupaxa-dotgithub/.github/scripts/workflow-summary.py
 
-      - name: Upload Check Jobs summary artifact
+      - name: 📦 Upload job status summary artifact
         if: ${{ inputs.upload_artifact }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
-          name: check-jobs-summary
-          path: check-jobs-summary-*.md
+          name: workflow-summary
+          path: workflow-summary-*.md
           retention-days: ${{ inputs.artifact_retention_days }}
           if-no-files-found: error

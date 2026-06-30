@@ -1,4 +1,4 @@
-name: Reusable CodeQL Analysis
+name: 🔒 Reusable CodeQL Analysis
 
 on:
   workflow_call:
@@ -17,21 +17,21 @@ permissions:
 
 jobs:
   codeql-analysis:
-    name: CodeQL Analysis
+    name: 🔒 CodeQL Analysis
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout the Repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Initialize CodeQL
+      - name: 🔒 Initialize CodeQL
         uses: github/codeql-action/init@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
         with:
           languages: ${{ inputs.languages }}
           queries: +security-and-quality
 
-      - name: Autobuild
+      - name: 🏗️ Autobuild
         uses: github/codeql-action/autobuild@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
 
-      - name: Perform CodeQL Analysis
+      - name: 🔍 Perform CodeQL Analysis
         uses: github/codeql-action/analyze@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3

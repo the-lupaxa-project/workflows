@@ -1,4 +1,4 @@
-name: Reusable PHP Lint (Syntax Checker)
+name: 🐘 Reusable PHP Lint (Syntax Checker)
 
 on:
   workflow_call:
@@ -37,14 +37,14 @@ permissions:
 
 jobs:
   php-lint:
-    name: PHP Lint
+    name: 🐘 PHP Lint
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Run PHP Lint
+      - name: 🐘 Run PHP Lint
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}
           EXCLUDE_FILES: ${{ inputs.exclude_files }}

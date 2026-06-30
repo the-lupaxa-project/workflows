@@ -1,14 +1,16 @@
-name: Local Check send-to-slack.py
+name: 🧪 Local Python CI - send-to-slack.py
 
 on:
   push:
     paths:
       - ".github/scripts/send-to-slack.py"
       - ".github/workflows/local-send-to-slack-ci.yml"
+
   pull_request:
     paths:
       - ".github/scripts/send-to-slack.py"
       - ".github/workflows/local-send-to-slack-ci.yml"
+
   workflow_dispatch:
 
 permissions:
@@ -17,28 +19,28 @@ permissions:
 
 jobs:
   python-ci:
-    name: Lint & type-check Python code
+    name: 🧪 Python CI
     uses: ./.github/workflows/reusable-python-ci.yml
     with:
       paths: ".github/scripts/send-to-slack.py"
 
-  status-check:
-    name: Check Jobs Status
+  workflow-summary:
+    name: 📊 Workflow Summary
     needs:
       - python-ci
     if: always()
-    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+    with:
+      ignore_jobs: "💬 Slack Notification"
 
-  slack-workflow-status:
-    name: Slack Workflow Status
+  slack-notification:
+    name: 💬 Slack Notification
     needs:
-      - status-check
+      - workflow-summary
     if: always()
-
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failure,timed_out"
-      ignore_jobs: "Check Jobs Status"
+      ignore_jobs: "📊 Workflow Summary,💬 Slack Notification"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

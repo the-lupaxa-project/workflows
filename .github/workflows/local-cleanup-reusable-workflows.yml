@@ -1,4 +1,4 @@
-name: Local Cleanup Workflow Runs
+name: 🧹 Local Cleanup Workflow Runs
 
 on:
   schedule:
@@ -143,7 +143,7 @@ permissions:
 
 jobs:
   cleanup-workflow-runs:
-    name: Cleanup Workflow Runs
+    name: 🧹 Cleanup Workflow Runs
     uses: ./.github/workflows/reusable-cleanup-workflow-runs.yml
     with:
       retention_days: ${{ inputs.retention_days || '90' }}
@@ -167,23 +167,23 @@ jobs:
       upload_report_artifact: ${{ inputs.upload_report_artifact || 'true' }}
       report_artifact_retention_days: ${{ inputs.report_artifact_retention_days || '90' }}
 
-  status-check:
-    name: Check Jobs Status
+  workflow-summary:
+    name: 📊 Workflow Summary
     needs:
       - cleanup-workflow-runs
     if: always()
     uses: ./.github/workflows/reusable-check-jobs-status.yml
     with:
-      ignore_jobs: "Slack Workflow Status"
+      ignore_jobs: "💬 Slack Notification"
 
-  slack-workflow-status:
-    name: Slack Workflow Status
+  slack-notification:
+    name: 💬 Slack Notification
     needs:
-      - status-check
+      - workflow-summary
     if: always()
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failure,timed_out"
-      ignore_jobs: "Check Jobs Status,Slack Workflow Status"
+      ignore_jobs: "📊 Workflow Summary,💬 Slack Notification"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

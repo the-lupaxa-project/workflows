@@ -1,4 +1,4 @@
-name: Reusable GitHub Release (Tag + Changelog)
+name: 🚀 Reusable GitHub Release (Tag + Changelog)
 
 on:
   workflow_call:
@@ -41,7 +41,7 @@ permissions:
 
 jobs:
   set-release-version:
-    name: Determine Release Version
+    name: 🔖 Determine Release Version
     runs-on: ubuntu-latest
 
     outputs:
@@ -49,7 +49,7 @@ jobs:
       tag-to-release: ${{ steps.set-release-version.outputs.tag-to-release }}
 
     steps:
-      - name: Compute tag and release name
+      - name: 🔖 Compute tag and release name
         id: set-release-version
         run: |
           # Determine which ref/tag to use
@@ -67,24 +67,24 @@ jobs:
           echo "release-version=${NAME}" >> "${GITHUB_OUTPUT}"
 
   create-release:
-    name: Create GitHub Release
+    name: 🚀 Create GitHub Release
     runs-on: ubuntu-latest
     needs:
       - set-release-version
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           fetch-depth: 0
 
-      - name: Generate changelog
+      - name: 📝 Generate changelog
         id: changelog
         uses: Bullrich/generate-release-changelog@6b60f004b4bf12ff271603dc32dbd261965ad2f2  # v2.0.2
         env:
           REPO: ${{ github.repository }}
 
-      - name: Create GitHub Release
+      - name: 🚀 Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b  # v3.0.1
         with:

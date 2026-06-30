@@ -1,10 +1,10 @@
-name: Local Purge Deprecated Workflow Runs
+name: 🧹 Local Purge Deprecated Workflow Runs
 
 on:
   workflow_dispatch:
 
   schedule:
-    - cron: '33 3 * * 1'
+    - cron: "33 3 * * 1"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,26 +16,26 @@ permissions:
 
 jobs:
   purge-deprecated-workflows:
-    name: Run Purge Deprecated Workflow Runs (Reusable)
+    name: 🧹 Purge Deprecated Workflow Runs
     uses: ./.github/workflows/reusable-purge-deprecated-workflow-runs.yml
 
-  status-check:
-    name: Check Jobs Status
+  workflow-summary:
+    name: 📊 Workflow Summary
     needs:
       - purge-deprecated-workflows
     if: always()
-    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+    with:
+      ignore_jobs: "💬 Slack Notification"
 
-  slack-workflow-status:
-    name: Slack Workflow Status
+  slack-notification:
+    name: 💬 Slack Notification
     needs:
-      - status-check
+      - workflow-summary
     if: always()
-
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failure,timed_out"
-      ignore_jobs: "Check Jobs Status"
+      ignore_jobs: "📊 Workflow Summary,💬 Slack Notification"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

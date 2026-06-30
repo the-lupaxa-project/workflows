@@ -1,4 +1,4 @@
-name: Reusable Reek (Ruby Code Smell Detector)
+name: 💎 Reusable Reek (Ruby Code Smell Detector)
 
 on:
   workflow_call:
@@ -37,16 +37,16 @@ permissions:
 
 jobs:
   reek:
-    name: Reek Code Smell Detection
+    name: 💎 Reek Code Smell Detection
     runs-on: ubuntu-latest
     permissions:
       contents: read
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Run reek
+      - name: 💎 Run Reek
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}
           EXCLUDE_FILES: ${{ inputs.exclude_files }}

@@ -1,30 +1,32 @@
-name: Reusable Python CI via Make
+name: 🐍 Reusable Python CI via Make
 
 on:
   workflow_call:
     inputs:
       python-versions:
-        description: 'JSON array of Python versions'
+        description: "JSON array of Python versions"
         required: false
         type: string
         default: '["3.10","3.11","3.12","3.13","3.14"]'
+
       install-target:
-        description: 'Make target for installing dev deps'
+        description: "Make target for installing dev deps"
         required: false
         type: string
-        default: 'install-dev'
+        default: "install-dev"
+
       ci-target:
-        description: 'Make target that runs lint/type/tests'
+        description: "Make target that runs lint/type/tests"
         required: false
         type: string
-        default: 'check'
+        default: "check"
 
 permissions:
   contents: read
 
 jobs:
   lint-and-test:
-    name: Lint & Test
+    name: 🧪 Lint & Test
     runs-on: ubuntu-latest
 
     strategy:
@@ -32,23 +34,23 @@ jobs:
         python-version: ${{ fromJson(inputs.python-versions) }}
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Show Python version
+      - name: ℹ️ Show Python version
         run: |
           python --version
           which python
 
-      - name: Install dev dependencies via Make
+      - name: 📦 Install dev dependencies via Make
         run: |
           make PYTHON=python ${{ inputs.install-target }}
 
-      - name: Run CI checks via Make
+      - name: 🧪 Run CI checks via Make
         run: |
           make PYTHON=python ${{ inputs.ci-target }}

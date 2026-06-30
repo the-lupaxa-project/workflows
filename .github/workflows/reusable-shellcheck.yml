@@ -1,4 +1,4 @@
-name: Reusable ShellCheck (Shell Script Linting)
+name: 🐚 Reusable ShellCheck (Shell Script Linting)
 
 on:
   workflow_call:
@@ -8,16 +8,19 @@ on:
         required: false
         type: string
         default: ""
+
       exclude_files:
         description: "Comma-separated list or regex patterns to exclude"
         required: false
         type: string
         default: ""
+
       report_only:
         description: "Do not fail the build even if errors occur"
         required: false
         type: string
         default: "false"
+
       show_errors:
         description: "Show detailed error output"
         required: false
@@ -29,14 +32,14 @@ permissions:
 
 jobs:
   shellcheck:
-    name: ShellCheck
+    name: 🐚 ShellCheck
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Run ShellCheck
+      - name: 🐚 Run ShellCheck
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}
           EXCLUDE_FILES: ${{ inputs.exclude_files }}

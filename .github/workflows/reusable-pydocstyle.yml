@@ -1,4 +1,4 @@
-name: Reusable pydocstyle (Docstring Style Checker)
+name: 📖 Reusable pydocstyle (Docstring Style Checker)
 
 on:
   workflow_call:
@@ -37,14 +37,14 @@ permissions:
 
 jobs:
   pydocstyle:
-    name: Pydocstyle
+    name: 📖 pydocstyle
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Run Pydocstyle
+      - name: 📖 Run pydocstyle
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}
           EXCLUDE_FILES: ${{ inputs.exclude_files }}

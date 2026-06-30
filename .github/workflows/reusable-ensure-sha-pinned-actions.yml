@@ -1,4 +1,4 @@
-name: Reusable Ensure SHA-Pinned GitHub Actions
+name: 🔒 Reusable Ensure SHA-Pinned GitHub Actions
 
 on:
   workflow_call:
@@ -10,6 +10,7 @@ on:
           Each line should be either "owner/" or "owner/repo".
         required: false
         type: string
+
       dry_run:
         description: >
           If true, only report unpinned actions but do not fail the job.
@@ -23,13 +24,14 @@ permissions:
 
 jobs:
   ensure-sha-pinned:
-    name: Ensure SHA-pinned GitHub Actions
+    name: 🔒 Ensure SHA-Pinned GitHub Actions
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Ensure SHA-pinned GitHub Actions
+      - name: 🔒 Verify SHA-pinned GitHub Actions
         uses: zgosalvez/github-actions-ensure-sha-pinned-actions@3db98c0363e2fa5df3e1c4c471777a7c10b24cc9  # v5.0.5
         with:
           allowlist: |

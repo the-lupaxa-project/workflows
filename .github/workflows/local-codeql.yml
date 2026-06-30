@@ -1,4 +1,4 @@
-name: Local CodeQL Analysis
+name: 🔒 Local CodeQL Analysis
 
 on:
   push:
@@ -6,13 +6,16 @@ on:
       - "dependabot/"
     paths-ignore:
       - "**/*.md"
+
   pull_request:
     branches:
       - "**"
     paths-ignore:
       - "**/*.md"
+
   schedule:
     - cron: "4 3 * * 1"
+
   workflow_dispatch:
 
 concurrency:
@@ -26,27 +29,28 @@ permissions:
 
 jobs:
   codeql:
+    name: 🔒 CodeQL Analysis
     uses: ./.github/workflows/reusable-codeql.yml
     with:
       languages: "python"
 
-  status-check:
-    name: Check Jobs Status
+  workflow-summary:
+    name: 📊 Workflow Summary
     needs:
       - codeql
     if: always()
-    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+    with:
+      ignore_jobs: "💬 Slack Notification"
 
-  slack-workflow-status:
-    name: Slack Workflow Status
+  slack-notification:
+    name: 💬 Slack Notification
     needs:
-      - status-check
+      - workflow-summary
     if: always()
-
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failure,timed_out"
-      ignore_jobs: "Check Jobs Status"
+      ignore_jobs: "📊 Workflow Summary,💬 Slack Notification"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

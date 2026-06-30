@@ -1,11 +1,13 @@
-name: Local Shellcheck
+name: 🧪 Local ShellCheck
 
 on:
   push:
     branches:
       - "**"
+
   pull_request:
-  workflow_dispatch:  # add a Run Workflow button
+
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,27 +19,27 @@ permissions:
 
 jobs:
   shellcheck:
-    name: Shellcheck
+    name: 🧪 ShellCheck
     uses: ./.github/workflows/reusable-shellcheck.yml
     secrets: inherit
 
-  status-check:
-    name: Check Jobs Status
+  workflow-summary:
+    name: 📊 Workflow Summary
     needs:
       - shellcheck
     if: always()
-    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+    with:
+      ignore_jobs: "💬 Slack Notification"
 
-  slack-workflow-status:
-    name: Slack Workflow Status
+  slack-notification:
+    name: 💬 Slack Notification
     needs:
-      - status-check
+      - workflow-summary
     if: always()
-
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failure,timed_out"
-      ignore_jobs: "Check Jobs Status"
+      ignore_jobs: "📊 Workflow Summary,💬 Slack Notification"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

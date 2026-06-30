@@ -1,0 +1,47 @@
+name: 🧪 Local Workflow Summary CI - workflow-summary.py
+
+on:
+  push:
+    paths:
+      - ".github/scripts/workflow-summary.py"
+      - ".github/workflows/local-workflow-summary-ci.yml"
+      - ".github/workflows/reusable-workflow-summary.yml"
+
+  pull_request:
+    paths:
+      - ".github/scripts/workflow-summary.py"
+      - ".github/workflows/local-workflow-summary-ci.yml"
+      - ".github/workflows/reusable-workflow-summary.yml"
+
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  python-ci:
+    name: 🧪 Python CI
+    uses: ./.github/workflows/reusable-python-ci.yml
+    with:
+      paths: ".github/scripts/workflow-summary.py"
+
+  status-check:
+    name: 📊 Workflow Summary
+    needs:
+      - python-ci
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-summary.yml
+    with:
+      artifact_retention_days: 90
+
+  slack-workflow-status:
+    name: 💬 Slack Notification
+    needs:
+      - status-check
+    if: always()
+    uses: ./.github/workflows/reusable-slack-workflow-status.yml
+    with:
+      notify_on_results: "failure,timed_out"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

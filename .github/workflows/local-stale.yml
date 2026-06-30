@@ -1,8 +1,9 @@
-name: Local Stale Issue & PR Handler
+name: 🧹 Local Stale Issue & PR Handler
 
 on:
   schedule:
     - cron: "35 5 * * *"
+
   workflow_dispatch:
 
 concurrency:
@@ -17,26 +18,26 @@ permissions:
 
 jobs:
   stale:
-    name: Run Stale Issue & PR Handler
+    name: 🧹 Stale Issue & PR Handler
     uses: ./.github/workflows/reusable-stale.yml
 
-  status-check:
-    name: Check Jobs Status
+  workflow-summary:
+    name: 📊 Workflow Summary
     needs:
       - stale
     if: always()
-    # 🔴 IMPORTANT: this is a *job-level* uses, not under steps:
     uses: ./.github/workflows/reusable-check-jobs-status.yml
+    with:
+      ignore_jobs: "💬 Slack Notification"
 
-  slack-workflow-status:
-    name: Slack Post Workflow Notification
+  slack-notification:
+    name: 💬 Slack Notification
     needs:
-      - status-check
+      - workflow-summary
     if: always()
-
     uses: ./.github/workflows/reusable-slack-workflow-status.yml
     with:
       notify_on_results: "failure,timed_out"
-      ignore_jobs: "Check Jobs Status"
+      ignore_jobs: "📊 Workflow Summary,💬 Slack Notification"
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

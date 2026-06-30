@@ -1,4 +1,4 @@
-name: Reusable awesomebot (Links & Anchors Validator)
+name: 🔗 Reusable Awesomebot (Links & Anchors Validator)
 
 on:
   workflow_call:
@@ -46,19 +46,19 @@ permissions:
 
 jobs:
   awesomebot:
-    name: Awesomebot
+    name: 🔗 Link & Anchor Validation
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      - name: Setup Ruby 3.4
+      - name: 💎 Setup Ruby 3.4
         uses: ruby/setup-ruby@9eb537ca036ebaed86729dcb9309076e4c5c3b74  # v1.314.0
         with:
           ruby-version: "3.4"
 
-      - name: Run Awesomebot
+      - name: 🔗 Run Awesomebot
         env:
           FLAGS: ${{ inputs.flags }}
           WHITELIST: ${{ inputs.whitelist }}
