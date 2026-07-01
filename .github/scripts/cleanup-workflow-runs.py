@@ -555,12 +555,15 @@ def delete_artifact(repo: str, artifact_id: int, token: str) -> None:
 
 
 def default_report_filename(repo: str) -> str:
-    """Build the default Markdown cleanup report filename."""
+    """Build the default Markdown cleanup report path."""
     run_id = env_value("GITHUB_RUN_ID", "unknown")
     run_attempt = env_value("GITHUB_RUN_ATTEMPT", "1")
     repo_slug = slugify(repo.replace("/", "-"))
+    output_dir = env_value("RUNNER_TEMP").strip() or os.getcwd()
 
-    return f"cleanup-workflow-runs-{repo_slug}-{run_id}-attempt-{run_attempt}.md"
+    filename = f"cleanup-workflow-runs-{repo_slug}-{run_id}-attempt-{run_attempt}.md"
+
+    return str(Path(output_dir) / filename)
 
 
 def report_paths(repo: str) -> List[Path]:
