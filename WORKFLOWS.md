@@ -37,7 +37,7 @@
 | [reusable-stale-issue-and-pull-request-handle.yml][028] | Marks and closes inactive issues and pull requests using configurable stale policies.            | [Example](#reusable-stale-issue-and-pull-request-handler) |
 | [reusable-workflow-clean-up.yml][029]                   | Cleans up old workflow runs and artifacts using configurable retention policies.                 | [Example](#reusable-workflow-clean-up)                    |
 | [reusable-workflow-run-purger.yml][029]                 | Removes obsolete and unwanted GitHub Actions workflow runs.                                      | [Example](#reusable-workflow-run-purger)                  |
-| [reusable-workflow-notifier.yml][027]                   | Sends configurable notifications summarising GitHub Actions workflow results.                    | [Example](#reusable-workflow-notifier)                       |
+| [reusable-workflow-notifier.yml][027]                   | Sends configurable notifications summarising GitHub Actions workflow results.                    | [Example](#reusable-workflow-notifier)                    |
 | [reusable-workflow-summary.yml][030]                    | Generates a comprehensive Markdown summary of a GitHub Actions workflow run.                     | [Example](#reusable-workflow-summary)                     |
 | [reusable-yaml-linter.yml][031]                         | Lints YAML files to identify syntax errors, formatting issues and style violations.              | [Example](#reusable-yaml-linter)                          |
 
@@ -1702,7 +1702,6 @@ jobs:
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
-
 
 <h2 id="reusable-workflow-summary">Workflow Summary</h2>
 

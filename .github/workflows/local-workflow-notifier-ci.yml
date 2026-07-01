@@ -1,15 +1,15 @@
-name: Local Send to Slack CI - send-to-slack.py
+name: Local Workflow Notifier CI - workflow-notifier.py
 
 on:
   push:
     paths:
-      - ".github/scripts/send-to-slack.py"
-      - ".github/workflows/local-send-to-slack-ci.yml"
+      - ".github/scripts/workflow-notifier.py"
+      - ".github/workflows/local-workflow-notifier-ci.yml"
 
   pull_request:
     paths:
-      - ".github/scripts/send-to-slack.py"
-      - ".github/workflows/local-send-to-slack-ci.yml"
+      - ".github/scripts/workflow-notifier.py"
+      - ".github/workflows/local-workflow-notifier-ci.yml"
 
   workflow_dispatch:
 
@@ -22,7 +22,7 @@ jobs:
     name: Python CI
     uses: ./.github/workflows/reusable-python-ci.yml
     with:
-      paths: ".github/scripts/send-to-slack.py"
+      paths: ".github/scripts/workflow-notifier.py"
 
   generate-workflow-summary:
     name: Generate Workflow Summary
