@@ -1,7 +1,7 @@
 The MIT License (MIT)
 =====================
 
-Copyright © `2025-2027` `The Lupaxa Project`
+Copyright © `2025-2026` `The Lupaxa Project`
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
