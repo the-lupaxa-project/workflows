@@ -30,8 +30,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-workflow-summary:
-    name: Reusable Workflow Summary
+  reusable-generate-workflow-summary:
+    name: Reusable Generate Workflow Summary
     runs-on: ubuntu-latest
 
     steps:
