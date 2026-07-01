@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Support the project
+    url: https://ko-fi.com/thelupaxaproject
+    about: Show your support for The Lupaxa Project and help sustain open-source development.
+
+  - name: Visit our website
+    url: https://thelupaxaproject.org
+    about: Learn more about The Lupaxa Project and our philosophy.
