@@ -1,0 +1,173 @@
+name: Reusable Workflow Clean Up
+
+on:
+  workflow_call:
+    inputs:
+      retention_days:
+        description: Delete completed workflow runs older than this many days.
+        required: false
+        type: string
+        default: "90"
+
+      artifact_retention_days:
+        description: Delete artifacts older than this many days when artifact cleanup is enabled.
+        required: false
+        type: string
+        default: "90"
+
+      dry_run:
+        description: Report what would be deleted without deleting anything.
+        required: false
+        type: string
+        default: "true"
+
+      cleanup_artifacts:
+        description: Also delete old repository workflow artifacts.
+        required: false
+        type: string
+        default: "false"
+
+      preserve_branch:
+        description: Branch to preserve representative workflow runs for.
+        required: false
+        type: string
+        default: "master"
+
+      force_delete_non_default_branch:
+        description: Force-delete completed runs not on preserve_branch, ignoring retention and representative keeps.
+        required: false
+        type: string
+        default: "false"
+
+      keep_latest_successful:
+        description: Keep the latest successful completed run for each workflow on preserve_branch.
+        required: false
+        type: string
+        default: "true"
+
+      keep_latest_failed:
+        description: Keep the latest failed completed run for each workflow on preserve_branch.
+        required: false
+        type: string
+        default: "true"
+
+      keep_latest_cancelled:
+        description: Keep the latest cancelled completed run for each workflow on preserve_branch.
+        required: false
+        type: string
+        default: "true"
+
+      keep_latest_timed_out:
+        description: Keep the latest timed-out completed run for each workflow on preserve_branch.
+        required: false
+        type: string
+        default: "true"
+
+      keep_last_n_successful:
+        description: Keep this many recent successful completed runs per workflow on preserve_branch.
+        required: false
+        type: string
+        default: "3"
+
+      delete_skipped:
+        description: Delete skipped runs when they are older than the retention period.
+        required: false
+        type: string
+        default: "true"
+
+      delete_neutral:
+        description: Delete neutral runs when they are older than the retention period.
+        required: false
+        type: string
+        default: "true"
+
+      max_deletes_per_run:
+        description: Maximum workflow runs to delete in one cleanup execution. Use 0 for unlimited.
+        required: false
+        type: string
+        default: "250"
+
+      max_artifact_deletes_per_run:
+        description: Maximum artifacts to delete in one cleanup execution. Use 0 for unlimited.
+        required: false
+        type: string
+        default: "250"
+
+      delete_sleep_seconds:
+        description: Seconds to sleep between delete calls to reduce API throttling risk.
+        required: false
+        type: string
+        default: "1.0"
+
+      progress_every:
+        description: Print progress after this many inspected workflow runs. Use 0 to disable.
+        required: false
+        type: string
+        default: "50"
+
+      verbosity:
+        description: Log verbosity. Use quiet, normal, or verbose.
+        required: false
+        type: string
+        default: "normal"
+
+      upload_report_artifact:
+        description: Upload the generated Markdown cleanup report as a workflow artifact.
+        required: false
+        type: string
+        default: "true"
+
+      report_artifact_retention_days:
+        description: Number of days to retain the uploaded cleanup report artifact.
+        required: false
+        type: string
+        default: "90"
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  reusable-workflow-clean-up:
+    name: Reusable Workflow Clean Up
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Workflows Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          repository: the-lupaxa-project/workflows
+          path: lupaxa-dotgithub
+
+      - name: Run Workflow Clean Up
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS: ${{ inputs.retention_days }}
+          CLEANUP_WORKFLOW_RUNS_ARTIFACT_RETENTION_DAYS: ${{ inputs.artifact_retention_days }}
+          CLEANUP_WORKFLOW_RUNS_DRY_RUN: ${{ inputs.dry_run }}
+          CLEANUP_WORKFLOW_RUNS_CLEANUP_ARTIFACTS: ${{ inputs.cleanup_artifacts }}
+          CLEANUP_WORKFLOW_RUNS_PRESERVE_BRANCH: ${{ inputs.preserve_branch }}
+          CLEANUP_WORKFLOW_RUNS_FORCE_DELETE_NON_DEFAULT_BRANCH: ${{ inputs.force_delete_non_default_branch }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_SUCCESSFUL: ${{ inputs.keep_latest_successful }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_FAILED: ${{ inputs.keep_latest_failed }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED: ${{ inputs.keep_latest_cancelled }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT: ${{ inputs.keep_latest_timed_out }}
+          CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL: ${{ inputs.keep_last_n_successful }}
+          CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED: ${{ inputs.delete_skipped }}
+          CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL: ${{ inputs.delete_neutral }}
+          CLEANUP_WORKFLOW_RUNS_MAX_DELETES: ${{ inputs.max_deletes_per_run }}
+          CLEANUP_WORKFLOW_RUNS_MAX_ARTIFACT_DELETES: ${{ inputs.max_artifact_deletes_per_run }}
+          CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS: ${{ inputs.delete_sleep_seconds }}
+          CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY: ${{ inputs.progress_every }}
+          CLEANUP_WORKFLOW_RUNS_VERBOSITY: ${{ inputs.verbosity }}
+        run: |
+          python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py
+
+      - name: Upload Clean Up Report Artifact
+        if: ${{ inputs.upload_report_artifact == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: cleanup-workflow-runs-report-${{ github.run_id }}-${{ github.run_attempt }}
+          path: cleanup-workflow-runs-*.md
+          retention-days: ${{ inputs.report_artifact_retention_days }}
+          if-no-files-found: error

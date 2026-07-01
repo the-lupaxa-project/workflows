@@ -1,0 +1,62 @@
+name: Local Documentation Lint
+
+on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.yaml"
+
+  pull_request:
+    paths:
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.yaml"
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  link-checker:
+    name: Link Checker
+    uses: ./.github/workflows/reusable-link-checker.yml
+    secrets: inherit
+
+  markdown-linter:
+    name: Markdown Linter
+    uses: ./.github/workflows/reusable-markdown-linter.yml
+    secrets: inherit
+
+  yaml-linter:
+    name: YAML Linter
+    uses: ./.github/workflows/reusable-yaml-linter.yml
+    secrets: inherit
+
+  generate-workflow-summary:
+    name: Generate Workflow Summary
+    needs:
+      - link-checker
+      - markdown-linter
+      - yaml-linter
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-summary.yml
+
+  send-slack-notification:
+    name: Send Slack Notification
+    needs:
+      - generate-workflow-summary
+    if: always()
+    uses: ./.github/workflows/reusable-slack-notifier.yml
+    with:
+      notify_on_results: "failure,timed_out"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

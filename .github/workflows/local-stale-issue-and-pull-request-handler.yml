@@ -1,33 +1,30 @@
-name: Local Python CI - send-to-slack.py
+name: Local Stale Issue & Pull Request Handler
 
 on:
-  push:
-    paths:
-      - ".github/scripts/send-to-slack.py"
-      - ".github/workflows/local-send-to-slack-ci.yml"
-
-  pull_request:
-    paths:
-      - ".github/scripts/send-to-slack.py"
-      - ".github/workflows/local-send-to-slack-ci.yml"
+  schedule:
+    - cron: "35 5 * * *"
 
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
   contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
-  python-ci:
-    name: Python CI
-    uses: ./.github/workflows/reusable-python-ci.yml
-    with:
-      paths: ".github/scripts/send-to-slack.py"
+  stale-issue-and-pull-request-handler:
+    name: Stale Issue & Pull Request Handler
+    uses: ./.github/workflows/reusable-stale-issue-and-pull-request-handler.yml
 
   generate-workflow-summary:
     name: Generate Workflow Summary
     needs:
-      - python-ci
+      - stale-issue-and-pull-request-handler
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 

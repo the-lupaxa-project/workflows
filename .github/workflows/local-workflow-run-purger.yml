@@ -1,33 +1,28 @@
-name: Local Python CI - send-to-slack.py
+name: Local Workflow Runs Purger
 
 on:
-  push:
-    paths:
-      - ".github/scripts/send-to-slack.py"
-      - ".github/workflows/local-send-to-slack-ci.yml"
-
-  pull_request:
-    paths:
-      - ".github/scripts/send-to-slack.py"
-      - ".github/workflows/local-send-to-slack-ci.yml"
-
   workflow_dispatch:
 
+  schedule:
+    - cron: "33 3 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  actions: read
+  actions: write
   contents: read
 
 jobs:
-  python-ci:
-    name: Python CI
-    uses: ./.github/workflows/reusable-python-ci.yml
-    with:
-      paths: ".github/scripts/send-to-slack.py"
+  workflow-run-purger:
+    name: Workflow Run Purger
+    uses: ./.github/workflows/reusable-workflow-run-purger.yml
 
   generate-workflow-summary:
     name: Generate Workflow Summary
     needs:
-      - python-ci
+      - workflow-run-purger
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 

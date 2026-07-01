@@ -1,33 +1,38 @@
-name: Local Python CI - send-to-slack.py
+name: Local GitHub Actions Security
 
 on:
-  push:
-    paths:
-      - ".github/scripts/send-to-slack.py"
-      - ".github/workflows/local-send-to-slack-ci.yml"
-
   pull_request:
     paths:
-      - ".github/scripts/send-to-slack.py"
-      - ".github/workflows/local-send-to-slack-ci.yml"
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
+
+  push:
+    branches:
+      - "**"
+    paths:
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
 
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
   contents: read
+  pull-requests: write
 
 jobs:
-  python-ci:
-    name: Python CI
-    uses: ./.github/workflows/reusable-python-ci.yml
-    with:
-      paths: ".github/scripts/send-to-slack.py"
+  github-actions-security:
+    name: GitHub Actions Security
+    uses: ./.github/workflows/reusable-github-actions-security.yml
 
   generate-workflow-summary:
     name: Generate Workflow Summary
     needs:
-      - python-ci
+      - github-actions-security
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 

@@ -1,35 +1,43 @@
-name: Local Workflow Summary CI - workflow-summary.py
+name: Local Code Analysis
 
 on:
   push:
-    paths:
-      - ".github/scripts/workflow-summary.py"
-      - ".github/workflows/local-workflow-summary-ci.yml"
-      - ".github/workflows/reusable-workflow-summary.yml"
+    branches-ignore:
+      - "dependabot/"
+    paths-ignore:
+      - "**/*.md"
 
   pull_request:
-    paths:
-      - ".github/scripts/workflow-summary.py"
-      - ".github/workflows/local-workflow-summary-ci.yml"
-      - ".github/workflows/reusable-workflow-summary.yml"
+    branches:
+      - "**"
+    paths-ignore:
+      - "**/*.md"
+
+  schedule:
+    - cron: "4 3 * * 1"
 
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
   contents: read
+  security-events: write
 
 jobs:
-  python-ci:
-    name: Python CI
-    uses: ./.github/workflows/reusable-python-ci.yml
+  code-analysis:
+    name: Code Analysis
+    uses: ./.github/workflows/reusable-code-analysis.yml
     with:
-      paths: ".github/scripts/workflow-summary.py"
+      languages: "python"
 
   generate-workflow-summary:
     name: Generate Workflow Summary
     needs:
-      - python-ci
+      - code-analysis
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 

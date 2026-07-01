@@ -1,0 +1,96 @@
+name: Reusable GitHub Release Generator
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: >
+          Tag ref to release (for example: "refs/tags/v1.2.3").
+          Defaults to github.ref if not provided.
+        required: false
+        type: string
+
+      release_name:
+        description: >
+          Optional release name override.
+          Defaults to the tag name with the "refs/*/" prefix removed.
+        required: false
+        type: string
+
+      draft:
+        description: "Create the release as a draft."
+        required: false
+        type: boolean
+        default: false
+
+      prerelease:
+        description: "Mark the release as a pre-release."
+        required: false
+        type: boolean
+        default: false
+
+    secrets:
+      github-token:
+        description: >
+          Optional GitHub token to use for creating the release.
+          If not provided, github.token is used.
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  get-release-version:
+    name: Get Release Version
+    runs-on: ubuntu-latest
+
+    outputs:
+      release-version: ${{ steps.release-version.outputs.release-version }}
+      tag-to-release: ${{ steps.release-version.outputs.tag-to-release }}
+
+    steps:
+      - name: Determine Release Version
+        id: release-version
+        run: |
+          # Determine which ref/tag to use
+          REF="${{ inputs.tag || github.ref }}"
+          TAG="${REF#refs/*/}"
+
+          echo "tag-to-release=${TAG}" >> "${GITHUB_OUTPUT}"
+
+          # If release_name input is provided, use it, otherwise use TAG
+          NAME="${{ inputs.release_name }}"
+          if [ -z "${NAME}" ]; then
+            NAME="${TAG}"
+          fi
+
+          echo "release-version=${NAME}" >> "${GITHUB_OUTPUT}"
+
+  reusable-github-release-generator:
+    name: Reusable GitHub Release Generator
+    runs-on: ubuntu-latest
+    needs:
+      - get-release-version
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Generate Changelog
+        id: changelog
+        uses: Bullrich/generate-release-changelog@6b60f004b4bf12ff271603dc32dbd261965ad2f2  # v2.0.2
+        env:
+          REPO: ${{ github.repository }}
+
+      - name: Create GitHub Release
+        id: create-release
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b  # v3.0.1
+        with:
+          token: ${{ secrets.github-token || github.token }}
+          tag_name: ${{ needs.get-release-version.outputs.tag-to-release }}
+          name: ${{ needs.get-release-version.outputs.release-version }}
+          body: ${{ steps.changelog.outputs.changelog }}
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}

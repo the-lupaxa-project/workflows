@@ -1,35 +1,36 @@
-name: Local Workflow Summary CI - workflow-summary.py
+name: Local Citation Validator
 
 on:
   push:
+    branches-ignore:
+      - "dependabot/**"
     paths:
-      - ".github/scripts/workflow-summary.py"
-      - ".github/workflows/local-workflow-summary-ci.yml"
-      - ".github/workflows/reusable-workflow-summary.yml"
+      - "CITATION.cff"
 
   pull_request:
+    branches:
+      - "**"
     paths:
-      - ".github/scripts/workflow-summary.py"
-      - ".github/workflows/local-workflow-summary-ci.yml"
-      - ".github/workflows/reusable-workflow-summary.yml"
+      - "CITATION.cff"
 
-  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   actions: read
   contents: read
 
 jobs:
-  python-ci:
-    name: Python CI
-    uses: ./.github/workflows/reusable-python-ci.yml
-    with:
-      paths: ".github/scripts/workflow-summary.py"
+  citation-validator:
+    name: Validate Citations File
+    uses: ./.github/workflows/reusable-citation-validator.yml
+    secrets: inherit
 
   generate-workflow-summary:
     name: Generate Workflow Summary
     needs:
-      - python-ci
+      - citation-validator
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 

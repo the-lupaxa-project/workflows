@@ -1,27 +1,4 @@
-# 🐍 Reusable Python CI
-#
-# Purpose:
-#   Performs a basic Python continuous integration workflow against one or more
-#   Python versions.
-#
-# Features:
-#   - Tests against a configurable Python version matrix.
-#   - Installs project requirements when present.
-#   - Performs Python syntax validation.
-#   - Runs Ruff linting.
-#   - Runs mypy static type checking.
-#   - Runs pytest automatically when a tests directory exists.
-#   - Supports validating one or more files and directories.
-#
-# Intended Usage:
-#
-#   jobs:
-#     python-ci:
-#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-ci.yml@master
-#       with:
-#         paths: "src,tests"
-
-name: 🐍 Reusable Python CI
+name: Reusable Python CI
 
 on:
   workflow_call:
@@ -37,17 +14,12 @@ on:
         required: true
         type: string
 
-# Permissions required by this reusable workflow.
-#
-# contents: read
-#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
-  # Performs the complete Python CI workflow.
-  python-ci:
-    name: 🐍 Python CI
+  reusable-python-ci:
+    name: Reusable Python CI
     runs-on: ubuntu-latest
 
     strategy:
@@ -58,29 +30,24 @@ jobs:
       PATHS: ${{ inputs.paths }}
 
     steps:
-      # Checkout the repository contents.
-      - name: 📥 Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
-      # Install the requested Python version.
-      - name: 🐍 Set Up Python ${{ matrix.python-version }}
+      - name: Set Up Python ${{ matrix.python-version }}
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Display interpreter information for troubleshooting.
-      - name: ℹ️ Show Python Version
+      - name: Show Python Version
         run: |
           python --version
           which python
 
-      # Upgrade pip before installing dependencies.
-      - name: 📦 Upgrade pip
+      - name: Upgrade pip
         run: |
           python -m pip install --upgrade pip
 
-      # Install project dependencies when requirements files exist.
-      - name: 📦 Install Project Requirements
+      - name: Install Project Requirements
         run: |
           set -e
 
@@ -98,13 +65,11 @@ jobs:
             echo "No requirements-dev.txt found; skipping."
           fi
 
-      # Install the development tools used during CI.
-      - name: 🧰 Install Development Tooling
+      - name: Install Development Tooling
         run: |
           python -m pip install ruff mypy pytest
 
-      # Convert the comma-separated path list into a reusable file.
-      - name: 📂 Expand Paths
+      - name: Expand Paths
         id: expand_paths
         run: |
           IFS=',' read -r -a RAW <<< "${PATHS}"
@@ -119,8 +84,7 @@ jobs:
           printf "%s\n" "${ARGS[@]}" > args_list.txt
           echo "args=$(printf '%s,' "${ARGS[@]}" | sed 's/,$//')" >> "$GITHUB_OUTPUT"
 
-      # Verify that all supplied Python files compile successfully.
-      - name: 🔍 Check Python Syntax
+      - name: Check Python Syntax
         run: |
           set -e
           echo "Checking syntax for:"
@@ -139,22 +103,19 @@ jobs:
             fi
           done < args_list.txt
 
-      # Run Ruff linting.
-      - name: 🧹 Run Ruff
+      - name: Run Ruff
         run: |
           echo "Running Ruff on:"
           cat args_list.txt
           ruff check $(cat args_list.txt)
 
-      # Run mypy static type analysis.
-      - name: 🔎 Run mypy
+      - name: Run mypy
         run: |
           echo "Running mypy on:"
           cat args_list.txt
           mypy $(cat args_list.txt)
 
-      # Execute the project's test suite when present.
-      - name: 🧪 Run pytest
+      - name: Run pytest
         run: |
           if [ -d "tests" ]; then
             echo "Running pytest..."
