@@ -30,7 +30,7 @@ on:
         required: false
         type: choice
         options: ["true", "false"]
-        default: "false"
+        default: "true"
 
       remove_obsolete:
         description: Remove workflow runs whose workflow file no longer exists.
@@ -187,7 +187,7 @@ jobs:
       retention_days: ${{ inputs.retention_days || '90' }}
       artifact_retention_days: ${{ inputs.artifact_retention_days || '90' }}
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
-      cleanup_artifacts: ${{ inputs.cleanup_artifacts || 'false' }}
+      cleanup_artifacts: ${{ inputs.cleanup_artifacts || 'true' }}
       remove_obsolete: ${{ inputs.remove_obsolete || 'true' }}
       remove_cancelled: ${{ inputs.remove_cancelled || 'false' }}
       remove_failed: ${{ inputs.remove_failed || 'false' }}

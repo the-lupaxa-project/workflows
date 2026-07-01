@@ -25,7 +25,7 @@ on:
         description: Also delete old repository workflow artifacts.
         required: false
         type: string
-        default: "false"
+        default: "true"
 
       remove_obsolete:
         description: Remove completed workflow runs whose workflow file no longer exists.
