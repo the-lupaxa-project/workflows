@@ -169,7 +169,7 @@ def workflow_file_name_from_ref(workflow_ref: str) -> str:
 
 
 def default_summary_filename() -> str:
-    """Build the default Markdown summary artifact filename."""
+    """Build the default Markdown summary artifact path."""
     workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF", "")
     workflow_file = workflow_file_name_from_ref(workflow_ref)
 
@@ -184,7 +184,13 @@ def default_summary_filename() -> str:
         f"attempt-{slugify(run_attempt)}",
     ]
 
-    return "-".join(part for part in name_parts if part) + ".md"
+    filename = "-".join(part for part in name_parts if part) + ".md"
+    workspace = os.environ.get("GITHUB_WORKSPACE", "").strip()
+
+    if workspace:
+        return os.path.join(workspace, filename)
+
+    return filename
 
 
 def short_sha(sha: str) -> str:
