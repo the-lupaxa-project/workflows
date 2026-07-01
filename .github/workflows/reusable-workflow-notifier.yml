@@ -42,8 +42,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-workflow-notifier:
-    name: Reusable Workflow Notifier
+  reusable-generate-workflow-notifier:
+    name: Reusable Generate Workflow Notifier
     runs-on: ubuntu-latest
 
     if: >
@@ -68,6 +68,6 @@ jobs:
           SEND_TO_SLACK_RESULTS: ${{ inputs.notify_on_results }}
           SEND_TO_SLACK_INCLUDE_JOBS: ${{ inputs.include_jobs }}
           SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE: ${{ inputs.include_commit_message }}
-          SEND_TO_SLACK_IGNORE_JOBS: "Reusable Workflow Summary,Reusable Slack Notifier,${{ inputs.ignore_jobs }}"
+          SEND_TO_SLACK_IGNORE_JOBS: "Reusable Workflow Summary,Reusable Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
         run: |
           python lupaxa-dotgithub/.github/scripts/workflow-notifier.py

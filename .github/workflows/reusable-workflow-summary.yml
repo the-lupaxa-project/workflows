@@ -44,7 +44,7 @@ jobs:
       - name: Generate Workflow Summary
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          WORKFLOW_IGNORE_JOBS: "Reusable Workflow Summary,Reusable Slack Notifier,${{ inputs.ignore_jobs }}"
+          WORKFLOW_IGNORE_JOBS: "Reusable Generate Workflow Summary,Reusable Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
         run: |
           python lupaxa-dotgithub/.github/scripts/workflow-summary.py
 
