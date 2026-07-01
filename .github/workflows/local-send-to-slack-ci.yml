@@ -1,29 +1,58 @@
+# 🧪 Local Python CI - send-to-slack.py
+#
+# Purpose:
+#   Validates the send-to-slack.py helper script using the reusable Python CI
+#   workflow whenever the script or its corresponding workflow changes.
+#
+# Scope:
+#   This is a local workflow for the workflows repository. It delegates all
+#   Python validation (syntax checking, linting, type checking and tests where
+#   applicable) to the reusable Python CI workflow.
+#
+# Triggers:
+#   - Pushes affecting send-to-slack.py or this workflow.
+#   - Pull requests affecting send-to-slack.py or this workflow.
+#   - Manual execution via workflow_dispatch.
+#
+# Notes:
+#   - Restricting the trigger paths keeps CI fast by only running when the
+#     monitored script or its workflow definition changes.
+#   - The reusable Python CI workflow performs the actual validation.
+#   - The workflow summary and Slack notification always run, ensuring failures
+#     are still reported even if the Python CI job fails.
+
 name: 🧪 Local Python CI - send-to-slack.py
 
 on:
+  # Validate the script whenever it or this workflow changes.
   push:
     paths:
       - ".github/scripts/send-to-slack.py"
       - ".github/workflows/local-send-to-slack-ci.yml"
 
+  # Validate pull requests that modify the script or this workflow.
   pull_request:
     paths:
       - ".github/scripts/send-to-slack.py"
       - ".github/workflows/local-send-to-slack-ci.yml"
 
+  # Allow maintainers to run validation manually.
   workflow_dispatch:
 
+# Minimum permissions required by the reusable workflows.
 permissions:
   actions: read
   contents: read
 
 jobs:
+  # Run the reusable Python CI workflow against the target script.
   python-ci:
     name: 🧪 Python CI
     uses: ./.github/workflows/reusable-python-ci.yml
     with:
       paths: ".github/scripts/send-to-slack.py"
 
+  # Generate a Markdown workflow summary even if Python CI fails.
   workflow-summary:
     name: 📊 Workflow Summary
     needs:
@@ -31,6 +60,7 @@ jobs:
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 
+  # Notify Slack only for failure/timed_out results.
   slack-notification:
     name: 💬 Slack Notification
     needs:

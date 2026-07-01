@@ -1,6 +1,37 @@
+# 📚 Local Documentation Lint
+#
+# Purpose:
+#   Validates all documentation-related content within the repository,
+#   including Markdown files, YAML files and hyperlinks.
+#
+# Scope:
+#   This is a local workflow for the workflows repository. It orchestrates
+#   several reusable documentation validation workflows:
+#
+#     • Awesomebot       - Validates external links and anchors.
+#     • Markdown Lint    - Checks Markdown formatting and style.
+#     • YAML Lint        - Validates YAML syntax and formatting.
+#
+# Triggers:
+#   - Pushes that modify Markdown or YAML files.
+#   - Pull requests containing Markdown or YAML changes.
+#   - Manual execution via workflow_dispatch.
+#
+# Notes:
+#   - Only documentation-related file changes trigger this workflow,
+#     avoiding unnecessary executions.
+#   - Each documentation validator runs independently, allowing multiple
+#     issues to be reported in a single workflow run.
+#   - secrets: inherit allows reusable workflows to access repository
+#     secrets if required (for example, link validation against private
+#     resources).
+#   - The workflow summary and Slack notification always run, ensuring
+#     failures are still reported even if one or more validation jobs fail.
+
 name: 📚 Local Documentation Lint
 
 on:
+  # Run whenever documentation-related files change.
   push:
     branches:
       - "**"
@@ -9,38 +40,46 @@ on:
       - "**/*.yml"
       - "**/*.yaml"
 
+  # Validate documentation changes in pull requests.
   pull_request:
     paths:
       - "**/*.md"
       - "**/*.yml"
       - "**/*.yaml"
 
+  # Allow maintainers to trigger validation manually.
   workflow_dispatch:
 
+# Prevent overlapping runs for the same workflow/ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Minimum permissions required by the reusable workflows.
 permissions:
   actions: read
   contents: read
 
 jobs:
+  # Validate hyperlinks and document anchors.
   awesomebot:
     name: 🔗 Awesomebot
     uses: ./.github/workflows/reusable-awesomebot.yml
     secrets: inherit
 
+  # Validate Markdown formatting and style.
   markdown-lint:
     name: 📚 Markdown Lint
     uses: ./.github/workflows/reusable-markdown-lint.yml
     secrets: inherit
 
+  # Validate YAML syntax and formatting.
   yaml-lint:
     name: 📄 YAML Lint
     uses: ./.github/workflows/reusable-yaml-lint.yml
     secrets: inherit
 
+  # Generate a Markdown workflow summary even if validation fails.
   workflow-summary:
     name: 📊 Workflow Summary
     needs:
@@ -50,6 +89,7 @@ jobs:
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 
+  # Notify Slack only for failure/timed_out results.
   slack-notification:
     name: 💬 Slack Notification
     needs:

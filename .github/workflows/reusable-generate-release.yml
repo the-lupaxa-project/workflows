@@ -1,3 +1,22 @@
+# 🚀 Reusable GitHub Release
+#
+# Purpose:
+#   Creates a GitHub Release from a tag and generated changelog.
+#
+# Features:
+#   - Resolves the release tag from an explicit input or github.ref.
+#   - Allows an optional release name override.
+#   - Generates a changelog from repository history.
+#   - Supports draft releases.
+#   - Supports pre-releases.
+#   - Allows an optional custom GitHub token.
+#
+# Intended Usage:
+#
+#   jobs:
+#     github-release:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-release.yml@master
+
 name: 🚀 Reusable GitHub Release
 
 on:
@@ -36,10 +55,15 @@ on:
           If not provided, github.token is used.
         required: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: write
+#   Allows release creation and repository checkout.
 permissions:
   contents: write
 
 jobs:
+  # Resolve the release tag and display name.
   release-version:
     name: 🔖 Release Version
     runs-on: ubuntu-latest
@@ -49,6 +73,7 @@ jobs:
       tag-to-release: ${{ steps.release-version.outputs.tag-to-release }}
 
     steps:
+      # Determine the tag and release display name to use.
       - name: 🔖 Determine Release Version
         id: release-version
         run: |
@@ -66,6 +91,7 @@ jobs:
 
           echo "release-version=${NAME}" >> "${GITHUB_OUTPUT}"
 
+  # Generate release notes and create the GitHub Release.
   github-release:
     name: 🚀 GitHub Release
     runs-on: ubuntu-latest
@@ -73,17 +99,20 @@ jobs:
       - release-version
 
     steps:
+      # Checkout full repository history so the changelog can be generated.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           fetch-depth: 0
 
+      # Generate release notes from repository history.
       - name: 📝 Generate Changelog
         id: changelog
         uses: Bullrich/generate-release-changelog@6b60f004b4bf12ff271603dc32dbd261965ad2f2  # v2.0.2
         env:
           REPO: ${{ github.repository }}
 
+      # Publish the GitHub Release.
       - name: 🚀 Create GitHub Release
         id: create-release
         uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b  # v3.0.1

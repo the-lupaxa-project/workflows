@@ -1,3 +1,21 @@
+# 🦙 Reusable Pylama
+#
+# Purpose:
+#   Runs multiple Python code quality checks using the shared Pylama pipeline.
+#
+# Features:
+#   - Aggregates multiple Python linters into a single validation pass.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox Pylama pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     pylama:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-pylama.yml@master
+
 name: 🦙 Reusable Pylama
 
 on:
@@ -37,18 +55,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs the Pylama validation pipeline.
   pylama:
     name: 🦙 Pylama
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared Pylama pipeline.
       - name: 🦙 Run Pylama
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

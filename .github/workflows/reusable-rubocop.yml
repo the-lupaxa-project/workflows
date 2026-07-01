@@ -1,3 +1,22 @@
+# 💎 Reusable RuboCop
+#
+# Purpose:
+#   Validates Ruby source code against the Ruby style guide using the shared
+#   RuboCop pipeline.
+#
+# Features:
+#   - Detects Ruby style violations and code quality issues.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox RuboCop pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     rubocop:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-rubocop.yml@master
+
 name: 💎 Reusable RuboCop
 
 on:
@@ -37,18 +56,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs RuboCop style validation.
   rubocop:
     name: 💎 RuboCop
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared RuboCop pipeline.
       - name: 💎 Run RuboCop
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

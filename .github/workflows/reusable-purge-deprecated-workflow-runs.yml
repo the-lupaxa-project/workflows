@@ -1,3 +1,21 @@
+# 🧹 Reusable Purge Deprecated Workflow Runs
+#
+# Purpose:
+#   Removes obsolete GitHub Actions workflow runs using the
+#   purge-deprecated-workflow-runs action.
+#
+# Features:
+#   - Removes obsolete workflow runs.
+#   - Optionally removes cancelled, failed and skipped runs.
+#   - Supports age-based cleanup rules.
+#   - Can use a custom GitHub token or github.token.
+#
+# Intended Usage:
+#
+#   jobs:
+#     purge-deprecated-workflow-runs:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-purge-deprecated-workflow-runs.yml@master
+
 name: 🧹 Reusable Purge Deprecated Workflow Runs
 
 on:
@@ -44,16 +62,25 @@ on:
         type: string
         default: ""
 
+# Permissions required by this reusable workflow.
+#
+# actions: write
+#   Required to delete workflow runs.
+#
+# contents: read
+#   Allows GitHub Actions to access repository metadata.
 permissions:
   actions: write
   contents: read
 
 jobs:
+  # Removes deprecated GitHub Actions workflow runs.
   purge-deprecated-workflow-runs:
     name: 🧹 Purge Deprecated Workflow Runs
     runs-on: ubuntu-latest
 
     steps:
+      # Execute the workflow run cleanup action.
       - name: 🧹 Purge Deprecated Workflow Runs
         uses: otto-de/purge-deprecated-workflow-runs@ad569cd76e698bfe428cecc611bf23c477b9f8dd  # v4.0.12
         with:

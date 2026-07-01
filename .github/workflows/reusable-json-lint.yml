@@ -1,3 +1,21 @@
+# 🧾 Reusable JSON Validation
+#
+# Purpose:
+#   Validates JSON files using the shared JSON validation pipeline.
+#
+# Features:
+#   - Detects invalid JSON syntax.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox JSON validation pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     json-validation:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-json-lint.yml@master
+
 name: 🧾 Reusable JSON Validation
 
 on:
@@ -37,18 +55,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs JSON validation.
   json-validation:
     name: 🧾 JSON Validation
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared JSON validation pipeline.
       - name: 🧾 Run JSON Validation
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}
@@ -57,4 +82,5 @@ jobs:
           SHOW_ERRORS: ${{ inputs.show_errors }}
           SHOW_SKIPPED: ${{ inputs.show_skipped }}
           NO_COLOR: ${{ inputs.no_color }}
-        run: bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/json-lint/master/pipeline.sh)
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/json-lint/master/pipeline.sh)

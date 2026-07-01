@@ -1,3 +1,21 @@
+# 🐘 Reusable PHP Lint
+#
+# Purpose:
+#   Validates PHP source files using the shared PHP linting pipeline.
+#
+# Features:
+#   - Detects PHP syntax errors.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox PHP lint pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     php-lint:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-php-lint.yml@master
+
 name: 🐘 Reusable PHP Lint
 
 on:
@@ -37,18 +55,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs PHP syntax validation.
   php-lint:
     name: 🐘 PHP Lint
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared PHP lint pipeline.
       - name: 🐘 Run PHP Lint
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

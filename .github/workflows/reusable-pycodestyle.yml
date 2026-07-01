@@ -1,3 +1,22 @@
+# 🐍 Reusable pycodestyle
+#
+# Purpose:
+#   Validates Python source code against the PEP 8 style guide using the shared
+#   pycodestyle pipeline.
+#
+# Features:
+#   - Detects Python style violations.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox pycodestyle pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     pycodestyle:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-pycodestyle.yml@master
+
 name: 🐍 Reusable pycodestyle
 
 on:
@@ -37,18 +56,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs pycodestyle validation.
   pycodestyle:
     name: 🐍 pycodestyle
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared pycodestyle pipeline.
       - name: 🐍 Run pycodestyle
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

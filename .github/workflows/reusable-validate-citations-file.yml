@@ -1,3 +1,22 @@
+# 📚 Reusable Validate Citations File
+#
+# Purpose:
+#   Validates one or more CITATION.cff files using the shared citation validation
+#   pipeline.
+#
+# Features:
+#   - Validates CITATION.cff syntax and structure.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox citation validation pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     validate-citations-file:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-validate-citations-file.yml@master
+
 name: 📚 Reusable Validate Citations File
 
 on:
@@ -37,18 +56,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs CITATION.cff validation.
   validate-citations-file:
     name: 📚 Validate Citations File
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared citation validation pipeline.
       - name: 📚 Validate Citations File
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

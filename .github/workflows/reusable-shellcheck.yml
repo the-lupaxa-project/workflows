@@ -1,3 +1,21 @@
+# 🐚 Reusable ShellCheck
+#
+# Purpose:
+#   Lints shell scripts using the shared ShellCheck pipeline.
+#
+# Features:
+#   - Detects common shell scripting errors and portability issues.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed error output.
+#   - Uses the shared CICDToolbox ShellCheck pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     shellcheck:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-shellcheck.yml@master
+
 name: 🐚 Reusable ShellCheck
 
 on:
@@ -27,18 +45,25 @@ on:
         type: string
         default: "true"
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs ShellCheck against the selected shell scripts.
   shellcheck:
     name: 🐚 ShellCheck
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared ShellCheck pipeline.
       - name: 🐚 Run ShellCheck
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

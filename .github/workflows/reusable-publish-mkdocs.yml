@@ -1,3 +1,23 @@
+# 📚 Reusable MkDocs Publish
+#
+# Purpose:
+#   Builds a MkDocs documentation site and publishes it to GitHub Pages.
+#
+# Features:
+#   - Supports configurable Python versions.
+#   - Optionally installs project development dependencies from pyproject.toml.
+#   - Falls back to a minimal MkDocs installation if dev extras are unavailable.
+#   - Builds documentation using MkDocs in strict mode.
+#   - Uploads the generated site as a GitHub Pages artifact.
+#   - Optionally removes previous GitHub Pages deployments before publishing.
+#   - Deploys the generated documentation to GitHub Pages.
+#
+# Intended Usage:
+#
+#   jobs:
+#     mkdocs-publish:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-mkdocs-publish.yml@master
+
 name: 📚 Reusable MkDocs Publish
 
 on:
@@ -21,6 +41,19 @@ on:
         default: true
         type: boolean
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout of the repository source.
+#
+# pages: write
+#   Required to publish content to GitHub Pages.
+#
+# id-token: write
+#   Required for GitHub Pages OIDC authentication.
+#
+# deployments: write
+#   Required to create and manage GitHub Pages deployments.
 permissions:
   contents: read
   pages: write
@@ -28,19 +61,23 @@ permissions:
   deployments: write
 
 jobs:
+  # Build the MkDocs documentation site.
   build-documentation:
     name: 🏗️ Build Documentation
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Install the requested Python version.
       - name: 🐍 Set Up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
         with:
           python-version: ${{ inputs.python-version }}
 
+      # Install documentation dependencies.
       - name: 📦 Install Documentation Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -58,14 +95,17 @@ jobs:
             python -m pip install mkdocs mkdocs-material
           fi
 
+      # Build the MkDocs site using strict validation.
       - name: 📚 Build MkDocs Site
         run: mkdocs build --strict
 
+      # Upload the generated documentation for deployment.
       - name: 📦 Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
         with:
           path: site
 
+  # Deploy the generated documentation to GitHub Pages.
   deploy-github-pages:
     name: 🚀 Deploy to GitHub Pages
     needs:
@@ -77,6 +117,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      # Optionally remove previous GitHub Pages deployments.
       - name: 🧹 Clean Up Existing GitHub Pages Deployments
         if: ${{ inputs.cleanup }}
         uses: strumwolf/delete-deployment-environment@035f6d27c8b8951729f4d71b2d3d6a7975139476  # v4.0.0
@@ -85,6 +126,7 @@ jobs:
           environment: github-pages
           onlyRemoveDeployments: true
 
+      # Publish the generated documentation.
       - name: 🚀 Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128  # v5.0.0

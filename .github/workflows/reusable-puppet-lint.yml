@@ -1,3 +1,21 @@
+# 🎭 Reusable Puppet Lint
+#
+# Purpose:
+#   Validates Puppet manifests using the shared Puppet linting pipeline.
+#
+# Features:
+#   - Detects Puppet manifest style and formatting issues.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox Puppet lint pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     puppet-lint:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-puppet-lint.yml@master
+
 name: 🎭 Reusable Puppet Lint
 
 on:
@@ -37,18 +55,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs Puppet manifest validation.
   puppet-lint:
     name: 🎭 Puppet Lint
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared Puppet lint pipeline.
       - name: 🎭 Run Puppet Lint
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

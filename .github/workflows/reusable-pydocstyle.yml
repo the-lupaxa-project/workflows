@@ -1,3 +1,21 @@
+# 📖 Reusable pydocstyle
+#
+# Purpose:
+#   Validates Python docstrings using the shared pydocstyle pipeline.
+#
+# Features:
+#   - Detects Python docstring style violations.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox pydocstyle pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     pydocstyle:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-pydocstyle.yml@master
+
 name: 📖 Reusable pydocstyle
 
 on:
@@ -37,18 +55,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs pydocstyle validation.
   pydocstyle:
     name: 📖 pydocstyle
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared pydocstyle pipeline.
       - name: 📖 Run pydocstyle
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

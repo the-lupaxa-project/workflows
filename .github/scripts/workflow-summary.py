@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """
-GitHub Actions workflow summary generator.
+Generate a GitHub Actions workflow summary.
+
+This script reads job results for the current GitHub Actions workflow run,
+groups jobs by conclusion, and writes a Markdown summary to both the GitHub
+step summary and an artifact-ready Markdown file.
+
+The script normally fetches job information from the GitHub Actions API using
+environment variables provided by GitHub Actions. For local testing, a JSON
+file can be supplied as the only command-line argument.
 """
 
 import json
@@ -14,6 +22,7 @@ from urllib.error import HTTPError, URLError
 
 
 JobRecord = Tuple[str, str, str, str]
+JobBuckets = Dict[str, List[Tuple[str, str]]]
 
 EMOJI_SUMMARY = "📊"
 EMOJI_SUCCESS = "✅"
@@ -40,13 +49,67 @@ EMOJI_COMMIT = "🔖"
 EMOJI_PR = "🔀"
 EMOJI_GENERATED = "🕒"
 
+JOB_BUCKET_ORDER = (
+    "success",
+    "failure",
+    "timed_out",
+    "cancelled",
+    "skipped",
+    "neutral",
+    "action_required",
+    "stale",
+    "not_completed",
+    "other",
+)
+
+JOB_SECTION_ORDER = (
+    "failure",
+    "timed_out",
+    "cancelled",
+    "not_completed",
+    "action_required",
+    "stale",
+    "neutral",
+    "skipped",
+    "other",
+    "success",
+)
+
+STATUS_LABELS = {
+    "success": f"{EMOJI_SUCCESS} Successful",
+    "failure": f"{EMOJI_FAILURE} Failed",
+    "timed_out": f"{EMOJI_TIMEOUT} Timed out",
+    "cancelled": f"{EMOJI_CANCELLED} Cancelled",
+    "skipped": f"{EMOJI_SKIPPED} Skipped",
+    "neutral": f"{EMOJI_NEUTRAL} Neutral",
+    "action_required": f"{EMOJI_WARNING} Action required",
+    "stale": f"{EMOJI_STALE} Stale",
+    "not_completed": f"{EMOJI_RUNNING} Not completed",
+    "other": f"{EMOJI_OTHER} Other",
+}
+
+SECTION_TITLES = {
+    "success": f"{EMOJI_SUCCESS} Successful jobs",
+    "failure": f"{EMOJI_FAILURE} Failed jobs",
+    "timed_out": f"{EMOJI_TIMEOUT} Timed out jobs",
+    "cancelled": f"{EMOJI_CANCELLED} Cancelled jobs",
+    "skipped": f"{EMOJI_SKIPPED} Skipped jobs",
+    "neutral": f"{EMOJI_NEUTRAL} Neutral jobs",
+    "action_required": f"{EMOJI_WARNING} Action required jobs",
+    "stale": f"{EMOJI_STALE} Stale jobs",
+    "not_completed": f"{EMOJI_RUNNING} Not completed jobs",
+    "other": f"{EMOJI_OTHER} Other statuses",
+}
+
 
 def error(message: str, *, code: int = 1) -> NoReturn:
+    """Print a formatted error message and terminate the script."""
     print(f"{EMOJI_WARNING} ERROR: {message}", file=sys.stderr, flush=True)
     raise SystemExit(code)
 
 
 def ordinal_suffix(day: int) -> str:
+    """Return the ordinal suffix for a day of the month as HTML superscript."""
     if day in (1, 21, 31):
         suffix = "st"
     elif day in (2, 22):
@@ -55,12 +118,15 @@ def ordinal_suffix(day: int) -> str:
         suffix = "rd"
     else:
         suffix = "th"
+
     return f"<sup>{suffix}</sup>"
 
 
 def build_human_timestamp() -> str:
+    """Return the current UTC time in a human-readable display format."""
     now = datetime.now(timezone.utc)
     day = now.day
+
     return (
         f"{now.strftime('%A')} "
         f"{day}{ordinal_suffix(day)} "
@@ -71,33 +137,39 @@ def build_human_timestamp() -> str:
 
 
 def md_table_value(value: str) -> str:
+    """Escape a value so it can be safely rendered inside a Markdown table."""
     value = str(value)
     value = value.replace("\\", "\\\\")
     value = value.replace("|", "\\|")
     value = value.replace("\r", " ")
     value = value.replace("\n", " ")
+
     return value.strip()
 
 
 def slugify(value: str, *, fallback: str = "unknown") -> str:
+    """Convert a string into a filesystem-friendly slug."""
     value = value.strip().lower()
     value = re.sub(r"[^a-z0-9._-]+", "-", value)
     value = re.sub(r"-+", "-", value)
     value = value.strip("-._")
+
     return value or fallback
 
 
 def workflow_file_name_from_ref(workflow_ref: str) -> str:
+    """Extract the workflow filename stem from a GitHub workflow ref."""
     if not workflow_ref:
         return ""
 
     path_part = workflow_ref.split("@", 1)[0]
     filename = path_part.rsplit("/", 1)[-1]
-    stem = filename.rsplit(".", 1)[0]
-    return stem
+
+    return filename.rsplit(".", 1)[0]
 
 
 def default_summary_filename() -> str:
+    """Build the default Markdown summary artifact filename."""
     workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF", "")
     workflow_file = workflow_file_name_from_ref(workflow_ref)
 
@@ -116,20 +188,25 @@ def default_summary_filename() -> str:
 
 
 def short_sha(sha: str) -> str:
+    """Return the short seven-character version of a Git commit SHA."""
     return sha[:7] if sha else ""
 
 
 def normalise_result(raw_result: str) -> str:
+    """Normalise a GitHub Actions job result into an internal bucket key."""
     return str(raw_result or "unknown").strip().lower().replace("-", "_")
 
 
 def make_link(label: str, url: str) -> str:
+    """Return a Markdown link when both label and URL are available."""
     if not label or not url:
         return md_table_value(label or url)
+
     return f"[{md_table_value(label)}]({url})"
 
 
 def parse_next_link(link_header: str) -> Optional[str]:
+    """Extract the next-page URL from a GitHub API Link header."""
     if not link_header:
         return None
 
@@ -147,45 +224,30 @@ def parse_next_link(link_header: str) -> Optional[str]:
 
 
 def status_label(key: str) -> str:
-    labels = {
-        "success": f"{EMOJI_SUCCESS} Successful",
-        "failure": f"{EMOJI_FAILURE} Failed",
-        "timed_out": f"{EMOJI_TIMEOUT} Timed out",
-        "cancelled": f"{EMOJI_CANCELLED} Cancelled",
-        "skipped": f"{EMOJI_SKIPPED} Skipped",
-        "neutral": f"{EMOJI_NEUTRAL} Neutral",
-        "action_required": f"{EMOJI_WARNING} Action required",
-        "stale": f"{EMOJI_STALE} Stale",
-        "not_completed": f"{EMOJI_RUNNING} Not completed",
-        "other": f"{EMOJI_OTHER} Other",
-    }
-    return labels.get(key, f"{EMOJI_OTHER} {key}")
+    """Return the display label for a job result bucket."""
+    return STATUS_LABELS.get(key, f"{EMOJI_OTHER} {key}")
 
 
 def section_title(key: str) -> str:
-    titles = {
-        "success": f"{EMOJI_SUCCESS} Successful jobs",
-        "failure": f"{EMOJI_FAILURE} Failed jobs",
-        "timed_out": f"{EMOJI_TIMEOUT} Timed out jobs",
-        "cancelled": f"{EMOJI_CANCELLED} Cancelled jobs",
-        "skipped": f"{EMOJI_SKIPPED} Skipped jobs",
-        "neutral": f"{EMOJI_NEUTRAL} Neutral jobs",
-        "action_required": f"{EMOJI_WARNING} Action required jobs",
-        "stale": f"{EMOJI_STALE} Stale jobs",
-        "not_completed": f"{EMOJI_RUNNING} Not completed jobs",
-        "other": f"{EMOJI_OTHER} Other statuses",
-    }
-    return titles.get(key, key)
+    """Return the Markdown section title for a job result bucket."""
+    return SECTION_TITLES.get(key, key)
 
 
-def _get_github_context_from_env() -> Tuple[str, str, str]:
-    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
-    run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
-    token = (
+def github_token_from_env() -> str:
+    """Return the first supported GitHub API token found in the environment."""
+    return (
         os.environ.get("GITHUB_TOKEN")
         or os.environ.get("GH_TOKEN")
         or os.environ.get("ACTIONS_RUNTIME_TOKEN")
+        or ""
     )
+
+
+def get_github_context_from_env() -> Tuple[str, str, str]:
+    """Read and validate the GitHub API context from environment variables."""
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
+    token = github_token_from_env()
 
     if not repo or not run_id:
         error("GITHUB_REPOSITORY or GITHUB_RUN_ID not set; cannot call GitHub API.")
@@ -196,15 +258,27 @@ def _get_github_context_from_env() -> Tuple[str, str, str]:
     return repo, run_id, token
 
 
-def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional[str]]:
-    headers = {
+def github_api_headers(token: str) -> Dict[str, str]:
+    """Build the HTTP headers required for GitHub API requests."""
+    return {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
         "User-Agent": "lupaxa-workflow-summary",
         "X-GitHub-Api-Version": "2022-11-28",
     }
 
-    req = urllib.request.Request(url, headers=headers)
+
+def decode_http_error(exc: HTTPError) -> str:
+    """Read and decode the response body from a GitHub API HTTPError."""
+    if not hasattr(exc, "read"):
+        return ""
+
+    return exc.read().decode("utf-8", errors="replace")
+
+
+def github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional[str]]:
+    """Fetch JSON from the GitHub API and return the parsed payload and next URL."""
+    req = urllib.request.Request(url, headers=github_api_headers(token))
 
     try:
         with urllib.request.urlopen(req) as resp:
@@ -212,7 +286,7 @@ def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional
             body_bytes = resp.read()
             link_header = resp.headers.get("Link", "")
     except HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
+        body = decode_http_error(exc)
         if body:
             print(body, file=sys.stderr, flush=True)
         error(f"GitHub API returned HTTP {exc.code}: {exc.reason}")
@@ -221,12 +295,25 @@ def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional
     except Exception as exc:
         error(f"Unexpected error when calling GitHub API: {exc}")
 
-    if status != 200:
-        body = body_bytes.decode("utf-8", errors="replace")
-        print("GitHub API response body:", file=sys.stderr, flush=True)
-        print(body, file=sys.stderr, flush=True)
-        error(f"GitHub API returned HTTP {status}.")
+    validate_github_status(status, body_bytes)
+    data = parse_github_json(body_bytes)
 
+    return data, parse_next_link(link_header)
+
+
+def validate_github_status(status: int, body_bytes: bytes) -> None:
+    """Validate a GitHub API HTTP status code."""
+    if status == 200:
+        return
+
+    body = body_bytes.decode("utf-8", errors="replace")
+    print("GitHub API response body:", file=sys.stderr, flush=True)
+    print(body, file=sys.stderr, flush=True)
+    error(f"GitHub API returned HTTP {status}.")
+
+
+def parse_github_json(body_bytes: bytes) -> Dict[str, Any]:
+    """Decode a GitHub API response body as a JSON object."""
     try:
         data = json.loads(body_bytes)
     except json.JSONDecodeError as exc:
@@ -235,26 +322,29 @@ def _github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional
     if not isinstance(data, dict):
         error("GitHub API returned JSON, but the top-level structure is not an object.")
 
-    return data, parse_next_link(link_header)
+    return data
 
 
-def _fetch_jobs_json(repo: str, run_id: str, token: str) -> Dict[str, Any]:
+def fetch_jobs_page(url: str, token: str) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+    """Fetch one page of workflow jobs from the GitHub Actions API."""
+    data, next_url = github_api_get_json(url, token)
+    jobs = data.get("jobs")
+
+    if not isinstance(jobs, list):
+        error("GitHub jobs API response did not contain a 'jobs' list.")
+
+    return [job for job in jobs if isinstance(job, dict)], next_url
+
+
+def fetch_jobs_json(repo: str, run_id: str, token: str) -> Dict[str, Any]:
+    """Fetch all jobs for a GitHub Actions workflow run."""
     url: Optional[str] = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page=100"
     all_jobs: List[Dict[str, Any]] = []
 
     while url:
-        data, next_url = _github_api_get_json(url, token)
-        jobs = data.get("jobs")
-
-        if not isinstance(jobs, list):
-            error("GitHub jobs API response did not contain a 'jobs' list.")
-
-        for job in jobs:
-            if isinstance(job, dict):
-                all_jobs.append(job)
-
+        jobs, url = fetch_jobs_page(url, token)
+        all_jobs.extend(jobs)
         print(f"{EMOJI_WORKFLOW} Loaded {len(all_jobs)} jobs so far", flush=True)
-        url = next_url
 
     return {
         "total_count": len(all_jobs),
@@ -262,11 +352,12 @@ def _fetch_jobs_json(repo: str, run_id: str, token: str) -> Dict[str, Any]:
     }
 
 
-def _maybe_set_commit_message_env(repo: str, run_id: str, token: str) -> None:
+def maybe_set_commit_message_env(repo: str, run_id: str, token: str) -> None:
+    """Populate GITHUB_COMMIT_MESSAGE from the workflow run when available."""
     run_url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
 
     try:
-        data, _ = _github_api_get_json(run_url, token)
+        data, _ = github_api_get_json(run_url, token)
     except SystemExit:
         return
 
@@ -280,18 +371,17 @@ def _maybe_set_commit_message_env(repo: str, run_id: str, token: str) -> None:
 
 
 def fetch_jobs_json_from_api() -> Dict[str, Any]:
-    repo, run_id, token = _get_github_context_from_env()
-    jobs_data = _fetch_jobs_json(repo, run_id, token)
-    _maybe_set_commit_message_env(repo, run_id, token)
+    """Fetch workflow job data for the current GitHub Actions run."""
+    repo, run_id, token = get_github_context_from_env()
+    jobs_data = fetch_jobs_json(repo, run_id, token)
+    maybe_set_commit_message_env(repo, run_id, token)
+
     return jobs_data
 
 
 def load_jobs_json_from_file(path: str) -> Dict[str, Any]:
-    if not os.path.exists(path):
-        error(f"JSON file not found: {path}")
-
-    if not os.path.isfile(path):
-        error(f"JSON path is not a file: {path}")
+    """Load workflow job data from a local JSON file."""
+    validate_json_file_path(path)
 
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -307,14 +397,26 @@ def load_jobs_json_from_file(path: str) -> Dict[str, Any]:
     return data
 
 
+def validate_json_file_path(path: str) -> None:
+    """Ensure a supplied JSON path exists and points to a file."""
+    if not os.path.exists(path):
+        error(f"JSON file not found: {path}")
+
+    if not os.path.isfile(path):
+        error(f"JSON path is not a file: {path}")
+
+
 def normalise_job_name(raw: str) -> str:
+    """Normalise a job name for display and matching."""
     raw = str(raw or "")
     if "/" in raw:
         raw = raw.rsplit("/", 1)[-1]
+
     return raw.strip()
 
 
 def parse_ignored_jobs(raw: str) -> Set[str]:
+    """Parse a comma-separated list of ignored job names."""
     ignored: Set[str] = set()
 
     for part in raw.split(","):
@@ -325,114 +427,115 @@ def parse_ignored_jobs(raw: str) -> Set[str]:
     return ignored
 
 
-def _extract_api_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
+def empty_job_buckets() -> JobBuckets:
+    """Create an empty result bucket mapping."""
+    return {key: [] for key in JOB_BUCKET_ORDER}
+
+
+def extract_api_job_record(job: Dict[str, Any]) -> JobRecord:
+    """Convert a GitHub API job object into a JobRecord."""
+    raw_name = str(job.get("name") or "")
+    status = str(job.get("status") or "unknown")
+    conclusion = str(job.get("conclusion") or "unknown")
+    html_url = str(job.get("html_url") or "")
+
+    if status.lower() != "completed":
+        conclusion = f"not_completed:{status}"
+
+    return raw_name, conclusion, status, html_url
+
+
+def extract_api_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
+    """Extract job records from a GitHub Actions API jobs response."""
     jobs = data.get("jobs")
     if not isinstance(jobs, list):
         return None
 
-    records: List[JobRecord] = []
-
-    for job in jobs:
-        if not isinstance(job, dict):
-            continue
-
-        raw_name = str(job.get("name") or "")
-        status = str(job.get("status") or "unknown")
-        conclusion = str(job.get("conclusion") or "unknown")
-        html_url = str(job.get("html_url") or "")
-
-        if status.lower() != "completed":
-            conclusion = f"not_completed:{status}"
-
-        records.append((raw_name, conclusion, status, html_url))
-
-    return records
+    return [extract_api_job_record(job) for job in jobs if isinstance(job, dict)]
 
 
-def _extract_needs_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
+def extract_needs_job_record(key: str, value: Any) -> JobRecord:
+    """Convert a workflow needs entry into a JobRecord."""
+    if isinstance(value, dict):
+        result = value.get("result") or value.get("conclusion") or "unknown"
+        status = value.get("status") or "completed"
+    else:
+        result = "unknown"
+        status = "completed"
+
+    return str(key), str(result), str(status), ""
+
+
+def extract_needs_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
+    """Extract job records from a needs-style JSON object."""
     if not isinstance(data, dict):
         return None
 
-    records: List[JobRecord] = []
+    return [extract_needs_job_record(key, value) for key, value in data.items()]
 
-    for key, value in data.items():
-        raw_name = str(key)
 
-        if isinstance(value, dict):
-            result = value.get("result") or value.get("conclusion") or "unknown"
-            status = value.get("status") or "completed"
-        else:
-            result = "unknown"
-            status = "completed"
+def extract_job_records(data: Dict[str, Any]) -> Iterable[JobRecord]:
+    """Extract job records from a supported job-result JSON structure."""
+    job_records = extract_api_jobs(data)
+    if job_records is None:
+        job_records = extract_needs_jobs(data)
 
-        records.append((raw_name, str(result), str(status), ""))
+    if not job_records:
+        error("Unsupported JSON structure for job results.")
 
-    return records
+    return job_records
+
+
+def should_ignore_job(job_name: str, ignored_job_names: Optional[Set[str]]) -> bool:
+    """Return whether a job should be excluded from the summary."""
+    if not ignored_job_names:
+        return False
+
+    return job_name.casefold() in ignored_job_names
+
+
+def add_job_to_bucket(
+    buckets: JobBuckets,
+    job_name: str,
+    raw_result: str,
+    html_url: str,
+) -> None:
+    """Add a job to the correct result bucket."""
+    result = normalise_result(raw_result)
+
+    if result.startswith("not_completed:"):
+        status = result.split(":", 1)[1] or "unknown"
+        buckets["not_completed"].append((f"{job_name} ({status})", html_url))
+    elif result in buckets:
+        buckets[result].append((job_name, html_url))
+    else:
+        buckets["other"].append((f"{job_name}: {result}", html_url))
 
 
 def bucket_jobs(
     data: Dict[str, Any],
     ignored_job_names: Optional[Set[str]] = None,
-) -> Dict[str, List[Tuple[str, str]]]:
-    buckets: Dict[str, List[Tuple[str, str]]] = {
-        "success": [],
-        "failure": [],
-        "timed_out": [],
-        "cancelled": [],
-        "skipped": [],
-        "neutral": [],
-        "action_required": [],
-        "stale": [],
-        "not_completed": [],
-        "other": [],
-    }
+) -> JobBuckets:
+    """Group jobs by their normalised result."""
+    buckets = empty_job_buckets()
 
-    job_records: Optional[Iterable[JobRecord]] = _extract_api_jobs(data)
-    if job_records is None:
-        job_records = _extract_needs_jobs(data)
-
-    if not job_records:
-        error("Unsupported JSON structure for job results.")
-
-    ignored_normalised: Set[str] = set()
-    if ignored_job_names:
-        ignored_normalised = {name.casefold() for name in ignored_job_names}
-
-    known_buckets = set(buckets)
-
-    for raw_name, raw_result, _raw_status, html_url in job_records:
+    for raw_name, raw_result, _raw_status, html_url in extract_job_records(data):
         job_name = normalise_job_name(raw_name)
         if not job_name:
             continue
 
-        if ignored_normalised and job_name.casefold() in ignored_normalised:
+        if should_ignore_job(job_name, ignored_job_names):
             continue
 
-        result = normalise_result(raw_result)
-
-        if result.startswith("not_completed:"):
-            status = result.split(":", 1)[1] or "unknown"
-            buckets["not_completed"].append((f"{job_name} ({status})", html_url))
-        elif result in known_buckets:
-            buckets[result].append((job_name, html_url))
-        else:
-            buckets["other"].append((f"{job_name}: {result}", html_url))
+        add_job_to_bucket(buckets, job_name, raw_result, html_url)
 
     return buckets
 
 
 def maybe_read_pr_metadata() -> Tuple[str, str]:
-    event_path = os.environ.get("GITHUB_EVENT_PATH")
-    if not event_path or not os.path.isfile(event_path):
-        return "", ""
-
-    try:
-        with open(event_path, "r", encoding="utf-8") as f:
-            payload = json.load(f)
-    except Exception:
-        return "", ""
-
-    if not isinstance(payload, dict):
+    """Read pull request number and title from GITHUB_EVENT_PATH when present."""
+    payload = read_github_event_payload()
+    if not payload:
         return "", ""
 
     pr = payload.get("pull_request") or {}
@@ -448,48 +551,71 @@ def maybe_read_pr_metadata() -> Tuple[str, str]:
     return "", ""
 
 
+def read_github_event_payload() -> Optional[Dict[str, Any]]:
+    """Read and parse the GitHub Actions event payload."""
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if not event_path or not os.path.isfile(event_path):
+        return None
+
+    try:
+        with open(event_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except Exception:
+        return None
+
+    if not isinstance(payload, dict):
+        return None
+
+    return payload
+
+
 def build_run_url(repo: str, run_id: str) -> str:
+    """Build a GitHub Actions run URL."""
     if repo and run_id:
         return f"https://github.com/{repo}/actions/runs/{run_id}"
+
     return ""
 
 
 def build_commit_url(repo: str, sha: str) -> str:
+    """Build a GitHub commit URL."""
     if repo and sha:
         return f"https://github.com/{repo}/commit/{sha}"
+
     return ""
 
 
 def build_pr_url(repo: str, pr_number: str) -> str:
+    """Build a GitHub pull request URL."""
     if repo and pr_number:
         return f"https://github.com/{repo}/pull/{pr_number}"
+
     return ""
 
 
-def print_count_summary(buckets: Dict[str, List[Tuple[str, str]]], out: TextIO) -> None:
-    rows = [
-        "success",
-        "failure",
-        "timed_out",
-        "cancelled",
-        "skipped",
-        "neutral",
-        "action_required",
-        "stale",
-        "not_completed",
-        "other",
-    ]
-
+def print_count_summary(buckets: JobBuckets, out: TextIO) -> None:
+    """Write the result count summary table."""
     print(f"### {EMOJI_SUMMARY} Result summary", file=out)
     print(file=out)
     print("| Status | Count |", file=out)
     print("| :----- | ----: |", file=out)
 
-    for key in rows:
+    for key in JOB_BUCKET_ORDER:
         count = len(buckets.get(key, []))
         print(f"| {status_label(key)} | {count} |", file=out)
 
     print(file=out)
+
+
+def unique_items(items: List[Tuple[str, str]]) -> Dict[str, str]:
+    """Return unique job names while preserving their first URL."""
+    unique: Dict[str, str] = {}
+
+    for name, url in items:
+        if name and name not in unique:
+            unique[name] = url
+
+    return unique
 
 
 def print_sorted_section(
@@ -497,140 +623,167 @@ def print_sorted_section(
     title: str,
     out: TextIO,
 ) -> None:
+    """Write a sorted Markdown bullet list for a result section."""
     if not items:
         return
 
-    unique: Dict[str, str] = {}
-    for name, url in items:
-        if name and name not in unique:
-            unique[name] = url
-
+    unique = unique_items(items)
     if not unique:
         return
 
     print(f"### {title}", file=out)
 
     for name in sorted(unique, key=str.casefold):
-        url = unique[name]
-        if url:
-            print(f"- [{md_table_value(name)}]({url})", file=out)
-        else:
-            print(f"- {md_table_value(name)}", file=out)
+        print_job_list_item(name, unique[name], out)
 
     print(file=out)
 
 
-def print_metadata_table(out: TextIO) -> None:
-    repo = os.environ.get("GITHUB_REPOSITORY", "")
-    workflow = os.environ.get("GITHUB_WORKFLOW", "")
-    workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF", "")
-    workflow_file = workflow_file_name_from_ref(workflow_ref)
-    run_number = os.environ.get("GITHUB_RUN_NUMBER", "")
-    run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "")
-    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
-    actor = os.environ.get("GITHUB_ACTOR", "unknown")
-    triggering_actor = os.environ.get("GITHUB_TRIGGERING_ACTOR", "")
-    ref_name = os.environ.get("GITHUB_REF_NAME", "")
-    sha = os.environ.get("GITHUB_SHA", "")
-    run_id = os.environ.get("GITHUB_RUN_ID", "")
-
-    pr_number, pr_title = maybe_read_pr_metadata()
-    generated_at = build_human_timestamp()
-
-    run_url = build_run_url(repo, run_id)
-    commit_url = build_commit_url(repo, sha)
-    pr_url = build_pr_url(repo, pr_number)
-
-    commit_message = ""
-    if pr_title:
-        commit_message = pr_title
+def print_job_list_item(name: str, url: str, out: TextIO) -> None:
+    """Write a single Markdown job list item."""
+    if url:
+        print(f"- [{md_table_value(name)}]({url})", file=out)
     else:
-        commit = os.environ.get("GITHUB_COMMIT_MESSAGE", "")
-        if commit:
-            commit_message = commit
+        print(f"- {md_table_value(name)}", file=out)
 
-    if commit_message:
-        commit_message = commit_message.splitlines()[0].strip()
 
+def env_value(name: str, default: str = "") -> str:
+    """Read a string environment variable."""
+    return os.environ.get(name, default)
+
+
+def first_line(value: str) -> str:
+    """Return the first non-newline display line from a string."""
+    return value.splitlines()[0].strip() if value else ""
+
+
+def workflow_metadata() -> Dict[str, str]:
+    """Collect workflow metadata from the GitHub Actions environment."""
+    pr_number, pr_title = maybe_read_pr_metadata()
+
+    metadata = {
+        "repo": env_value("GITHUB_REPOSITORY"),
+        "workflow": env_value("GITHUB_WORKFLOW"),
+        "workflow_ref": env_value("GITHUB_WORKFLOW_REF"),
+        "run_number": env_value("GITHUB_RUN_NUMBER"),
+        "run_attempt": env_value("GITHUB_RUN_ATTEMPT"),
+        "event_name": env_value("GITHUB_EVENT_NAME"),
+        "actor": env_value("GITHUB_ACTOR", "unknown"),
+        "triggering_actor": env_value("GITHUB_TRIGGERING_ACTOR"),
+        "ref_name": env_value("GITHUB_REF_NAME"),
+        "sha": env_value("GITHUB_SHA"),
+        "run_id": env_value("GITHUB_RUN_ID"),
+        "pr_number": pr_number,
+        "pr_title": pr_title,
+        "generated_at": build_human_timestamp(),
+    }
+
+    metadata["workflow_file"] = workflow_file_name_from_ref(metadata["workflow_ref"])
+    metadata["run_url"] = build_run_url(metadata["repo"], metadata["run_id"])
+    metadata["commit_url"] = build_commit_url(metadata["repo"], metadata["sha"])
+    metadata["pr_url"] = build_pr_url(metadata["repo"], metadata["pr_number"])
+    metadata["commit_message"] = build_commit_message(metadata["pr_title"])
+
+    return metadata
+
+
+def build_commit_message(pr_title: str) -> str:
+    """Choose the best commit/message text for workflow metadata."""
+    if pr_title:
+        return first_line(pr_title)
+
+    return first_line(env_value("GITHUB_COMMIT_MESSAGE"))
+
+
+def print_metadata_header(out: TextIO) -> None:
+    """Write the workflow metadata section header and table header."""
     print(f"### {EMOJI_METADATA} Workflow metadata", file=out)
     print(file=out)
     print("|  |  |", file=out)
     print("| :-- | :-- |", file=out)
 
-    print(f"| {EMOJI_REPO} Repository | {md_table_value(repo)} |", file=out)
-    print(f"| {EMOJI_WORKFLOW} Workflow | {md_table_value(workflow)} |", file=out)
 
-    if workflow_file:
-        print(f"| {EMOJI_WORKFLOW_FILE} Workflow file | {md_table_value(workflow_file)} |", file=out)
+def print_metadata_row(label: str, value: str, out: TextIO) -> None:
+    """Write a single workflow metadata table row."""
+    print(f"| {label} | {md_table_value(value)} |", file=out)
 
-    print(
-        f"| {EMOJI_RUN} Run | "
-        f"{make_link(f'#{run_number}', run_url) if run_url else md_table_value(run_number)} |",
-        file=out,
-    )
-    print(f"| {EMOJI_ATTEMPT} Attempt | {md_table_value(run_attempt)} |", file=out)
-    print(f"| {EMOJI_EVENT} Event | {md_table_value(event_name)} |", file=out)
-    print(f"| {EMOJI_ACTOR} Actor | {md_table_value(actor)} |", file=out)
 
-    if triggering_actor and triggering_actor != actor:
-        print(f"| {EMOJI_TRIGGERING_ACTOR} Triggering actor | {md_table_value(triggering_actor)} |", file=out)
+def print_link_metadata_row(label: str, value: str, url: str, out: TextIO) -> None:
+    """Write a workflow metadata row that may contain a Markdown link."""
+    print(f"| {label} | {make_link(value, url) if url else md_table_value(value)} |", file=out)
 
-    print(f"| {EMOJI_BRANCH} Ref | {md_table_value(ref_name)} |", file=out)
 
-    if sha:
-        commit_label = f"`{short_sha(sha)}`"
-        print(
-            f"| {EMOJI_COMMIT} Commit | "
-            f"{make_link(commit_label, commit_url) if commit_url else md_table_value(sha)} |",
-            file=out,
-        )
+def print_metadata_table(out: TextIO) -> None:
+    """Write the workflow metadata table."""
+    metadata = workflow_metadata()
 
-    if commit_message:
-        print(f"| {EMOJI_COMMIT} Commit message | {md_table_value(commit_message)} |", file=out)
+    print_metadata_header(out)
+    print_metadata_row(f"{EMOJI_REPO} Repository", metadata["repo"], out)
+    print_metadata_row(f"{EMOJI_WORKFLOW} Workflow", metadata["workflow"], out)
 
-    if pr_number:
-        pr_label = f"#{pr_number}: {pr_title}" if pr_title else f"#{pr_number}"
-        print(
-            f"| {EMOJI_PR} Pull request | "
-            f"{make_link(pr_label, pr_url) if pr_url else md_table_value(pr_label)} |",
-            file=out,
-        )
+    if metadata["workflow_file"]:
+        print_metadata_row(f"{EMOJI_WORKFLOW_FILE} Workflow file", metadata["workflow_file"], out)
 
-    print(f"| {EMOJI_GENERATED} Generated at (UTC) | {generated_at} |", file=out)
+    print_link_metadata_row(f"{EMOJI_RUN} Run", f"#{metadata['run_number']}", metadata["run_url"], out)
+    print_metadata_row(f"{EMOJI_ATTEMPT} Attempt", metadata["run_attempt"], out)
+    print_metadata_row(f"{EMOJI_EVENT} Event", metadata["event_name"], out)
+    print_metadata_row(f"{EMOJI_ACTOR} Actor", metadata["actor"], out)
+
+    if metadata["triggering_actor"] and metadata["triggering_actor"] != metadata["actor"]:
+        print_metadata_row(f"{EMOJI_TRIGGERING_ACTOR} Triggering actor", metadata["triggering_actor"], out)
+
+    print_metadata_row(f"{EMOJI_BRANCH} Ref", metadata["ref_name"], out)
+    print_commit_metadata(metadata, out)
+    print_pull_request_metadata(metadata, out)
+    print_metadata_row(f"{EMOJI_GENERATED} Generated at (UTC)", metadata["generated_at"], out)
     print(file=out)
 
 
-def write_markdown_summary(
-    buckets: Dict[str, List[Tuple[str, str]]],
-    out: TextIO,
-) -> None:
+def print_commit_metadata(metadata: Dict[str, str], out: TextIO) -> None:
+    """Write commit metadata rows when commit details are available."""
+    if metadata["sha"]:
+        commit_label = f"`{short_sha(metadata['sha'])}`"
+        print_link_metadata_row(f"{EMOJI_COMMIT} Commit", commit_label, metadata["commit_url"], out)
+
+    if metadata["commit_message"]:
+        print_metadata_row(f"{EMOJI_COMMIT} Commit message", metadata["commit_message"], out)
+
+
+def print_pull_request_metadata(metadata: Dict[str, str], out: TextIO) -> None:
+    """Write pull request metadata rows when pull request details are available."""
+    if not metadata["pr_number"]:
+        return
+
+    pr_label = (
+        f"#{metadata['pr_number']}: {metadata['pr_title']}"
+        if metadata["pr_title"]
+        else f"#{metadata['pr_number']}"
+    )
+    print_link_metadata_row(f"{EMOJI_PR} Pull request", pr_label, metadata["pr_url"], out)
+
+
+def write_markdown_summary(buckets: JobBuckets, out: TextIO) -> None:
+    """Write the complete Markdown workflow summary."""
     print(f"# {EMOJI_SUMMARY} Job Status Overview", file=out)
     print(file=out)
 
     print_count_summary(buckets, out)
-
-    for key in (
-        "failure",
-        "timed_out",
-        "cancelled",
-        "not_completed",
-        "action_required",
-        "stale",
-        "neutral",
-        "skipped",
-        "other",
-        "success",
-    ):
-        print_sorted_section(buckets[key], section_title(key), out)
-
+    print_job_sections(buckets, out)
     print_metadata_table(out)
 
 
+def print_job_sections(buckets: JobBuckets, out: TextIO) -> None:
+    """Write all non-empty job result sections."""
+    for key in JOB_SECTION_ORDER:
+        print_sorted_section(buckets[key], section_title(key), out)
+
+
 def output_paths() -> List[str]:
+    """Return all output paths that should receive the Markdown summary."""
     paths: List[str] = []
 
-    summary_path = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
-    artifact_path = os.environ.get("WORKFLOW_SUMMARY_FILE", "").strip()
+    summary_path = env_value("GITHUB_STEP_SUMMARY").strip()
+    artifact_path = env_value("WORKFLOW_SUMMARY_FILE").strip()
 
     if summary_path:
         paths.append(summary_path)
@@ -645,7 +798,23 @@ def output_paths() -> List[str]:
     return paths
 
 
-def write_summaries(buckets: Dict[str, List[Tuple[str, str]]]) -> None:
+def output_mode(path: str) -> str:
+    """Return the file mode to use for a summary output path."""
+    summary_path = env_value("GITHUB_STEP_SUMMARY").strip()
+    return "a" if path == summary_path else "w"
+
+
+def write_summary_file(path: str, buckets: JobBuckets) -> None:
+    """Write the Markdown summary to one file."""
+    try:
+        with open(path, output_mode(path), encoding="utf-8") as out:
+            write_markdown_summary(buckets, cast(TextIO, out))
+    except OSError as exc:
+        error(f"Failed to write summary file {path}: {exc}")
+
+
+def write_summaries(buckets: JobBuckets) -> None:
+    """Write the Markdown summary to all configured destinations."""
     paths = output_paths()
 
     if not paths:
@@ -653,30 +822,33 @@ def write_summaries(buckets: Dict[str, List[Tuple[str, str]]]) -> None:
         return
 
     for path in paths:
-        mode = "a" if path == os.environ.get("GITHUB_STEP_SUMMARY", "").strip() else "w"
+        write_summary_file(path, buckets)
 
-        try:
-            with open(path, mode, encoding="utf-8") as out:
-                write_markdown_summary(buckets, cast(TextIO, out))
-        except OSError as exc:
-            error(f"Failed to write summary file {path}: {exc}")
+
+def load_jobs_data_from_args(args: List[str]) -> Dict[str, Any]:
+    """Load job data from CLI arguments or the GitHub Actions API."""
+    if len(args) == 1:
+        return load_jobs_json_from_file(args[0])
+
+    if len(args) > 1:
+        error("Usage: workflow-summary.py [jobs.json]")
+
+    return fetch_jobs_json_from_api()
+
+
+def ignored_job_names_from_env() -> Optional[Set[str]]:
+    """Read ignored job names from the WORKFLOW_IGNORE_JOBS environment variable."""
+    raw_ignored_jobs = env_value("WORKFLOW_IGNORE_JOBS")
+    if raw_ignored_jobs.strip():
+        return parse_ignored_jobs(raw_ignored_jobs)
+
+    return None
 
 
 def main() -> None:
-    if len(sys.argv) == 2:
-        data = load_jobs_json_from_file(sys.argv[1])
-    elif len(sys.argv) > 2:
-        error("Usage: workflow-summary.py [jobs.json]")
-    else:
-        data = fetch_jobs_json_from_api()
-
-    raw_ignored_jobs = os.environ.get("WORKFLOW_IGNORE_JOBS", "")
-    ignored_job_names: Optional[Set[str]] = None
-
-    if raw_ignored_jobs.strip():
-        ignored_job_names = parse_ignored_jobs(raw_ignored_jobs)
-
-    buckets = bucket_jobs(data, ignored_job_names=ignored_job_names)
+    """Run the workflow summary generator."""
+    data = load_jobs_data_from_args(sys.argv[1:])
+    buckets = bucket_jobs(data, ignored_job_names=ignored_job_names_from_env())
     write_summaries(buckets)
 
 

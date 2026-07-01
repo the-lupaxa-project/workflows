@@ -1,3 +1,23 @@
+# 🧹 Reusable Workflow Run Cleanup
+#
+# Purpose:
+#   Removes old GitHub Actions workflow runs and optionally repository
+#   artifacts using the shared cleanup utility.
+#
+# Features:
+#   - Deletes workflow runs based on configurable retention policies.
+#   - Optionally removes expired workflow artifacts.
+#   - Supports dry-run mode for safe testing.
+#   - Preserves representative workflow runs on the default branch.
+#   - Generates a Markdown cleanup report.
+#   - Optionally uploads the cleanup report as a workflow artifact.
+#
+# Intended Usage:
+#
+#   jobs:
+#     workflow-run-cleanup:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-cleanup-workflow-runs.yml@master
+
 name: 🧹 Reusable Workflow Run Cleanup
 
 on:
@@ -123,22 +143,32 @@ on:
         type: string
         default: "90"
 
+# Permissions required by this reusable workflow.
+#
+# actions: write
+#   Required to delete workflow runs.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   actions: write
   contents: read
 
 jobs:
+  # Clean up old workflow runs and optionally workflow artifacts.
   workflow-run-cleanup:
     name: 🧹 Workflow Run Cleanup
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the shared workflows repository containing the cleanup script.
       - name: 📥 Checkout Workflows Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
+      # Execute the workflow cleanup utility using the supplied configuration.
       - name: 🧹 Run Workflow Run Cleanup
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -160,8 +190,10 @@ jobs:
           CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS: ${{ inputs.delete_sleep_seconds }}
           CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY: ${{ inputs.progress_every }}
           CLEANUP_WORKFLOW_RUNS_VERBOSITY: ${{ inputs.verbosity }}
-        run: python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py
+        run: |
+          python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py
 
+      # Publish the generated cleanup report for later review.
       - name: 📦 Upload Cleanup Report Artifact
         if: ${{ inputs.upload_report_artifact == 'true' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1

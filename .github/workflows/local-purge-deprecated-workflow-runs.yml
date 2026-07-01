@@ -1,24 +1,50 @@
+# 🧹 Local Purge Deprecated Workflow Runs
+#
+# Purpose:
+#   Runs repository housekeeping to purge deprecated GitHub Actions workflow runs.
+#
+# Scope:
+#   This is a local workflow for the workflows repository. It calls the reusable
+#   purge workflow defined in this same repository.
+#
+# Triggers:
+#   - Manual execution via workflow_dispatch.
+#   - Scheduled weekly execution every Monday at 03:33 UTC.
+#
+# Notes:
+#   - The purge job requires actions: write because it deletes workflow runs.
+#   - The summary and Slack jobs run with if: always() so failures are still
+#     reported and summarized.
+#   - The reusable summary and Slack workflows handle their own framework-level
+#     ignored jobs, so no ignore_jobs input is needed here.
+
 name: 🧹 Local Purge Deprecated Workflow Runs
 
 on:
+  # Allow maintainers to run the purge manually from the GitHub Actions UI.
   workflow_dispatch:
 
+  # Run automatically once per week.
   schedule:
     - cron: "33 3 * * 1"
 
+# Prevent overlapping purge runs for the same workflow/ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Minimum permissions required by the called reusable workflows.
 permissions:
   actions: write
   contents: read
 
 jobs:
+  # Main housekeeping job.
   purge-deprecated-workflows:
     name: 🧹 Purge Deprecated Workflow Runs
     uses: ./.github/workflows/reusable-purge-deprecated-workflow-runs.yml
 
+  # Generate a Markdown workflow summary even if the purge job fails.
   workflow-summary:
     name: 📊 Workflow Summary
     needs:
@@ -26,6 +52,7 @@ jobs:
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 
+  # Notify Slack only for failure/timed_out results.
   slack-notification:
     name: 💬 Slack Notification
     needs:

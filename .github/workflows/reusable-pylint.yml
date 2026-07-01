@@ -1,3 +1,22 @@
+# 🐍 Reusable Pylint
+#
+# Purpose:
+#   Performs static analysis of Python source code using the shared Pylint
+#   pipeline.
+#
+# Features:
+#   - Detects coding errors, design issues and code quality problems.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox Pylint pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     pylint:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-pylint.yml@master
+
 name: 🐍 Reusable Pylint
 
 on:
@@ -37,18 +56,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs the Pylint static analysis pipeline.
   pylint:
     name: 🐍 Pylint
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared Pylint pipeline.
       - name: 🐍 Run Pylint
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

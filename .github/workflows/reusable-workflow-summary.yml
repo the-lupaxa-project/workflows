@@ -1,3 +1,23 @@
+# 📊 Reusable Workflow Summary
+#
+# Purpose:
+#   Generates a Markdown summary of the current workflow execution, including
+#   job results and workflow metadata.
+#
+# Features:
+#   - Summarises all workflow jobs by result.
+#   - Groups jobs by outcome.
+#   - Includes workflow metadata and execution details.
+#   - Allows selected jobs to be excluded from the summary.
+#   - Automatically excludes the workflow summary and Slack notification jobs.
+#   - Optionally uploads the generated summary as a workflow artifact.
+#
+# Intended Usage:
+#
+#   jobs:
+#     workflow-summary:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-workflow-summary.yml@master
+
 name: 📊 Reusable Workflow Summary
 
 on:
@@ -25,22 +45,32 @@ on:
         type: number
         default: 90
 
+# Permissions required by this reusable workflow.
+#
+# actions: read
+#   Allows workflow and job information to be read from the GitHub Actions API.
+#
+# contents: read
+#   Allows checkout of the shared workflows repository.
 permissions:
   actions: read
   contents: read
 
 jobs:
+  # Generates a workflow execution summary.
   workflow-summary:
     name: 📊 Workflow Summary
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the shared workflows repository containing the summary script.
       - name: 📥 Checkout Workflows Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
+      # Generate the Markdown workflow summary.
       - name: 📊 Generate Workflow Summary
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -48,6 +78,7 @@ jobs:
         run: |
           python lupaxa-dotgithub/.github/scripts/workflow-summary.py
 
+      # Upload the generated summary as a workflow artifact.
       - name: 📦 Upload Workflow Summary Artifact
         if: ${{ inputs.upload_artifact }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1

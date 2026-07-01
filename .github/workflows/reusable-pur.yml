@@ -1,3 +1,22 @@
+# 🐍 Reusable PUR
+#
+# Purpose:
+#   Checks Python requirements files for available dependency updates using the
+#   shared PUR (Python Requirements Updater) pipeline.
+#
+# Features:
+#   - Detects outdated packages in requirements files.
+#   - Supports include and exclude filters.
+#   - Can run in report-only mode.
+#   - Can show detailed errors and skipped files.
+#   - Uses the shared CICDToolbox PUR pipeline.
+#
+# Intended Usage:
+#
+#   jobs:
+#     pur:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-pur.yml@master
+
 name: 🐍 Reusable PUR
 
 on:
@@ -37,18 +56,25 @@ on:
         type: boolean
         default: false
 
+# Permissions required by this reusable workflow.
+#
+# contents: read
+#   Allows checkout and inspection of repository files.
 permissions:
   contents: read
 
 jobs:
+  # Runs the Python Requirements Updater.
   pur:
     name: 🐍 Python Requirements Updater
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository contents that will be scanned.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Run the shared PUR pipeline.
       - name: 🐍 Run PUR
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}

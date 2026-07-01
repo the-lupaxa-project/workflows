@@ -1,39 +1,71 @@
+# 🔒 Local CodeQL Analysis
+#
+# Purpose:
+#   Performs CodeQL static analysis against this repository to identify security
+#   vulnerabilities and code quality issues.
+#
+# Scope:
+#   This is a local workflow for the workflows repository. It delegates the
+#   actual analysis to the reusable CodeQL workflow.
+#
+# Triggers:
+#   - Pushes (excluding Dependabot branches).
+#   - Pull requests.
+#   - Weekly scheduled scan every Monday at 03:04 UTC.
+#   - Manual execution via workflow_dispatch.
+#
+# Notes:
+#   - Documentation-only changes (*.md) are ignored to reduce unnecessary runs.
+#   - The reusable workflow is currently configured to analyse Python code.
+#   - security-events: write permission is required so CodeQL can upload SARIF
+#     results to GitHub Security.
+#   - The workflow summary and Slack notification always run, even if CodeQL
+#     fails, ensuring failures are still reported.
+
 name: 🔒 Local CodeQL Analysis
 
 on:
+  # Analyse source changes pushed to the repository.
   push:
     branches-ignore:
       - "dependabot/"
     paths-ignore:
       - "**/*.md"
 
+  # Analyse all pull requests.
   pull_request:
     branches:
       - "**"
     paths-ignore:
       - "**/*.md"
 
+  # Weekly scheduled security scan.
   schedule:
     - cron: "4 3 * * 1"
 
+  # Allow maintainers to trigger an on-demand scan.
   workflow_dispatch:
 
+# Prevent overlapping CodeQL runs for the same workflow/ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Minimum permissions required by the reusable workflow.
 permissions:
   actions: read
   contents: read
   security-events: write
 
 jobs:
+  # Perform CodeQL analysis.
   codeql:
     name: 🔒 CodeQL Analysis
     uses: ./.github/workflows/reusable-codeql.yml
     with:
       languages: "python"
 
+  # Generate a Markdown workflow summary even if CodeQL fails.
   workflow-summary:
     name: 📊 Workflow Summary
     needs:
@@ -41,6 +73,7 @@ jobs:
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 
+  # Notify Slack only for failure/timed_out results.
   slack-notification:
     name: 💬 Slack Notification
     needs:

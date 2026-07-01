@@ -1,23 +1,52 @@
+# 🤖 Local Dependabot
+#
+# Purpose:
+#   Automatically processes Dependabot pull requests by approving, commenting,
+#   labelling and optionally enabling auto-merge according to the repository's
+#   configured policy.
+#
+# Scope:
+#   This is a local workflow for the workflows repository. It delegates all
+#   Dependabot automation to the reusable Dependabot workflow.
+#
+# Triggers:
+#   - Every pull request. The reusable workflow internally verifies that the
+#     pull request was opened by Dependabot before taking any action.
+#
+# Notes:
+#   - contents: write and pull-requests: write permissions are required because
+#     the workflow may approve PRs, apply labels, comment and enable auto-merge.
+#   - secrets: inherit passes the repository's secrets through to the reusable
+#     workflow.
+#   - The workflow summary and Slack notification always run, ensuring failures
+#     are still reported even if the Dependabot automation job fails.
+
 name: 🤖 Local Dependabot
 
 on:
+  # Trigger on all pull requests. The reusable workflow filters to
+  # Dependabot-authored pull requests.
   pull_request:
 
+# Prevent overlapping runs for the same workflow/ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Minimum permissions required by the reusable workflow.
 permissions:
   actions: read
   contents: write
   pull-requests: write
 
 jobs:
+  # Process Dependabot pull requests.
   dependabot:
     name: 🤖 Dependabot
     uses: ./.github/workflows/reusable-dependabot.yml
     secrets: inherit
 
+  # Generate a Markdown workflow summary even if the main job fails.
   workflow-summary:
     name: 📊 Workflow Summary
     needs:
@@ -25,6 +54,7 @@ jobs:
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 
+  # Notify Slack only for failure/timed_out results.
   slack-notification:
     name: 💬 Slack Notification
     needs:

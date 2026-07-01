@@ -1,32 +1,63 @@
+# 🧪 Local Validate Citations File
+#
+# Purpose:
+#   Validates the repository's CITATION.cff file to ensure it conforms to the
+#   Citation File Format (CFF) specification and can be correctly consumed by
+#   GitHub and other citation-aware tools.
+#
+# Scope:
+#   This is a local workflow for the workflows repository. It delegates the
+#   actual validation to the reusable Validate Citations File workflow.
+#
+# Triggers:
+#   - Pushes that modify CITATION.cff (excluding Dependabot branches).
+#   - Pull requests containing changes to CITATION.cff.
+#
+# Notes:
+#   - The workflow only runs when the citation file changes, avoiding
+#     unnecessary executions.
+#   - Dependabot branches are excluded since dependency updates should not
+#     modify repository citation metadata.
+#   - secrets: inherit allows the reusable workflow access to repository
+#     secrets if required.
+#   - The workflow summary and Slack notification always run, ensuring failures
+#     are still reported even if validation fails.
+
 name: 🧪 Local Validate Citations File
 
 on:
+  # Validate CITATION.cff whenever it changes.
   push:
     branches-ignore:
       - "dependabot/**"
     paths:
       - "CITATION.cff"
 
+  # Validate pull requests that modify CITATION.cff.
   pull_request:
     branches:
       - "**"
     paths:
       - "CITATION.cff"
 
+# Prevent overlapping validation runs for the same workflow/ref.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Minimum permissions required by the reusable workflow.
 permissions:
   actions: read
   contents: read
 
 jobs:
+  # Validate the repository citation file.
   validate:
     name: 🧪 Validate Citations File
     uses: ./.github/workflows/reusable-validate-citations-file.yml
     secrets: inherit
 
+  # Generate a Markdown workflow summary even if validation fails.
   workflow-summary:
     name: 📊 Workflow Summary
     needs:
@@ -34,6 +65,7 @@ jobs:
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 
+  # Notify Slack only for failure/timed_out results.
   slack-notification:
     name: 💬 Slack Notification
     needs:

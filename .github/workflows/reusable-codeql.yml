@@ -1,3 +1,24 @@
+# 🔒 Reusable CodeQL Analysis
+#
+# Purpose:
+#   Performs GitHub CodeQL security and code quality analysis against one
+#   or more programming languages.
+#
+# Features:
+#   - Supports analysis of one or more languages.
+#   - Uses GitHub's official CodeQL Action.
+#   - Automatically builds supported projects.
+#   - Runs the Security & Quality query suite.
+#   - Uploads SARIF results to GitHub Code Scanning.
+#
+# Intended Usage:
+#
+#   jobs:
+#     codeql-analysis:
+#       uses: the-lupaxa-project/workflows/.github/workflows/reusable-codeql.yml@master
+#       with:
+#         languages: "python"
+
 name: 🔒 Reusable CodeQL Analysis
 
 on:
@@ -10,28 +31,43 @@ on:
         required: true
         type: string
 
+# Permissions required by this reusable workflow.
+#
+# actions: read
+#   Allows CodeQL to read workflow metadata.
+#
+# contents: read
+#   Allows checkout of the repository source code.
+#
+# security-events: write
+#   Required to upload CodeQL SARIF results to GitHub Code Scanning.
 permissions:
   actions: read
   contents: read
   security-events: write
 
 jobs:
+  # Performs CodeQL analysis for the requested language(s).
   codeql-analysis:
     name: 🔒 CodeQL Analysis
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository source code.
       - name: 📥 Checkout Repository
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
 
+      # Initialise the CodeQL database and enable the Security & Quality query suite.
       - name: 🔒 Initialize CodeQL
         uses: github/codeql-action/init@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
         with:
           languages: ${{ inputs.languages }}
           queries: +security-and-quality
 
+      # Automatically build the project where supported.
       - name: 🏗️ Autobuild Project
         uses: github/codeql-action/autobuild@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
 
+      # Execute the CodeQL analysis and upload results to GitHub Code Scanning.
       - name: 🔍 Run CodeQL Analysis
         uses: github/codeql-action/analyze@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
