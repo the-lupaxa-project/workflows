@@ -1,4 +1,4 @@
-name: Local Python CI - send-to-slack.py
+name: Local Send to Slack CI - send-to-slack.py
 
 on:
   push:
