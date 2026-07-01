@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-Cleanup old GitHub Actions workflow runs and, optionally, old artifacts.
+Clean up old GitHub Actions workflow runs and optionally old artifacts.
+
+This script is designed to run inside GitHub Actions. It fetches workflow runs
+from the GitHub REST API, applies retention and preservation rules, optionally
+deletes selected runs and artifacts, and writes a Markdown report.
+
+Configuration is provided through environment variables so this script can be
+used from a reusable workflow without command-line arguments.
 """
 
 import json
@@ -25,6 +32,8 @@ DEFAULT_PROGRESS_EVERY = 50
 DEFAULT_PRESERVE_BRANCH = "master"
 DEFAULT_VERBOSITY = "normal"
 
+VALID_VERBOSITY = {"quiet", "normal", "verbose"}
+
 EMOJI_CLEANUP = "🧹"
 EMOJI_DELETE = "🔥"
 EMOJI_KEEP = "🛡️"
@@ -41,18 +50,38 @@ EMOJI_VERBOSITY = "🔊"
 
 Run = Dict[str, Any]
 Artifact = Dict[str, Any]
+Config = Dict[str, Any]
+ActionRow = Dict[str, str]
+WorkflowTotals = Dict[str, Dict[str, int]]
 
 
 def log(message: str = "") -> None:
+    """Print a message to stdout."""
     print(message, flush=True)
 
 
 def error(message: str, *, code: int = 1) -> NoReturn:
+    """Print a formatted error message and terminate the script."""
     print(f"{EMOJI_WARNING} ERROR: {message}", file=sys.stderr, flush=True)
     raise SystemExit(code)
 
 
+def env_value(name: str, default: str = "") -> str:
+    """Read an environment variable as a string."""
+    return os.environ.get(name, default)
+
+
+def github_token_from_env() -> str:
+    """Return the first supported GitHub API token found in the environment."""
+    return (
+        env_value("GITHUB_TOKEN")
+        or env_value("GH_TOKEN")
+        or env_value("ACTIONS_RUNTIME_TOKEN")
+    )
+
+
 def parse_bool(value: str, *, default: bool) -> bool:
+    """Parse a permissive boolean string."""
     if value == "":
         return default
 
@@ -68,6 +97,7 @@ def parse_bool(value: str, *, default: bool) -> bool:
 
 
 def parse_int(value: str, *, default: int) -> int:
+    """Parse an integer, returning the default on empty or invalid input."""
     if value == "":
         return default
 
@@ -78,6 +108,7 @@ def parse_int(value: str, *, default: int) -> int:
 
 
 def parse_float(value: str, *, default: float) -> float:
+    """Parse a float, returning the default on empty or invalid input."""
     if value == "":
         return default
 
@@ -88,6 +119,7 @@ def parse_float(value: str, *, default: float) -> float:
 
 
 def parse_iso8601(value: str) -> Optional[datetime]:
+    """Parse a GitHub-style ISO 8601 timestamp as UTC."""
     if not value:
         return None
 
@@ -105,6 +137,7 @@ def parse_iso8601(value: str) -> Optional[datetime]:
 
 
 def parse_next_link(link_header: str) -> Optional[str]:
+    """Extract the next-page URL from a GitHub API Link header."""
     if not link_header:
         return None
 
@@ -124,28 +157,66 @@ def parse_next_link(link_header: str) -> Optional[str]:
 
 
 def slugify(value: str, *, fallback: str = "unknown") -> str:
+    """Convert a string into a filesystem-friendly slug."""
     value = value.strip().lower()
     value = re.sub(r"[^a-z0-9._-]+", "-", value)
     value = re.sub(r"-+", "-", value)
     value = value.strip("-._")
+
     return value or fallback
 
 
 def md_value(value: str) -> str:
+    """Escape a value so it can be safely rendered inside a Markdown table."""
     value = str(value)
     value = value.replace("\\", "\\\\")
     value = value.replace("|", "\\|")
     value = value.replace("\r", " ")
     value = value.replace("\n", " ")
+
     return value.strip()
 
 
 def action_emoji(action: str) -> str:
+    """Return the emoji associated with a report action."""
     if action == "DELETE":
         return EMOJI_DELETE
+
     if action == "KEEP":
         return EMOJI_KEEP
+
     return EMOJI_SKIP
+
+
+def github_headers(token: str) -> Dict[str, str]:
+    """Build headers for GitHub REST API requests."""
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "lupaxa-cleanup-workflow-runs",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+
+def decode_http_error(exc: HTTPError) -> str:
+    """Read and decode an HTTPError response body."""
+    if not hasattr(exc, "read"):
+        return ""
+
+    return exc.read().decode("utf-8", errors="replace")
+
+
+def parse_github_json(body: bytes, url: str) -> Dict[str, Any]:
+    """Decode a GitHub API JSON response and require a top-level object."""
+    try:
+        data = json.loads(body)
+    except json.JSONDecodeError as exc:
+        error(f"Failed to decode JSON from {url}: {exc}")
+
+    if not isinstance(data, dict):
+        error(f"GitHub API response from {url} was not an object.")
+
+    return data
 
 
 def github_request(
@@ -154,14 +225,8 @@ def github_request(
     *,
     method: str = "GET",
 ) -> Tuple[Optional[Dict[str, Any]], Optional[str], int]:
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "lupaxa-cleanup-workflow-runs",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-
-    req = urllib.request.Request(url, headers=headers, method=method)
+    """Send a request to the GitHub REST API."""
+    req = urllib.request.Request(url, headers=github_headers(token), method=method)
 
     try:
         with urllib.request.urlopen(req) as resp:
@@ -169,9 +234,9 @@ def github_request(
             body = resp.read()
             next_url = parse_next_link(resp.headers.get("Link", ""))
     except HTTPError as exc:
-        body = exc.read().decode("utf-8", errors="replace") if hasattr(exc, "read") else ""
-        if body:
-            print(body, file=sys.stderr, flush=True)
+        body_text = decode_http_error(exc)
+        if body_text:
+            print(body_text, file=sys.stderr, flush=True)
         error(f"GitHub API returned HTTP {exc.code} for {method} {url}: {exc.reason}")
     except URLError as exc:
         error(f"Failed to reach GitHub API at {url}: {exc.reason}")
@@ -182,72 +247,65 @@ def github_request(
     if not (200 <= status < 300):
         error(f"GitHub API returned HTTP {status} for {method} {url}")
 
-    try:
-        data = json.loads(body)
-    except json.JSONDecodeError as exc:
-        error(f"Failed to decode JSON from {url}: {exc}")
+    return parse_github_json(body, url), next_url, status
 
-    if not isinstance(data, dict):
-        error(f"GitHub API response from {url} was not an object.")
 
-    return data, next_url, status
+def fetch_paginated_items(
+    url: str,
+    token: str,
+    *,
+    collection_key: str,
+    emoji: str,
+    label: str,
+) -> List[Dict[str, Any]]:
+    """Fetch all dictionary items from a paginated GitHub API collection."""
+    items: List[Dict[str, Any]] = []
+    next_url: Optional[str] = url
+
+    while next_url:
+        data, next_url, _status = github_request(next_url, token)
+
+        if data is None:
+            break
+
+        page_items = data.get(collection_key, [])
+
+        if isinstance(page_items, list):
+            items.extend(item for item in page_items if isinstance(item, dict))
+
+        log(f"{emoji} [FETCH] Loaded {len(items)} {label} so far")
+
+    return items
 
 
 def fetch_all_workflow_runs(repo: str, token: str) -> List[Run]:
-    url: Optional[str] = (
-        f"https://api.github.com/repos/{repo}/actions/runs"
-        f"?per_page={DEFAULT_PER_PAGE}"
+    """Fetch all workflow runs for a repository."""
+    url = f"https://api.github.com/repos/{repo}/actions/runs?per_page={DEFAULT_PER_PAGE}"
+
+    return fetch_paginated_items(
+        url,
+        token,
+        collection_key="workflow_runs",
+        emoji=EMOJI_RUN,
+        label="workflow runs",
     )
-
-    runs: List[Run] = []
-
-    while url:
-        data, next_url, _status = github_request(url, token)
-
-        if data is None:
-            break
-
-        page_runs = data.get("workflow_runs", [])
-
-        if isinstance(page_runs, list):
-            for run in page_runs:
-                if isinstance(run, dict):
-                    runs.append(run)
-
-        log(f"{EMOJI_RUN} [FETCH] Loaded {len(runs)} workflow runs so far")
-        url = next_url
-
-    return runs
 
 
 def fetch_all_artifacts(repo: str, token: str) -> List[Artifact]:
-    url: Optional[str] = (
-        f"https://api.github.com/repos/{repo}/actions/artifacts"
-        f"?per_page={DEFAULT_PER_PAGE}"
+    """Fetch all workflow artifacts for a repository."""
+    url = f"https://api.github.com/repos/{repo}/actions/artifacts?per_page={DEFAULT_PER_PAGE}"
+
+    return fetch_paginated_items(
+        url,
+        token,
+        collection_key="artifacts",
+        emoji=EMOJI_ARTIFACT,
+        label="artifacts",
     )
-
-    artifacts: List[Artifact] = []
-
-    while url:
-        data, next_url, _status = github_request(url, token)
-
-        if data is None:
-            break
-
-        page_artifacts = data.get("artifacts", [])
-
-        if isinstance(page_artifacts, list):
-            for artifact in page_artifacts:
-                if isinstance(artifact, dict):
-                    artifacts.append(artifact)
-
-        log(f"{EMOJI_ARTIFACT} [FETCH] Loaded {len(artifacts)} artifacts so far")
-        url = next_url
-
-    return artifacts
 
 
 def workflow_key(run: Run) -> str:
+    """Return a stable grouping key for a workflow run."""
     workflow_id = run.get("workflow_id")
     if workflow_id is not None:
         return str(workflow_id)
@@ -260,15 +318,20 @@ def workflow_key(run: Run) -> str:
 
 
 def workflow_display(run: Run) -> str:
+    """Return a human-readable workflow name for reports."""
     name = str(run.get("name") or "unknown")
     path = str(run.get("path") or "")
+
     if path:
         return f"{name} ({path})"
+
     return name
 
 
 def run_created_at(run: Run) -> datetime:
+    """Return the workflow run creation time, falling back to the Unix epoch."""
     created_at = parse_iso8601(str(run.get("created_at") or ""))
+
     if created_at:
         return created_at
 
@@ -276,7 +339,9 @@ def run_created_at(run: Run) -> datetime:
 
 
 def artifact_created_at(artifact: Artifact) -> datetime:
+    """Return the artifact creation time, falling back to the Unix epoch."""
     created_at = parse_iso8601(str(artifact.get("created_at") or ""))
+
     if created_at:
         return created_at
 
@@ -284,7 +349,9 @@ def artifact_created_at(artifact: Artifact) -> datetime:
 
 
 def run_id_as_int(run: Run) -> Optional[int]:
+    """Return the workflow run ID when it is an integer."""
     run_id = run.get("id")
+
     if isinstance(run_id, int):
         return run_id
 
@@ -292,7 +359,9 @@ def run_id_as_int(run: Run) -> Optional[int]:
 
 
 def artifact_id_as_int(artifact: Artifact) -> Optional[int]:
+    """Return the artifact ID when it is an integer."""
     artifact_id = artifact.get("id")
+
     if isinstance(artifact_id, int):
         return artifact_id
 
@@ -300,14 +369,17 @@ def artifact_id_as_int(artifact: Artifact) -> Optional[int]:
 
 
 def run_status(run: Run) -> str:
+    """Return the normalised workflow run status."""
     return str(run.get("status") or "").strip().lower()
 
 
 def run_conclusion(run: Run) -> str:
+    """Return the normalised workflow run conclusion."""
     return str(run.get("conclusion") or "").strip().lower()
 
 
 def run_head_branch(run: Run) -> str:
+    """Return the workflow run head branch."""
     return str(run.get("head_branch") or "").strip()
 
 
@@ -316,6 +388,7 @@ def keep_latest_by_conclusion(
     conclusion: str,
     keep_ids: Set[int],
 ) -> None:
+    """Add the newest run matching a conclusion to the preserved run IDs."""
     for run in runs:
         if run_conclusion(run) != conclusion:
             continue
@@ -333,6 +406,7 @@ def keep_last_n_by_conclusion(
     count: int,
     keep_ids: Set[int],
 ) -> None:
+    """Add the newest N runs matching a conclusion to the preserved run IDs."""
     kept = 0
 
     for run in runs:
@@ -348,17 +422,8 @@ def keep_last_n_by_conclusion(
             return
 
 
-def find_keep_run_ids(
-    runs: List[Run],
-    *,
-    preserve_branch: str,
-    keep_latest_successful: bool,
-    keep_latest_failed: bool,
-    keep_latest_cancelled: bool,
-    keep_latest_timed_out: bool,
-    keep_last_n_successful: int,
-) -> Set[int]:
-    keep_ids: Set[int] = set()
+def group_preserved_branch_runs(runs: List[Run], preserve_branch: str) -> Dict[str, List[Run]]:
+    """Group completed runs on the preserved branch by workflow."""
     grouped: Dict[str, List[Run]] = {}
 
     for run in runs:
@@ -370,12 +435,25 @@ def find_keep_run_ids(
 
         grouped.setdefault(workflow_key(run), []).append(run)
 
+    return grouped
+
+
+def find_keep_run_ids(
+    runs: List[Run],
+    *,
+    preserve_branch: str,
+    keep_latest_successful: bool,
+    keep_latest_failed: bool,
+    keep_latest_cancelled: bool,
+    keep_latest_timed_out: bool,
+    keep_last_n_successful: int,
+) -> Set[int]:
+    """Find representative workflow run IDs that must be preserved."""
+    keep_ids: Set[int] = set()
+    grouped = group_preserved_branch_runs(runs, preserve_branch)
+
     for workflow_runs in grouped.values():
-        completed_sorted = sorted(
-            workflow_runs,
-            key=run_created_at,
-            reverse=True,
-        )
+        completed_sorted = sorted(workflow_runs, key=run_created_at, reverse=True)
 
         if keep_latest_successful:
             keep_latest_by_conclusion(completed_sorted, "success", keep_ids)
@@ -411,6 +489,7 @@ def should_delete_run(
     delete_skipped: bool,
     delete_neutral: bool,
 ) -> Tuple[bool, str]:
+    """Decide whether a workflow run should be deleted."""
     run_id = run.get("id")
     status = run_status(run)
     conclusion = run_conclusion(run)
@@ -445,7 +524,9 @@ def should_delete_artifact(
     *,
     artifact_cutoff: datetime,
 ) -> Tuple[bool, str]:
+    """Decide whether an artifact should be deleted."""
     expired = artifact.get("expired")
+
     if expired is True:
         return True, "artifact already expired"
 
@@ -456,6 +537,7 @@ def should_delete_artifact(
 
 
 def delete_workflow_run(repo: str, run_id: int, token: str) -> None:
+    """Delete one workflow run through the GitHub API."""
     url = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
     _data, _next_url, status = github_request(url, token, method="DELETE")
 
@@ -464,6 +546,7 @@ def delete_workflow_run(repo: str, run_id: int, token: str) -> None:
 
 
 def delete_artifact(repo: str, artifact_id: int, token: str) -> None:
+    """Delete one workflow artifact through the GitHub API."""
     url = f"https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}"
     _data, _next_url, status = github_request(url, token, method="DELETE")
 
@@ -472,23 +555,26 @@ def delete_artifact(repo: str, artifact_id: int, token: str) -> None:
 
 
 def default_report_filename(repo: str) -> str:
-    run_id = os.environ.get("GITHUB_RUN_ID", "unknown")
-    run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
+    """Build the default Markdown cleanup report filename."""
+    run_id = env_value("GITHUB_RUN_ID", "unknown")
+    run_attempt = env_value("GITHUB_RUN_ATTEMPT", "1")
     repo_slug = slugify(repo.replace("/", "-"))
+
     return f"cleanup-workflow-runs-{repo_slug}-{run_id}-attempt-{run_attempt}.md"
 
 
 def report_paths(repo: str) -> List[Path]:
+    """Return all paths where the Markdown cleanup report should be written."""
     paths: List[Path] = []
 
-    report_file = os.environ.get("CLEANUP_WORKFLOW_RUNS_REPORT_FILE", "").strip()
+    report_file = env_value("CLEANUP_WORKFLOW_RUNS_REPORT_FILE").strip()
     if not report_file:
         report_file = default_report_filename(repo)
         os.environ["CLEANUP_WORKFLOW_RUNS_REPORT_FILE"] = report_file
 
     paths.append(Path(report_file))
 
-    step_summary = os.environ.get("GITHUB_STEP_SUMMARY", "").strip()
+    step_summary = env_value("GITHUB_STEP_SUMMARY").strip()
     if step_summary:
         step_summary_path = Path(step_summary)
         if step_summary_path not in paths:
@@ -497,96 +583,158 @@ def report_paths(repo: str) -> List[Path]:
     return paths
 
 
-def write_markdown_report(
-    repo: str,
-    config: Dict[str, Any],
-    run_actions: List[Dict[str, str]],
-    artifact_actions: List[Dict[str, str]],
-    workflow_totals: Dict[str, Dict[str, int]],
+def report_mode(path: Path) -> str:
+    """Return the file mode for a report path."""
+    step_summary = env_value("GITHUB_STEP_SUMMARY").strip()
+
+    return "a" if str(path) == step_summary else "w"
+
+
+def write_table_rows(rows: Dict[str, Any], out: Any) -> None:
+    """Write key/value rows to a Markdown table."""
+    for key, value in rows.items():
+        print(f"| {md_value(key)} | {md_value(str(value))} |", file=out)
+
+
+def write_summary_section(summary: Dict[str, Any], out: Any) -> None:
+    """Write the report summary section."""
+    print(f"## {EMOJI_SUMMARY} Summary", file=out)
+    print(file=out)
+    print("| Field | Value |", file=out)
+    print("| :---- | :---- |", file=out)
+    write_table_rows(summary, out)
+    print(file=out)
+
+
+def write_config_section(config: Config, out: Any) -> None:
+    """Write the cleanup configuration section."""
+    print(f"## {EMOJI_STAR} Configuration", file=out)
+    print(file=out)
+    print("| Field | Value |", file=out)
+    print("| :---- | :---- |", file=out)
+    write_table_rows(config, out)
+    print(file=out)
+
+
+def write_workflow_totals_section(workflow_totals: WorkflowTotals, out: Any) -> None:
+    """Write per-workflow delete and keep totals."""
+    print(f"## {EMOJI_RUN} Per-workflow totals", file=out)
+    print(file=out)
+    print(f"| Workflow | {EMOJI_DELETE} Deleted | {EMOJI_KEEP} Kept |", file=out)
+    print("| :------- | ---------: | ------: |", file=out)
+
+    for workflow, totals in sorted(workflow_totals.items(), key=lambda item: item[0].casefold()):
+        print(
+            f"| {md_value(workflow)} | {totals.get('deleted', 0)} | {totals.get('kept', 0)} |",
+            file=out,
+        )
+
+    print(file=out)
+
+
+def write_run_actions_section(run_actions: List[ActionRow], out: Any) -> None:
+    """Write the workflow run action table."""
+    print(f"## {EMOJI_RUN} Workflow run actions", file=out)
+    print(file=out)
+    print("| Action | Run ID | Created | Workflow | Branch | Status | Reason |", file=out)
+    print("| :----- | :----- | :------ | :------- | :----- | :----- | :----- |", file=out)
+
+    for item in run_actions:
+        action = item["action"]
+        print(
+            "| "
+            f"{action_emoji(action)} {md_value(action)} | "
+            f"{md_value(item['id'])} | "
+            f"{md_value(item['created'])} | "
+            f"{md_value(item['workflow'])} | "
+            f"{EMOJI_BRANCH} {md_value(item['branch'])} | "
+            f"{md_value(item['status'])} | "
+            f"{md_value(item['reason'])} |",
+            file=out,
+        )
+
+    print(file=out)
+
+
+def write_artifact_actions_section(artifact_actions: List[ActionRow], out: Any) -> None:
+    """Write the artifact action table when artifact cleanup was processed."""
+    if not artifact_actions:
+        return
+
+    print(f"## {EMOJI_ARTIFACT} Artifact actions", file=out)
+    print(file=out)
+    print("| Action | Artifact ID | Created | Name | Size | Reason |", file=out)
+    print("| :----- | :---------- | :------ | :--- | ---: | :----- |", file=out)
+
+    for item in artifact_actions:
+        action = item["action"]
+        print(
+            "| "
+            f"{action_emoji(action)} {md_value(action)} | "
+            f"{md_value(item['id'])} | "
+            f"{md_value(item['created'])} | "
+            f"{md_value(item['name'])} | "
+            f"{md_value(item['size'])} | "
+            f"{md_value(item['reason'])} |",
+            file=out,
+        )
+
+    print(file=out)
+
+
+def write_report_file(
+    path: Path,
+    config: Config,
+    run_actions: List[ActionRow],
+    artifact_actions: List[ActionRow],
+    workflow_totals: WorkflowTotals,
     summary: Dict[str, Any],
 ) -> None:
+    """Write the Markdown cleanup report to a single path."""
+    with path.open(report_mode(path), encoding="utf-8") as out:
+        print(f"# {EMOJI_CLEANUP} Workflow Run Cleanup Report", file=out)
+        print(file=out)
+
+        write_summary_section(summary, out)
+        write_config_section(config, out)
+        write_workflow_totals_section(workflow_totals, out)
+        write_run_actions_section(run_actions, out)
+        write_artifact_actions_section(artifact_actions, out)
+
+
+def write_markdown_report(
+    repo: str,
+    config: Config,
+    run_actions: List[ActionRow],
+    artifact_actions: List[ActionRow],
+    workflow_totals: WorkflowTotals,
+    summary: Dict[str, Any],
+) -> None:
+    """Write the cleanup report to all configured destinations."""
     for path in report_paths(repo):
-        mode = "a" if str(path) == os.environ.get("GITHUB_STEP_SUMMARY", "").strip() else "w"
-
-        with path.open(mode, encoding="utf-8") as out:
-            print(f"# {EMOJI_CLEANUP} Workflow Run Cleanup Report", file=out)
-            print(file=out)
-
-            print(f"## {EMOJI_SUMMARY} Summary", file=out)
-            print(file=out)
-            print("| Field | Value |", file=out)
-            print("| :---- | :---- |", file=out)
-            for key, value in summary.items():
-                print(f"| {md_value(key)} | {md_value(str(value))} |", file=out)
-            print(file=out)
-
-            print(f"## {EMOJI_STAR} Configuration", file=out)
-            print(file=out)
-            print("| Field | Value |", file=out)
-            print("| :---- | :---- |", file=out)
-            for key, value in config.items():
-                print(f"| {md_value(key)} | {md_value(str(value))} |", file=out)
-            print(file=out)
-
-            print(f"## {EMOJI_RUN} Per-workflow totals", file=out)
-            print(file=out)
-            print(f"| Workflow | {EMOJI_DELETE} Deleted | {EMOJI_KEEP} Kept |", file=out)
-            print("| :------- | ---------: | ------: |", file=out)
-            for workflow, totals in sorted(workflow_totals.items(), key=lambda item: item[0].casefold()):
-                print(
-                    f"| {md_value(workflow)} | {totals.get('deleted', 0)} | {totals.get('kept', 0)} |",
-                    file=out,
-                )
-            print(file=out)
-
-            print(f"## {EMOJI_RUN} Workflow run actions", file=out)
-            print(file=out)
-            print("| Action | Run ID | Created | Workflow | Branch | Status | Reason |", file=out)
-            print("| :----- | :----- | :------ | :------- | :----- | :----- | :----- |", file=out)
-            for item in run_actions:
-                action = item["action"]
-                print(
-                    "| "
-                    f"{action_emoji(action)} {md_value(action)} | "
-                    f"{md_value(item['id'])} | "
-                    f"{md_value(item['created'])} | "
-                    f"{md_value(item['workflow'])} | "
-                    f"{EMOJI_BRANCH} {md_value(item['branch'])} | "
-                    f"{md_value(item['status'])} | "
-                    f"{md_value(item['reason'])} |",
-                    file=out,
-                )
-            print(file=out)
-
-            if artifact_actions:
-                print(f"## {EMOJI_ARTIFACT} Artifact actions", file=out)
-                print(file=out)
-                print("| Action | Artifact ID | Created | Name | Size | Reason |", file=out)
-                print("| :----- | :---------- | :------ | :--- | ---: | :----- |", file=out)
-                for item in artifact_actions:
-                    action = item["action"]
-                    print(
-                        "| "
-                        f"{action_emoji(action)} {md_value(action)} | "
-                        f"{md_value(item['id'])} | "
-                        f"{md_value(item['created'])} | "
-                        f"{md_value(item['name'])} | "
-                        f"{md_value(item['size'])} | "
-                        f"{md_value(item['reason'])} |",
-                        file=out,
-                    )
-                print(file=out)
+        write_report_file(
+            path=path,
+            config=config,
+            run_actions=run_actions,
+            artifact_actions=artifact_actions,
+            workflow_totals=workflow_totals,
+            summary=summary,
+        )
 
 
-def print_config(config: Dict[str, Any]) -> None:
+def print_config(config: Config) -> None:
+    """Print the cleanup configuration to stdout."""
     log(f"{EMOJI_CLEANUP} Workflow run cleanup configuration")
     log("==================================")
+
     for key, value in config.items():
         log(f"{key}: {value}")
+
     log()
 
 
 def should_log_action(verbosity: str, action: str) -> bool:
+    """Return whether an action should be logged for the selected verbosity."""
     if verbosity == "quiet":
         return False
 
@@ -596,14 +744,11 @@ def should_log_action(verbosity: str, action: str) -> bool:
     return True
 
 
-def main() -> None:
-    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
-    current_run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
-    token = (
-        os.environ.get("GITHUB_TOKEN")
-        or os.environ.get("GH_TOKEN")
-        or os.environ.get("ACTIONS_RUNTIME_TOKEN")
-    )
+def required_runtime_context() -> Tuple[str, str, str]:
+    """Read and validate required GitHub Actions runtime context."""
+    repo = env_value("GITHUB_REPOSITORY").strip()
+    token = github_token_from_env()
+    current_run_id = env_value("GITHUB_RUN_ID").strip()
 
     if not repo:
         error("GITHUB_REPOSITORY is required.")
@@ -611,299 +756,525 @@ def main() -> None:
     if not token:
         error("GITHUB_TOKEN, GH_TOKEN, or ACTIONS_RUNTIME_TOKEN is required.")
 
+    return repo, token, current_run_id
+
+
+def parse_verbosity() -> str:
+    """Parse cleanup log verbosity."""
+    verbosity = env_value("CLEANUP_WORKFLOW_RUNS_VERBOSITY", DEFAULT_VERBOSITY).strip().lower()
+
+    if verbosity not in VALID_VERBOSITY:
+        return DEFAULT_VERBOSITY
+
+    return verbosity
+
+
+def validate_minimum(name: str, value: int, minimum: int) -> None:
+    """Validate that an integer is greater than or equal to a minimum."""
+    if value < minimum:
+        error(f"{name} must be at least {minimum}.")
+
+
+def validate_non_negative(name: str, value: int) -> None:
+    """Validate that an integer is zero or greater."""
+    if value < 0:
+        error(f"{name} must be 0 or greater.")
+
+
+def validate_float_non_negative(name: str, value: float) -> None:
+    """Validate that a float is zero or greater."""
+    if value < 0:
+        error(f"{name} must be 0 or greater.")
+
+
+def read_config_from_env() -> Config:
+    """Read, parse and validate cleanup configuration from environment variables."""
     retention_days = parse_int(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS", ""),
+        env_value("CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS"),
         default=DEFAULT_RETENTION_DAYS,
     )
-    if retention_days < 14:
-        error("CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS must be at least 14.")
+    validate_minimum("CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS", retention_days, 14)
 
     artifact_retention_days = parse_int(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_ARTIFACT_RETENTION_DAYS", ""),
+        env_value("CLEANUP_WORKFLOW_RUNS_ARTIFACT_RETENTION_DAYS"),
         default=DEFAULT_ARTIFACT_RETENTION_DAYS,
     )
-    if artifact_retention_days < 1:
-        error("CLEANUP_WORKFLOW_RUNS_ARTIFACT_RETENTION_DAYS must be at least 1.")
-
-    dry_run = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_DRY_RUN", ""),
-        default=True,
-    )
-
-    cleanup_artifacts = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_CLEANUP_ARTIFACTS", ""),
-        default=False,
-    )
-
-    preserve_branch = (
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_PRESERVE_BRANCH", "").strip()
-        or DEFAULT_PRESERVE_BRANCH
-    )
-
-    force_delete_non_default_branch = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_FORCE_DELETE_NON_DEFAULT_BRANCH", ""),
-        default=False,
-    )
-
-    keep_latest_successful = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_SUCCESSFUL", ""),
-        default=True,
-    )
-
-    keep_latest_failed = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_FAILED", ""),
-        default=True,
-    )
-
-    keep_latest_cancelled = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED", ""),
-        default=True,
-    )
-
-    keep_latest_timed_out = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT", ""),
-        default=True,
-    )
+    validate_minimum("CLEANUP_WORKFLOW_RUNS_ARTIFACT_RETENTION_DAYS", artifact_retention_days, 1)
 
     keep_last_n_successful = parse_int(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL", ""),
+        env_value("CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL"),
         default=3,
     )
-    if keep_last_n_successful < 0:
-        error("CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL must be 0 or greater.")
-
-    delete_skipped = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED", ""),
-        default=True,
-    )
-
-    delete_neutral = parse_bool(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL", ""),
-        default=True,
-    )
+    validate_non_negative("CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL", keep_last_n_successful)
 
     max_deletes_per_run = parse_int(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_MAX_DELETES", ""),
+        env_value("CLEANUP_WORKFLOW_RUNS_MAX_DELETES"),
         default=DEFAULT_MAX_DELETES_PER_RUN,
     )
-    if max_deletes_per_run < 0:
-        error("CLEANUP_WORKFLOW_RUNS_MAX_DELETES must be 0 or greater.")
+    validate_non_negative("CLEANUP_WORKFLOW_RUNS_MAX_DELETES", max_deletes_per_run)
 
     max_artifact_deletes_per_run = parse_int(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_MAX_ARTIFACT_DELETES", ""),
+        env_value("CLEANUP_WORKFLOW_RUNS_MAX_ARTIFACT_DELETES"),
         default=DEFAULT_MAX_ARTIFACT_DELETES_PER_RUN,
     )
-    if max_artifact_deletes_per_run < 0:
-        error("CLEANUP_WORKFLOW_RUNS_MAX_ARTIFACT_DELETES must be 0 or greater.")
+    validate_non_negative("CLEANUP_WORKFLOW_RUNS_MAX_ARTIFACT_DELETES", max_artifact_deletes_per_run)
 
     delete_sleep_seconds = parse_float(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS", ""),
+        env_value("CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS"),
         default=DEFAULT_DELETE_SLEEP_SECONDS,
     )
-    if delete_sleep_seconds < 0:
-        error("CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS must be 0 or greater.")
+    validate_float_non_negative("CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS", delete_sleep_seconds)
 
     progress_every = parse_int(
-        os.environ.get("CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY", ""),
+        env_value("CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY"),
         default=DEFAULT_PROGRESS_EVERY,
     )
-    if progress_every < 0:
-        error("CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY must be 0 or greater.")
+    validate_non_negative("CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY", progress_every)
 
-    verbosity = os.environ.get("CLEANUP_WORKFLOW_RUNS_VERBOSITY", DEFAULT_VERBOSITY).strip().lower()
-    if verbosity not in ("quiet", "normal", "verbose"):
-        verbosity = DEFAULT_VERBOSITY
+    dry_run = parse_bool(env_value("CLEANUP_WORKFLOW_RUNS_DRY_RUN"), default=True)
 
-    config: Dict[str, Any] = {
+    return {
         f"{EMOJI_CLEANUP} Mode": "DRY RUN" if dry_run else "DELETE",
         f"{EMOJI_RUN} Retention days": retention_days,
         f"{EMOJI_ARTIFACT} Artifact retention days": artifact_retention_days,
-        f"{EMOJI_ARTIFACT} Cleanup artifacts": cleanup_artifacts,
-        f"{EMOJI_BRANCH} Preserve branch": preserve_branch,
-        f"{EMOJI_DELETE} Force delete non-default branch": force_delete_non_default_branch,
-        f"{EMOJI_KEEP} Keep latest successful": keep_latest_successful,
-        f"{EMOJI_KEEP} Keep latest failed": keep_latest_failed,
-        f"{EMOJI_KEEP} Keep latest cancelled": keep_latest_cancelled,
-        f"{EMOJI_KEEP} Keep latest timed out": keep_latest_timed_out,
+        f"{EMOJI_ARTIFACT} Cleanup artifacts": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_CLEANUP_ARTIFACTS"),
+            default=False,
+        ),
+        f"{EMOJI_BRANCH} Preserve branch": env_value(
+            "CLEANUP_WORKFLOW_RUNS_PRESERVE_BRANCH",
+        ).strip()
+        or DEFAULT_PRESERVE_BRANCH,
+        f"{EMOJI_DELETE} Force delete non-default branch": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_FORCE_DELETE_NON_DEFAULT_BRANCH"),
+            default=False,
+        ),
+        f"{EMOJI_KEEP} Keep latest successful": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_SUCCESSFUL"),
+            default=True,
+        ),
+        f"{EMOJI_KEEP} Keep latest failed": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_FAILED"),
+            default=True,
+        ),
+        f"{EMOJI_KEEP} Keep latest cancelled": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED"),
+            default=True,
+        ),
+        f"{EMOJI_KEEP} Keep latest timed out": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT"),
+            default=True,
+        ),
         f"{EMOJI_KEEP} Keep last N successful": keep_last_n_successful,
-        f"{EMOJI_DELETE} Delete skipped": delete_skipped,
-        f"{EMOJI_DELETE} Delete neutral": delete_neutral,
+        f"{EMOJI_DELETE} Delete skipped": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED"),
+            default=True,
+        ),
+        f"{EMOJI_DELETE} Delete neutral": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL"),
+            default=True,
+        ),
         f"{EMOJI_DELETE} Max deletes per run": max_deletes_per_run,
         f"{EMOJI_ARTIFACT} Max artifact deletes per run": max_artifact_deletes_per_run,
         f"{EMOJI_SLEEP} Delete sleep seconds": delete_sleep_seconds,
         f"{EMOJI_SUMMARY} Progress every": progress_every,
-        f"{EMOJI_VERBOSITY} Verbosity": verbosity,
+        f"{EMOJI_VERBOSITY} Verbosity": parse_verbosity(),
     }
 
-    if verbosity != "quiet":
-        print_config(config)
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
-    artifact_cutoff = datetime.now(timezone.utc) - timedelta(days=artifact_retention_days)
+def config_value(config: Config, key_suffix: str) -> Any:
+    """Return a config value by matching the end of its display key."""
+    for key, value in config.items():
+        if key.endswith(key_suffix):
+            return value
 
+    error(f"Internal configuration key not found: {key_suffix}")
+
+
+def dry_run_enabled(config: Config) -> bool:
+    """Return whether cleanup is running in dry-run mode."""
+    return config_value(config, "Mode") == "DRY RUN"
+
+
+def increment_workflow_total(workflow_totals: WorkflowTotals, workflow: str, action: str) -> None:
+    """Increment per-workflow deleted or kept totals."""
+    workflow_totals.setdefault(workflow, {"deleted": 0, "kept": 0})
+
+    if action == "DELETE":
+        workflow_totals[workflow]["deleted"] += 1
+    else:
+        workflow_totals[workflow]["kept"] += 1
+
+
+def build_run_action_row(run: Run, action: str, reason: str) -> ActionRow:
+    """Build one workflow run action row for the report."""
+    status = run_status(run)
+    conclusion = run_conclusion(run)
+
+    return {
+        "action": action,
+        "id": str(run.get("id")),
+        "created": str(run.get("created_at") or ""),
+        "workflow": workflow_display(run),
+        "branch": run_head_branch(run),
+        "status": f"{status}/{conclusion}",
+        "reason": reason,
+    }
+
+
+def log_run_action(row: ActionRow, verbosity: str) -> None:
+    """Log one workflow run action if permitted by verbosity."""
+    action = row["action"]
+
+    if not should_log_action(verbosity, action):
+        return
+
+    log(
+        f"{action_emoji(action)} [{action}] {row['id']} | {row['created']} | "
+        f"{row['workflow']} | {EMOJI_BRANCH} {row['branch']} | "
+        f"{row['status']} | {row['reason']}"
+    )
+
+
+def maybe_delete_run(
+    repo: str,
+    token: str,
+    run: Run,
+    action: str,
+    dry_run: bool,
+    delete_sleep_seconds: float,
+) -> None:
+    """Delete a workflow run when selected and not in dry-run mode."""
+    if action != "DELETE" or dry_run:
+        return
+
+    run_id = run_id_as_int(run)
+    if run_id is None:
+        error(f"Cannot delete workflow run with invalid id: {run.get('id')!r}")
+
+    delete_workflow_run(repo, run_id, token)
+
+    if delete_sleep_seconds:
+        time.sleep(delete_sleep_seconds)
+
+
+def log_progress(
+    inspected_runs: int,
+    total_runs: int,
+    run_delete_count: int,
+    run_keep_count: int,
+    progress_every: int,
+) -> None:
+    """Log periodic workflow-run cleanup progress."""
+    if not progress_every or inspected_runs % progress_every != 0:
+        return
+
+    log(
+        f"{EMOJI_SUMMARY} [PROGRESS] inspected runs {inspected_runs}/{total_runs}, "
+        f"{EMOJI_DELETE} deleted {run_delete_count}, "
+        f"{EMOJI_KEEP} kept/skipped {run_keep_count}"
+    )
+
+
+def decide_run_action(
+    run: Run,
+    config: Config,
+    cutoff: datetime,
+    current_run_id: str,
+    keep_run_ids: Set[int],
+    run_delete_count: int,
+) -> Tuple[str, str, bool]:
+    """Return the action, reason and delete-cap state for one workflow run."""
+    should_delete, reason = should_delete_run(
+        run,
+        cutoff=cutoff,
+        current_run_id=current_run_id,
+        keep_run_ids=keep_run_ids,
+        preserve_branch=str(config_value(config, "Preserve branch")),
+        force_delete_non_default_branch=bool(config_value(config, "Force delete non-default branch")),
+        delete_skipped=bool(config_value(config, "Delete skipped")),
+        delete_neutral=bool(config_value(config, "Delete neutral")),
+    )
+
+    if not should_delete:
+        return "KEEP", reason, False
+
+    max_deletes_per_run = int(config_value(config, "Max deletes per run"))
+    if max_deletes_per_run and run_delete_count >= max_deletes_per_run:
+        return "KEEP", "delete cap reached", True
+
+    return "DELETE", reason, False
+
+
+def process_workflow_runs(
+    repo: str,
+    token: str,
+    current_run_id: str,
+    config: Config,
+) -> Tuple[List[ActionRow], WorkflowTotals, Dict[str, Any], Set[int]]:
+    """Process workflow runs and perform selected deletions."""
     runs = fetch_all_workflow_runs(repo, token)
+    total_runs = len(runs)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=int(config_value(config, "Retention days")))
 
     keep_run_ids = find_keep_run_ids(
         runs,
-        preserve_branch=preserve_branch,
-        keep_latest_successful=keep_latest_successful,
-        keep_latest_failed=keep_latest_failed,
-        keep_latest_cancelled=keep_latest_cancelled,
-        keep_latest_timed_out=keep_latest_timed_out,
-        keep_last_n_successful=keep_last_n_successful,
+        preserve_branch=str(config_value(config, "Preserve branch")),
+        keep_latest_successful=bool(config_value(config, "Keep latest successful")),
+        keep_latest_failed=bool(config_value(config, "Keep latest failed")),
+        keep_latest_cancelled=bool(config_value(config, "Keep latest cancelled")),
+        keep_latest_timed_out=bool(config_value(config, "Keep latest timed out")),
+        keep_last_n_successful=int(config_value(config, "Keep last N successful")),
     )
 
-    run_actions: List[Dict[str, str]] = []
-    artifact_actions: List[Dict[str, str]] = []
-    workflow_totals: Dict[str, Dict[str, int]] = {}
-
+    run_actions: List[ActionRow] = []
+    workflow_totals: WorkflowTotals = {}
+    inspected_runs = 0
     run_delete_count = 0
     run_keep_count = 0
-    inspected_runs = 0
     run_delete_cap_reached = False
-    total_runs = len(runs)
 
     for run in sorted(runs, key=run_created_at):
         inspected_runs += 1
+        log_progress(
+            inspected_runs,
+            total_runs,
+            run_delete_count,
+            run_keep_count,
+            int(config_value(config, "Progress every")),
+        )
 
-        run_id = run.get("id")
-        workflow = workflow_display(run)
-        branch = run_head_branch(run)
-        status = run_status(run)
-        conclusion = run_conclusion(run)
-        created_at = str(run.get("created_at") or "")
-
-        if progress_every and inspected_runs % progress_every == 0:
-            log(
-                f"{EMOJI_SUMMARY} [PROGRESS] inspected runs {inspected_runs}/{total_runs}, "
-                f"{EMOJI_DELETE} deleted {run_delete_count}, "
-                f"{EMOJI_KEEP} kept/skipped {run_keep_count}"
-            )
-
-        should_delete, reason = should_delete_run(
+        action, reason, cap_reached = decide_run_action(
             run,
-            cutoff=cutoff,
-            current_run_id=current_run_id,
-            keep_run_ids=keep_run_ids,
-            preserve_branch=preserve_branch,
-            force_delete_non_default_branch=force_delete_non_default_branch,
-            delete_skipped=delete_skipped,
-            delete_neutral=delete_neutral,
+            config,
+            cutoff,
+            current_run_id,
+            keep_run_ids,
+            run_delete_count,
         )
 
-        workflow_totals.setdefault(workflow, {"deleted": 0, "kept": 0})
+        run_delete_cap_reached = run_delete_cap_reached or cap_reached
 
-        if not should_delete:
-            run_keep_count += 1
-            workflow_totals[workflow]["kept"] += 1
-            action = "KEEP"
-        elif max_deletes_per_run and run_delete_count >= max_deletes_per_run:
-            run_keep_count += 1
-            workflow_totals[workflow]["kept"] += 1
-            run_delete_cap_reached = True
-            action = "KEEP"
-            reason = "delete cap reached"
-        else:
+        if action == "DELETE":
             run_delete_count += 1
-            workflow_totals[workflow]["deleted"] += 1
-            action = "DELETE"
+        else:
+            run_keep_count += 1
 
-        if should_log_action(verbosity, action):
-            log(
-                f"{action_emoji(action)} [{action}] {run_id} | {created_at} | {workflow} | "
-                f"{EMOJI_BRANCH} {branch} | {status}/{conclusion} | {reason}"
-            )
+        workflow = workflow_display(run)
+        increment_workflow_total(workflow_totals, workflow, action)
 
-        run_actions.append(
-            {
-                "action": action,
-                "id": str(run_id),
-                "created": created_at,
-                "workflow": workflow,
-                "branch": branch,
-                "status": f"{status}/{conclusion}",
-                "reason": reason,
-            }
+        row = build_run_action_row(run, action, reason)
+        log_run_action(row, str(config_value(config, "Verbosity")))
+        run_actions.append(row)
+
+        maybe_delete_run(
+            repo,
+            token,
+            run,
+            action,
+            dry_run_enabled(config),
+            float(config_value(config, "Delete sleep seconds")),
         )
 
-        if action == "DELETE" and not dry_run:
-            if not isinstance(run_id, int):
-                error(f"Cannot delete workflow run with invalid id: {run_id!r}")
+    stats = {
+        "total_runs": total_runs,
+        "inspected_runs": inspected_runs,
+        "run_delete_count": run_delete_count,
+        "run_keep_count": run_keep_count,
+        "run_delete_cap_reached": run_delete_cap_reached,
+    }
 
-            delete_workflow_run(repo, run_id, token)
+    return run_actions, workflow_totals, stats, keep_run_ids
 
-            if delete_sleep_seconds:
-                time.sleep(delete_sleep_seconds)
 
+def build_artifact_action_row(artifact: Artifact, action: str, reason: str) -> ActionRow:
+    """Build one artifact action row for the report."""
+    return {
+        "action": action,
+        "id": str(artifact.get("id")),
+        "created": str(artifact.get("created_at") or ""),
+        "name": str(artifact.get("name") or "unknown"),
+        "size": str(artifact.get("size_in_bytes") or "0"),
+        "reason": reason,
+    }
+
+
+def log_artifact_action(row: ActionRow, verbosity: str) -> None:
+    """Log one artifact action if permitted by verbosity."""
+    action = row["action"]
+
+    if not should_log_action(verbosity, action):
+        return
+
+    log(
+        f"{EMOJI_ARTIFACT} {action_emoji(action)} [{action}] "
+        f"{row['id']} | {row['created']} | {row['name']} | {row['reason']}"
+    )
+
+
+def maybe_delete_artifact(
+    repo: str,
+    token: str,
+    artifact: Artifact,
+    action: str,
+    dry_run: bool,
+    delete_sleep_seconds: float,
+) -> None:
+    """Delete an artifact when selected and not in dry-run mode."""
+    if action != "DELETE" or dry_run:
+        return
+
+    artifact_id = artifact_id_as_int(artifact)
+    if artifact_id is None:
+        error(f"Cannot delete artifact with invalid id: {artifact.get('id')!r}")
+
+    delete_artifact(repo, artifact_id, token)
+
+    if delete_sleep_seconds:
+        time.sleep(delete_sleep_seconds)
+
+
+def decide_artifact_action(
+    artifact: Artifact,
+    artifact_cutoff: datetime,
+    artifact_delete_count: int,
+    max_artifact_deletes_per_run: int,
+) -> Tuple[str, str, bool]:
+    """Return the action, reason and delete-cap state for one artifact."""
+    should_delete, reason = should_delete_artifact(
+        artifact,
+        artifact_cutoff=artifact_cutoff,
+    )
+
+    if not should_delete:
+        return "KEEP", reason, False
+
+    if max_artifact_deletes_per_run and artifact_delete_count >= max_artifact_deletes_per_run:
+        return "KEEP", "artifact delete cap reached", True
+
+    return "DELETE", reason, False
+
+
+def process_artifacts(
+    repo: str,
+    token: str,
+    config: Config,
+) -> Tuple[List[ActionRow], Dict[str, Any]]:
+    """Process artifacts and perform selected deletions when enabled."""
+    if not bool(config_value(config, "Cleanup artifacts")):
+        return [], {
+            "total_artifacts": 0,
+            "artifact_delete_count": 0,
+            "artifact_keep_count": 0,
+            "artifact_delete_cap_reached": False,
+        }
+
+    artifacts = fetch_all_artifacts(repo, token)
+    artifact_cutoff = datetime.now(timezone.utc) - timedelta(
+        days=int(config_value(config, "Artifact retention days"))
+    )
+
+    artifact_actions: List[ActionRow] = []
     artifact_delete_count = 0
     artifact_keep_count = 0
     artifact_delete_cap_reached = False
-    total_artifacts = 0
 
-    if cleanup_artifacts:
-        artifacts = fetch_all_artifacts(repo, token)
-        total_artifacts = len(artifacts)
+    for artifact in sorted(artifacts, key=artifact_created_at):
+        action, reason, cap_reached = decide_artifact_action(
+            artifact,
+            artifact_cutoff,
+            artifact_delete_count,
+            int(config_value(config, "Max artifact deletes per run")),
+        )
 
-        for artifact in sorted(artifacts, key=artifact_created_at):
-            artifact_id = artifact.get("id")
-            name = str(artifact.get("name") or "unknown")
-            size = str(artifact.get("size_in_bytes") or "0")
-            created_at = str(artifact.get("created_at") or "")
+        artifact_delete_cap_reached = artifact_delete_cap_reached or cap_reached
 
-            should_delete, reason = should_delete_artifact(
-                artifact,
-                artifact_cutoff=artifact_cutoff,
-            )
+        if action == "DELETE":
+            artifact_delete_count += 1
+        else:
+            artifact_keep_count += 1
 
-            if not should_delete:
-                artifact_keep_count += 1
-                action = "KEEP"
-            elif max_artifact_deletes_per_run and artifact_delete_count >= max_artifact_deletes_per_run:
-                artifact_keep_count += 1
-                artifact_delete_cap_reached = True
-                action = "KEEP"
-                reason = "artifact delete cap reached"
-            else:
-                artifact_delete_count += 1
-                action = "DELETE"
+        row = build_artifact_action_row(artifact, action, reason)
+        log_artifact_action(row, str(config_value(config, "Verbosity")))
+        artifact_actions.append(row)
 
-            if should_log_action(verbosity, action):
-                log(f"{EMOJI_ARTIFACT} {action_emoji(action)} [{action}] {artifact_id} | {created_at} | {name} | {reason}")
+        maybe_delete_artifact(
+            repo,
+            token,
+            artifact,
+            action,
+            dry_run_enabled(config),
+            float(config_value(config, "Delete sleep seconds")),
+        )
 
-            artifact_actions.append(
-                {
-                    "action": action,
-                    "id": str(artifact_id),
-                    "created": created_at,
-                    "name": name,
-                    "size": size,
-                    "reason": reason,
-                }
-            )
-
-            if action == "DELETE" and not dry_run:
-                if not isinstance(artifact_id, int):
-                    error(f"Cannot delete artifact with invalid id: {artifact_id!r}")
-
-                delete_artifact(repo, artifact_id, token)
-
-                if delete_sleep_seconds:
-                    time.sleep(delete_sleep_seconds)
-
-    summary: Dict[str, Any] = {
-        "Repository": repo,
-        f"{EMOJI_CLEANUP} Mode": "DRY RUN" if dry_run else "DELETE",
-        f"{EMOJI_RUN} Workflow runs fetched": total_runs,
-        f"{EMOJI_RUN} Workflow runs inspected": inspected_runs,
-        f"{EMOJI_DELETE} Workflow runs selected for deletion": run_delete_count,
-        f"{EMOJI_KEEP} Workflow runs kept/skipped": run_keep_count,
-        f"{EMOJI_KEEP} Preserved representative runs": len(keep_run_ids),
-        f"{EMOJI_WARNING} Workflow run delete cap reached": run_delete_cap_reached,
-        f"{EMOJI_ARTIFACT} Artifacts fetched": total_artifacts,
-        f"{EMOJI_DELETE} Artifacts selected for deletion": artifact_delete_count,
-        f"{EMOJI_KEEP} Artifacts kept/skipped": artifact_keep_count,
-        f"{EMOJI_WARNING} Artifact delete cap reached": artifact_delete_cap_reached,
+    stats = {
+        "total_artifacts": len(artifacts),
+        "artifact_delete_count": artifact_delete_count,
+        "artifact_keep_count": artifact_keep_count,
+        "artifact_delete_cap_reached": artifact_delete_cap_reached,
     }
+
+    return artifact_actions, stats
+
+
+def build_summary(
+    repo: str,
+    config: Config,
+    run_stats: Dict[str, Any],
+    artifact_stats: Dict[str, Any],
+    keep_run_ids: Set[int],
+) -> Dict[str, Any]:
+    """Build the final cleanup summary."""
+    return {
+        "Repository": repo,
+        f"{EMOJI_CLEANUP} Mode": config_value(config, "Mode"),
+        f"{EMOJI_RUN} Workflow runs fetched": run_stats["total_runs"],
+        f"{EMOJI_RUN} Workflow runs inspected": run_stats["inspected_runs"],
+        f"{EMOJI_DELETE} Workflow runs selected for deletion": run_stats["run_delete_count"],
+        f"{EMOJI_KEEP} Workflow runs kept/skipped": run_stats["run_keep_count"],
+        f"{EMOJI_KEEP} Preserved representative runs": len(keep_run_ids),
+        f"{EMOJI_WARNING} Workflow run delete cap reached": run_stats["run_delete_cap_reached"],
+        f"{EMOJI_ARTIFACT} Artifacts fetched": artifact_stats["total_artifacts"],
+        f"{EMOJI_DELETE} Artifacts selected for deletion": artifact_stats["artifact_delete_count"],
+        f"{EMOJI_KEEP} Artifacts kept/skipped": artifact_stats["artifact_keep_count"],
+        f"{EMOJI_WARNING} Artifact delete cap reached": artifact_stats["artifact_delete_cap_reached"],
+    }
+
+
+def print_summary(summary: Dict[str, Any]) -> None:
+    """Print the final cleanup summary to stdout."""
+    log()
+    log(f"{EMOJI_SUMMARY} Workflow run cleanup summary")
+    log("============================")
+
+    for key, value in summary.items():
+        log(f"{key}: {value}")
+
+
+def main() -> None:
+    """Run workflow run and artifact cleanup."""
+    repo, token, current_run_id = required_runtime_context()
+    config = read_config_from_env()
+
+    if config_value(config, "Verbosity") != "quiet":
+        print_config(config)
+
+    run_actions, workflow_totals, run_stats, keep_run_ids = process_workflow_runs(
+        repo,
+        token,
+        current_run_id,
+        config,
+    )
+
+    artifact_actions, artifact_stats = process_artifacts(repo, token, config)
+
+    summary = build_summary(
+        repo,
+        config,
+        run_stats,
+        artifact_stats,
+        keep_run_ids,
+    )
 
     write_markdown_report(
         repo=repo,
@@ -914,12 +1285,7 @@ def main() -> None:
         summary=summary,
     )
 
-    log()
-    log(f"{EMOJI_SUMMARY} Workflow run cleanup summary")
-    log("============================")
-    for key, value in summary.items():
-        log(f"{key}: {value}")
-
+    print_summary(summary)
     log(f"{EMOJI_SUCCESS} Cleanup report generated")
 
 

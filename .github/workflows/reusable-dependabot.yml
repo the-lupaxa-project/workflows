@@ -89,9 +89,7 @@ jobs:
       # Automatically approve patch and minor dependency updates.
       - name: 🛡️ Approve Patch/Minor Updates
         if: >
-          inputs.auto-approve == true &&
-          (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
-           steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
+          inputs.auto-approve == true && (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' || steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
           gh pr review "${PR_URL}" --approve --body "Automatically approving this Dependabot pull request (patch/minor update)."
           gh pr edit "${PR_URL}" --add-label "${LABEL_AUTO_APPROVE}"
@@ -103,9 +101,7 @@ jobs:
       # Automatically merge approved patch and minor dependency updates.
       - name: 🚀 Auto-Merge Patch/Minor Updates
         if: >
-          inputs.auto-merge == true &&
-          (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
-           steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
+          inputs.auto-merge == true && (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' || steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
           gh pr comment "${PR_URL}" --body "Automatically merging this Dependabot pull request (patch/minor update)."
           gh pr merge "${PR_URL}" --auto --squash --delete-branch
@@ -118,8 +114,7 @@ jobs:
       # Comment on and label major dependency updates for manual review.
       - name: 💬 Comment and Label Major Updates
         if: >
-          inputs.handle-major == true &&
-          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-major'
+          inputs.handle-major == true && steps.dependabot-metadata.outputs.update-type == 'version-update:semver-major'
         run: |
           gh pr comment "${PR_URL}" --body "This Dependabot PR includes a **major** dependency update and has **not** been auto-merged. Please review and merge manually."
           gh pr edit "${PR_URL}" --add-label "${LABEL_MANUAL_MERGE}"
