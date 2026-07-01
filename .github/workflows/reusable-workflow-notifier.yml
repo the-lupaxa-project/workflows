@@ -1,4 +1,4 @@
-name: Reusable Slack Notifier
+name: Reusable Workflow Notifier
 
 on:
   workflow_call:
@@ -42,8 +42,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-slack-notifier:
-    name: Reusable Slack Notifier
+  reusable-workflow-notifier:
+    name: Reusable Workflow Notifier
     runs-on: ubuntu-latest
 
     if: >
@@ -61,7 +61,7 @@ jobs:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
-      - name: Send Slack Notification
+      - name: Send Workflow Notification
         env:
           GITHUB_TOKEN: ${{ github.token }}
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
@@ -70,4 +70,4 @@ jobs:
           SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE: ${{ inputs.include_commit_message }}
           SEND_TO_SLACK_IGNORE_JOBS: "Reusable Workflow Summary,Reusable Slack Notifier,${{ inputs.ignore_jobs }}"
         run: |
-          python lupaxa-dotgithub/.github/scripts/send-to-slack.py
+          python lupaxa-dotgithub/.github/scripts/workflow-notifier.py

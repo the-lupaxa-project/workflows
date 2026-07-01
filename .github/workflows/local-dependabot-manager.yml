@@ -25,12 +25,12 @@ jobs:
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 
-  send-slack-notification:
-    name: Send Slack Notification
+  generate-workflow-notifications:
+    name: Generate Workflow Notifications
     needs:
       - generate-workflow-summary
     if: always()
-    uses: ./.github/workflows/reusable-slack-notifier.yml
+    uses: ./.github/workflows/reusable-workflow-notifier.yml
     with:
       notify_on_results: "failure,timed_out"
     secrets:

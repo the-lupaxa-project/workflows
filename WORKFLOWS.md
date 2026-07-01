@@ -34,10 +34,10 @@
 | [reusable-ruby-linter.yml][024]                         | Lints Ruby source code to identify coding issues, style violations and potential problems.       | [Example](#reusable-ruby-linter)                          |
 | [reusable-secrets-scanner.yml][025]                     | Scans repositories for exposed secrets and sensitive credentials.                                | [Example](#reusable-secrets-scanner)                      |
 | [reusable-shell-script-linter.yml][026]                 | Lints shell scripts to identify syntax errors, portability issues and common scripting mistakes. | [Example](#reusable-shell-script-linter)                  |
-| [reusable-slack-notifier.yml][027]                      | Sends configurable GitHub Actions workflow notifications to Slack.                               | [Example](#reusable-slack-notifier)                       |
 | [reusable-stale-issue-and-pull-request-handle.yml][028] | Marks and closes inactive issues and pull requests using configurable stale policies.            | [Example](#reusable-stale-issue-and-pull-request-handler) |
 | [reusable-workflow-clean-up.yml][029]                   | Cleans up old workflow runs and artifacts using configurable retention policies.                 | [Example](#reusable-workflow-clean-up)                    |
 | [reusable-workflow-run-purger.yml][029]                 | Removes obsolete and unwanted GitHub Actions workflow runs.                                      | [Example](#reusable-workflow-run-purger)                  |
+| [reusable-workflow-notifier.yml][027]                   | Sends configurable notifications summarising GitHub Actions workflow results.                    | [Example](#reusable-workflow-notifier)                       |
 | [reusable-workflow-summary.yml][030]                    | Generates a comprehensive Markdown summary of a GitHub Actions workflow run.                     | [Example](#reusable-workflow-summary)                     |
 | [reusable-yaml-linter.yml][031]                         | Lints YAML files to identify syntax errors, formatting issues and style violations.              | [Example](#reusable-yaml-linter)                          |
 
@@ -67,9 +67,9 @@
 [024]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-ruby-linter.yml
 [025]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-secrets-scanner.yml
 [026]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-shell-script-linter.yml
-[027]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-slack-notifier.yml
 [028]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-stale-issue-and-pull-request-handle.yml
 [029]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-workflow-run-purger.yml
+[027]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-workflow-notifier.yml
 [030]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-workflow-summary.yml
 [031]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-yaml-linter.yml
 
@@ -1379,12 +1379,159 @@ jobs:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-shell-script-linter.yml@master
 ```
 
-<h2 id="reusable-slack-notifier">Slack Notifier</h2>
+<h2 id="reusable-stale-issue-and-pull-request-handler">Stale Issue and Pull Request Handler (reusable-stale.yml)</h2>
 
-**Reusable Slack Notifier** sends rich, configurable Slack notifications summarising the outcome of GitHub Actions workflow runs. Notifications can be filtered
-by workflow result, optionally include individual job statuses and commit messages, and exclude selected jobs to keep alerts focused and relevant. The workflow
-automatically avoids notifications for Dependabot activity and external pull requests, reducing unnecessary noise while ensuring important workflow events are
-communicated to development teams. It provides a consistent and informative notification mechanism for monitoring CI/CD pipelines across all repositories.
+**Reusable Stale Issue & Pull Request Handler** manages inactive issues and pull requests by automatically marking them as stale after a configurable period
+of inactivity and closing them if no further activity occurs. It supports separate stale and close policies for issues and pull requests, custom messages,
+configurable labels, and exemption labels for items that should remain open. By applying consistent stale management across repositories, this workflow helps
+reduce backlog noise, keeps issue and pull request queues manageable, and ensures abandoned work is handled in a predictable and transparent way.
+
+<details>
+<summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
+<br>
+
+| Input                   | Type    | Required | Default                                                                                                                                  | Description                                                       |
+| :---------------------- | :------ | :------: | :--------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
+| stale-issue-message     | string  | No       | "This issue is stale because it has been open 30 days with no activity. Remove stale label or comment or this will be closed in 5 days." | Message when an issue becomes stale.                              |
+| close-issue-message     | string  | No       | "This issue was closed because it has been stalled for 5 days with no activity."                                                         | Message when an issue is closed as stale.                         |
+| days-before-issue-stale | number  | No       | 30                                                                                                                                       | Number of days before an issue is marked stale.                   |
+| days-before-issue-close | number  | No       | 5                                                                                                                                        | Number of days after staleness before an issue is closed.         |
+| stale-issue-label       | string  | No       | "state: stale"                                                                                                                           | Label applied to stale issues.                                    |
+| close-issue-label       | string  | No       | "resolution: closed"                                                                                                                     | Label applied to issues closed due to staleness.                  |
+| exempt-issue-labels     | string  | No       | "state: blocked,state: keep"                                                                                                             | Comma-separated list of labels that exempt issues from staleness. |
+| stale-pr-message        | boolean | No       | "This PR is stale because it has been open 45 days with no activity. Remove stale label or comment or this will be closed in 10 days."   | Message when a PR becomes stale.                                  |
+| close-pr-message        | boolean | No       | "This PR was closed because it has been stalled for 10 days with no activity."                                                           | Message when a PR is closed as stale.                             |
+| days-before-pr-stale    | number  | No       | 45                                                                                                                                       | Number of days before a PR is marked stale.                       |
+| days-before-pr-close    | number  | No       | 10                                                                                                                                       | Number of days after staleness before a PR is closed.             |
+| stale-issue-label       | boolean | No       | "state: stale"                                                                                                                           | Label applied to stale PRs.                                       |
+| close-issue-label       | boolean | No       | "resolution: closed"                                                                                                                     | Label applied to PRs closed due to staleness.                     |
+| exempt-issue-labels     | boolean | No       | "state: blocked,state: keep"                                                                                                             | Comma-separated list of labels that exempt PRs from staleness.    |
+
+<br>
+</details>
+
+<h4>Minimal Usage Example</h4>
+
+```yaml
+name: Stale Issue & PR Handler
+
+on:
+  schedule:
+    - cron: "35 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-stale-issue-and-pull-request-handle.yml@master
+```
+
+<h2 id="reusable-workflow-clean-up">Workflow Clean Up</h2>
+
+**Reusable Workflow Clean Up** removes old GitHub Actions workflow runs and, optionally, old workflow artifacts according to configurable retention and
+preservation rules. It supports dry-run mode, branch-based preservation, representative run retention, forced clean-up of non-default branch runs, delete caps,
+throttling delays, progress reporting and configurable verbosity. By generating a Markdown clean-up report and optionally uploading it as an artifact, this
+workflow provides an auditable and controlled way to reduce Actions history clutter, manage artifact storage and apply consistent repository maintenance policies.
+
+<details>
+<summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
+<br>
+
+| Input             | Type    | Required | Default | Description                                                                                       |
+| :---------------- | :------ | :------: | :------ | :------------------------------------------------------------------------------------------------ |
+| token             | string  | No       |         | Optional token to use for the purge. If omitted, the workflow uses github.token.                  |
+| remove_obsolete   | boolean | No       | true    | If true, remove workflow runs that are no longer associated with an existing workflow definition. |
+| remove_cancelled  | boolean | No       | true    | If true, delete cancelled workflow runs.                                                          |
+| remove_failed     | boolean | No       | true    | If true, delete failed workflow runs.                                                             |
+| remove_skipped    | boolean | No       | true    | If true, delete skipped workflow runs.                                                            |
+| remove_older_than | string  | No       |         | Optional multi-line spec passed to remove-older-than. Example: 30d * or 7d Some Workflow Name.    |
+
+<br>
+</details>
+
+<h4>Minimal Usage Example</h4>
+
+```yaml
+name: Purge Deprecated Workflow Runs
+
+on:
+  workflow_dispatch:
+    schedule:
+      - cron: "33 3 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: write
+
+jobs:
+  purge-deprecated-workflows:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-workflow-clean-up.yml@master
+```
+
+<h2 id="reusable-workflow-run-purger">Workflow Run Purger</h2>
+
+**Reusable Workflow Run Purger** automates the removal of obsolete, cancelled, skipped and optionally failed GitHub Actions workflow runs to help keep
+repository Actions history clean and manageable. It also supports configurable age-based retention policies, allowing different workflows to be retained for
+different periods using flexible rules. By regularly purging unnecessary workflow runs, this workflow reduces clutter within the Actions interface, improves
+repository maintenance, and helps organisations apply consistent workflow retention policies across all repositories.
+
+<details>
+<summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
+<br>
+
+| Input             | Type    | Required | Default | Description                                                                                       |
+| :---------------- | :------ | :------: | :------ | :------------------------------------------------------------------------------------------------ |
+| token             | string  | No       |         | Optional token to use for the purge. If omitted, the workflow uses github.token.                  |
+| remove_obsolete   | boolean | No       | true    | If true, remove workflow runs that are no longer associated with an existing workflow definition. |
+| remove_cancelled  | boolean | No       | true    | If true, delete cancelled workflow runs.                                                          |
+| remove_failed     | boolean | No       | true    | If true, delete failed workflow runs.                                                             |
+| remove_skipped    | boolean | No       | true    | If true, delete skipped workflow runs.                                                            |
+| remove_older_than | string  | No       |         | Optional multi-line spec passed to remove-older-than. Example: 30d * or 7d Some Workflow Name.    |
+
+<br>
+</details>
+
+<h4>Minimal Usage Example</h4>
+
+```yaml
+name: Purge Deprecated Workflow Runs
+
+on:
+  workflow_dispatch:
+    schedule:
+      - cron: "33 3 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: write
+
+jobs:
+  purge-deprecated-workflows:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-workflow-run-purger.yml@master
+```
+
+<h2 id="reusable-workflow-notifier">Workflow Notifier</h2>
+
+**Reusable Workflow Notifier** generates and sends configurable notifications summarising the outcome of GitHub Actions workflow runs. It can include overall
+workflow status, individual job results, commit messages and other execution details, while allowing notifications to be filtered by workflow result and
+selected jobs to be excluded from the report. The workflow automatically suppresses notifications for Dependabot activity and external pull requests to reduce
+unnecessary noise, providing a consistent and informative notification system for monitoring CI/CD pipelines across repositories. Although the current
+implementation delivers notifications via Slack, the workflow is designed around workflow reporting rather than a specific notification platform, making it
+straightforward to extend to additional notification services in the future.
 
 This reusable workflow intentionally contains no guardrails. Its philosophy is simple:
 
@@ -1556,150 +1703,6 @@ jobs:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
 
-<h2 id="reusable-stale-issue-and-pull-request-handler">Stale Issue and Pull Request Handler (reusable-stale.yml)</h2>
-
-**Reusable Stale Issue & Pull Request Handler** manages inactive issues and pull requests by automatically marking them as stale after a configurable period
-of inactivity and closing them if no further activity occurs. It supports separate stale and close policies for issues and pull requests, custom messages,
-configurable labels, and exemption labels for items that should remain open. By applying consistent stale management across repositories, this workflow helps
-reduce backlog noise, keeps issue and pull request queues manageable, and ensures abandoned work is handled in a predictable and transparent way.
-
-<details>
-<summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
-<br>
-
-| Input                   | Type    | Required | Default                                                                                                                                  | Description                                                       |
-| :---------------------- | :------ | :------: | :--------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------- |
-| stale-issue-message     | string  | No       | "This issue is stale because it has been open 30 days with no activity. Remove stale label or comment or this will be closed in 5 days." | Message when an issue becomes stale.                              |
-| close-issue-message     | string  | No       | "This issue was closed because it has been stalled for 5 days with no activity."                                                         | Message when an issue is closed as stale.                         |
-| days-before-issue-stale | number  | No       | 30                                                                                                                                       | Number of days before an issue is marked stale.                   |
-| days-before-issue-close | number  | No       | 5                                                                                                                                        | Number of days after staleness before an issue is closed.         |
-| stale-issue-label       | string  | No       | "state: stale"                                                                                                                           | Label applied to stale issues.                                    |
-| close-issue-label       | string  | No       | "resolution: closed"                                                                                                                     | Label applied to issues closed due to staleness.                  |
-| exempt-issue-labels     | string  | No       | "state: blocked,state: keep"                                                                                                             | Comma-separated list of labels that exempt issues from staleness. |
-| stale-pr-message        | boolean | No       | "This PR is stale because it has been open 45 days with no activity. Remove stale label or comment or this will be closed in 10 days."   | Message when a PR becomes stale.                                  |
-| close-pr-message        | boolean | No       | "This PR was closed because it has been stalled for 10 days with no activity."                                                           | Message when a PR is closed as stale.                             |
-| days-before-pr-stale    | number  | No       | 45                                                                                                                                       | Number of days before a PR is marked stale.                       |
-| days-before-pr-close    | number  | No       | 10                                                                                                                                       | Number of days after staleness before a PR is closed.             |
-| stale-issue-label       | boolean | No       | "state: stale"                                                                                                                           | Label applied to stale PRs.                                       |
-| close-issue-label       | boolean | No       | "resolution: closed"                                                                                                                     | Label applied to PRs closed due to staleness.                     |
-| exempt-issue-labels     | boolean | No       | "state: blocked,state: keep"                                                                                                             | Comma-separated list of labels that exempt PRs from staleness.    |
-
-<br>
-</details>
-
-<h4>Minimal Usage Example</h4>
-
-```yaml
-name: Stale Issue & PR Handler
-
-on:
-  schedule:
-    - cron: "35 5 * * *"
-  workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: write
-  issues: write
-  pull-requests: write
-
-jobs:
-  stale:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-stale-issue-and-pull-request-handle.yml@master
-```
-
-<h2 id="reusable-workflow-clean-up">Workflow Clean Up</h2>
-
-**Reusable Workflow Clean Up** removes old GitHub Actions workflow runs and, optionally, old workflow artifacts according to configurable retention and
-preservation rules. It supports dry-run mode, branch-based preservation, representative run retention, forced clean-up of non-default branch runs, delete caps,
-throttling delays, progress reporting and configurable verbosity. By generating a Markdown clean-up report and optionally uploading it as an artifact, this
-workflow provides an auditable and controlled way to reduce Actions history clutter, manage artifact storage and apply consistent repository maintenance policies.
-
-<details>
-<summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
-<br>
-
-| Input             | Type    | Required | Default | Description                                                                                       |
-| :---------------- | :------ | :------: | :------ | :------------------------------------------------------------------------------------------------ |
-| token             | string  | No       |         | Optional token to use for the purge. If omitted, the workflow uses github.token.                  |
-| remove_obsolete   | boolean | No       | true    | If true, remove workflow runs that are no longer associated with an existing workflow definition. |
-| remove_cancelled  | boolean | No       | true    | If true, delete cancelled workflow runs.                                                          |
-| remove_failed     | boolean | No       | true    | If true, delete failed workflow runs.                                                             |
-| remove_skipped    | boolean | No       | true    | If true, delete skipped workflow runs.                                                            |
-| remove_older_than | string  | No       |         | Optional multi-line spec passed to remove-older-than. Example: 30d * or 7d Some Workflow Name.    |
-
-<br>
-</details>
-
-<h4>Minimal Usage Example</h4>
-
-```yaml
-name: Purge Deprecated Workflow Runs
-
-on:
-  workflow_dispatch:
-    schedule:
-      - cron: "33 3 * * 1"
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  actions: write
-
-jobs:
-  purge-deprecated-workflows:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-workflow-clean-up.yml@master
-```
-
-<h2 id="reusable-workflow-run-purger">Workflow Run Purger</h2>
-
-**Reusable Workflow Run Purger** automates the removal of obsolete, cancelled, skipped and optionally failed GitHub Actions workflow runs to help keep
-repository Actions history clean and manageable. It also supports configurable age-based retention policies, allowing different workflows to be retained for
-different periods using flexible rules. By regularly purging unnecessary workflow runs, this workflow reduces clutter within the Actions interface, improves
-repository maintenance, and helps organisations apply consistent workflow retention policies across all repositories.
-
-<details>
-<summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>
-<br>
-
-| Input             | Type    | Required | Default | Description                                                                                       |
-| :---------------- | :------ | :------: | :------ | :------------------------------------------------------------------------------------------------ |
-| token             | string  | No       |         | Optional token to use for the purge. If omitted, the workflow uses github.token.                  |
-| remove_obsolete   | boolean | No       | true    | If true, remove workflow runs that are no longer associated with an existing workflow definition. |
-| remove_cancelled  | boolean | No       | true    | If true, delete cancelled workflow runs.                                                          |
-| remove_failed     | boolean | No       | true    | If true, delete failed workflow runs.                                                             |
-| remove_skipped    | boolean | No       | true    | If true, delete skipped workflow runs.                                                            |
-| remove_older_than | string  | No       |         | Optional multi-line spec passed to remove-older-than. Example: 30d * or 7d Some Workflow Name.    |
-
-<br>
-</details>
-
-<h4>Minimal Usage Example</h4>
-
-```yaml
-name: Purge Deprecated Workflow Runs
-
-on:
-  workflow_dispatch:
-    schedule:
-      - cron: "33 3 * * 1"
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  actions: write
-
-jobs:
-  purge-deprecated-workflows:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-workflow-run-purger.yml@master
-```
 
 <h2 id="reusable-workflow-summary">Workflow Summary</h2>
 
