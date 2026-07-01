@@ -17,6 +17,7 @@ import sys
 import time
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from fnmatch import fnmatchcase
 from pathlib import Path
 from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple
 from urllib.error import HTTPError, URLError
@@ -53,6 +54,7 @@ Artifact = Dict[str, Any]
 Config = Dict[str, Any]
 ActionRow = Dict[str, str]
 WorkflowTotals = Dict[str, Dict[str, int]]
+RemoveOlderThanRule = Tuple[timedelta, str]
 
 
 def log(message: str = "") -> None:
@@ -304,6 +306,133 @@ def fetch_all_artifacts(repo: str, token: str) -> List[Artifact]:
     )
 
 
+
+
+def fetch_all_workflows(repo: str, token: str) -> List[Dict[str, Any]]:
+    """Fetch all currently defined workflow files for a repository."""
+    url = f"https://api.github.com/repos/{repo}/actions/workflows?per_page={DEFAULT_PER_PAGE}"
+
+    return fetch_paginated_items(
+        url,
+        token,
+        collection_key="workflows",
+        emoji=EMOJI_RUN,
+        label="workflow definitions",
+    )
+
+
+def normalise_workflow_path(path: str) -> str:
+    """Normalise a workflow path for case-insensitive comparison."""
+    path = path.strip().replace("\\", "/")
+    path = path.lstrip("./")
+
+    return path.casefold()
+
+
+def active_workflow_paths(repo: str, token: str) -> Set[str]:
+    """Return normalised paths for workflow files currently present in the repository."""
+    paths: Set[str] = set()
+
+    for workflow in fetch_all_workflows(repo, token):
+        path = str(workflow.get("path") or "").strip()
+        if path:
+            paths.add(normalise_workflow_path(path))
+
+    return paths
+
+
+def run_workflow_path(run: Run) -> str:
+    """Return the workflow file path associated with a workflow run."""
+    return str(run.get("path") or "").strip()
+
+
+def is_obsolete_workflow_run(run: Run, current_workflow_paths: Set[str]) -> bool:
+    """Return whether a run belongs to a workflow file no longer present in the repository."""
+    path = run_workflow_path(run)
+    if not path:
+        return False
+
+    return normalise_workflow_path(path) not in current_workflow_paths
+
+
+def parse_age_duration(value: str) -> Optional[timedelta]:
+    """Parse an age expression such as 7d, 2w, 3m or 1y."""
+    match = re.fullmatch(r"\s*(\d+)\s*([dwmy]?)\s*", value.strip().lower())
+    if not match:
+        return None
+
+    amount = int(match.group(1))
+    unit = match.group(2) or "d"
+
+    if unit == "d":
+        return timedelta(days=amount)
+    if unit == "w":
+        return timedelta(weeks=amount)
+    if unit == "m":
+        return timedelta(days=amount * 30)
+    if unit == "y":
+        return timedelta(days=amount * 365)
+
+    return None
+
+
+def parse_remove_older_than_rules(raw: str) -> List[RemoveOlderThanRule]:
+    """Parse multi-line age-based deletion rules.
+
+    Rules use the same high-level shape as the previous purger workflow:
+    "30d *" removes matching runs older than 30 days, while
+    "7d Some Workflow" targets a specific workflow name or path.
+    """
+    rules: List[RemoveOlderThanRule] = []
+
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        parts = line.split(maxsplit=1)
+        duration = parse_age_duration(parts[0])
+        if duration is None:
+            error(f"Invalid remove_older_than age expression: {parts[0]!r}")
+
+        pattern = parts[1].strip() if len(parts) > 1 else "*"
+        rules.append((duration, pattern))
+
+    return rules
+
+
+def workflow_matches_pattern(run: Run, pattern: str) -> bool:
+    """Return whether a workflow run matches a remove_older_than pattern."""
+    if pattern.strip() == "*":
+        return True
+
+    pattern_key = pattern.casefold()
+    candidates = [
+        workflow_display(run),
+        str(run.get("name") or ""),
+        run_workflow_path(run),
+        workflow_key(run),
+    ]
+
+    return any(fnmatchcase(candidate.casefold(), pattern_key) for candidate in candidates if candidate)
+
+
+def remove_older_than_reason(
+    run: Run,
+    rules: List[RemoveOlderThanRule],
+    *,
+    now: datetime,
+) -> Optional[str]:
+    """Return the matching remove_older_than reason for a run, if any."""
+    created_at = run_created_at(run)
+
+    for duration, pattern in rules:
+        if created_at < now - duration and workflow_matches_pattern(run, pattern):
+            return f"remove_older_than rule matched: {duration.days}d {pattern}"
+
+    return None
+
+
 def workflow_key(run: Run) -> str:
     """Return a stable grouping key for a workflow run."""
     workflow_id = run.get("workflow_id")
@@ -482,10 +611,17 @@ def should_delete_run(
     run: Run,
     *,
     cutoff: datetime,
+    now: datetime,
     current_run_id: str,
     keep_run_ids: Set[int],
+    current_workflow_paths: Set[str],
+    remove_older_than_rules: List[RemoveOlderThanRule],
     preserve_branch: str,
     force_delete_non_default_branch: bool,
+    remove_obsolete: bool,
+    remove_cancelled: bool,
+    remove_failed: bool,
+    remove_skipped_immediately: bool,
     delete_skipped: bool,
     delete_neutral: bool,
 ) -> Tuple[bool, str]:
@@ -503,6 +639,26 @@ def should_delete_run(
 
     if force_delete_non_default_branch and branch != preserve_branch:
         return True, f"force delete non-default branch: {branch}"
+
+    if remove_obsolete and is_obsolete_workflow_run(run, current_workflow_paths):
+        return True, f"obsolete workflow file: {run_workflow_path(run)}"
+
+    if remove_cancelled and conclusion == "cancelled":
+        return True, "cancelled run removal enabled"
+
+    if remove_failed and conclusion == "failure":
+        return True, "failed run removal enabled"
+
+    if remove_skipped_immediately and conclusion == "skipped":
+        return True, "skipped run immediate removal enabled"
+
+    remove_older_than_match = remove_older_than_reason(
+        run,
+        remove_older_than_rules,
+        now=now,
+    )
+    if remove_older_than_match:
+        return True, remove_older_than_match
 
     if isinstance(run_id, int) and run_id in keep_run_ids:
         return False, "preserved representative run"
@@ -844,6 +1000,25 @@ def read_config_from_env() -> Config:
             env_value("CLEANUP_WORKFLOW_RUNS_CLEANUP_ARTIFACTS"),
             default=False,
         ),
+        f"{EMOJI_DELETE} Remove obsolete": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_REMOVE_OBSOLETE"),
+            default=True,
+        ),
+        f"{EMOJI_DELETE} Remove cancelled": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_REMOVE_CANCELLED"),
+            default=False,
+        ),
+        f"{EMOJI_DELETE} Remove failed": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_REMOVE_FAILED"),
+            default=False,
+        ),
+        f"{EMOJI_DELETE} Remove skipped immediately": parse_bool(
+            env_value("CLEANUP_WORKFLOW_RUNS_REMOVE_SKIPPED_IMMEDIATELY"),
+            default=False,
+        ),
+        f"{EMOJI_DELETE} Remove older than": env_value(
+            "CLEANUP_WORKFLOW_RUNS_REMOVE_OLDER_THAN",
+        ).strip(),
         f"{EMOJI_BRANCH} Preserve branch": env_value(
             "CLEANUP_WORKFLOW_RUNS_PRESERVE_BRANCH",
         ).strip()
@@ -983,18 +1158,28 @@ def decide_run_action(
     run: Run,
     config: Config,
     cutoff: datetime,
+    now: datetime,
     current_run_id: str,
     keep_run_ids: Set[int],
+    current_workflow_paths: Set[str],
+    remove_older_than_rules: List[RemoveOlderThanRule],
     run_delete_count: int,
 ) -> Tuple[str, str, bool]:
     """Return the action, reason and delete-cap state for one workflow run."""
     should_delete, reason = should_delete_run(
         run,
         cutoff=cutoff,
+        now=now,
         current_run_id=current_run_id,
         keep_run_ids=keep_run_ids,
+        current_workflow_paths=current_workflow_paths,
+        remove_older_than_rules=remove_older_than_rules,
         preserve_branch=str(config_value(config, "Preserve branch")),
         force_delete_non_default_branch=bool(config_value(config, "Force delete non-default branch")),
+        remove_obsolete=bool(config_value(config, "Remove obsolete")),
+        remove_cancelled=bool(config_value(config, "Remove cancelled")),
+        remove_failed=bool(config_value(config, "Remove failed")),
+        remove_skipped_immediately=bool(config_value(config, "Remove skipped immediately")),
         delete_skipped=bool(config_value(config, "Delete skipped")),
         delete_neutral=bool(config_value(config, "Delete neutral")),
     )
@@ -1018,7 +1203,16 @@ def process_workflow_runs(
     """Process workflow runs and perform selected deletions."""
     runs = fetch_all_workflow_runs(repo, token)
     total_runs = len(runs)
-    cutoff = datetime.now(timezone.utc) - timedelta(days=int(config_value(config, "Retention days")))
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=int(config_value(config, "Retention days")))
+    current_workflow_paths: Set[str] = set()
+
+    if bool(config_value(config, "Remove obsolete")):
+        current_workflow_paths = active_workflow_paths(repo, token)
+
+    remove_older_than_rules = parse_remove_older_than_rules(
+        str(config_value(config, "Remove older than")),
+    )
 
     keep_run_ids = find_keep_run_ids(
         runs,
@@ -1051,8 +1245,11 @@ def process_workflow_runs(
             run,
             config,
             cutoff,
+            now,
             current_run_id,
             keep_run_ids,
+            current_workflow_paths,
+            remove_older_than_rules,
             run_delete_count,
         )
 
@@ -1085,6 +1282,8 @@ def process_workflow_runs(
         "run_delete_count": run_delete_count,
         "run_keep_count": run_keep_count,
         "run_delete_cap_reached": run_delete_cap_reached,
+        "current_workflow_paths": len(current_workflow_paths),
+        "remove_older_than_rules": len(remove_older_than_rules),
     }
 
     return run_actions, workflow_totals, stats, keep_run_ids
@@ -1237,6 +1436,8 @@ def build_summary(
         f"{EMOJI_KEEP} Workflow runs kept/skipped": run_stats["run_keep_count"],
         f"{EMOJI_KEEP} Preserved representative runs": len(keep_run_ids),
         f"{EMOJI_WARNING} Workflow run delete cap reached": run_stats["run_delete_cap_reached"],
+        f"{EMOJI_RUN} Current workflow definitions": run_stats["current_workflow_paths"],
+        f"{EMOJI_DELETE} Remove older than rules": run_stats["remove_older_than_rules"],
         f"{EMOJI_ARTIFACT} Artifacts fetched": artifact_stats["total_artifacts"],
         f"{EMOJI_DELETE} Artifacts selected for deletion": artifact_stats["artifact_delete_count"],
         f"{EMOJI_KEEP} Artifacts kept/skipped": artifact_stats["artifact_keep_count"],

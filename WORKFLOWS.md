@@ -6,40 +6,40 @@
 
 <h1 align="center">The Lupaxa Project: Workflow Catalog</h1>
 
-| Workflow file                                           | Purpose                                                                                          | Example                                                   |
-| :------------------------------------------------------ | :----------------------------------------------------------------------------------------------- | :-------------------------------------------------------: |
-| [reusable-citation-validator.yml][001]                  | Validates repository citation files against the required format and standards.                   | [Example](#reusable-citation-validator)                   |
-| [reusable-code-analysis.yml][002]                       | Performs GitHub CodeQL security and quality analysis on supported languages.                     | [Example](#reusable-code-analysis)                        |
-| [reusable-dependabot-manager.yml][003]                  | Automates the review, approval and management of Dependabot pull requests.                       | [Example](#reusable-dependabot-manager)                   |
-| [reusable-dockerfile-linter.yml][004]                   | Lints Dockerfiles to identify syntax errors, best practice violations and potential issues.      | [Example](#reusable-dockerfile-linter)                    |
-| [reusable-first-time-contributor-greetings.yml][005]    | Welcomes first-time issue authors and pull request contributors.                                 | [Example](#reusable-first-time-contributor-greetings)     |
-| [reusable-github-actions-security.yml][006]             | Verifies that GitHub Actions are securely pinned to immutable commit SHAs.                       | [Example](#reusable-github-actions-security)              |
-| [reusable-github-release-generator.yml][007]            | Automatically generates and publishes GitHub Releases with a generated changelog.                | [Example](#reusable-github-release-generator)             |
-| [reusable-json-validator.yml][008]                      | Validates JSON files to ensure they are syntactically correct and well-formed.                   | [Example](#reusable-json-validator)                       |
-| [reusable-link-checker.yml][009]                        | Checks documentation and source files for broken, unreachable and invalid hyperlinks.            | [Example](#reusable-link-checker)                         |
-| [reusable-markdown-linter.yml][010]                     | Lints Markdown files to enforce consistent formatting and documentation standards.               | [Example](#reusable-markdown-linter)                      |
-| [reusable-mkdocs-site-publisher.yml][011]               | Builds MkDocs documentation sites and publishes them to GitHub Pages..                           | [Example](#reusable-mkdocs-site-publisher)                |
-| [reusable-perl-linter.yml][012]                         | Lints Perl source files to identify syntax errors, coding issues and style violations.           | [Example](#reusable-perl-linter)                          |
-| [reusable-php-linter.yml][013]                          | Lints PHP source files to identify syntax errors, coding issues and style violations.            | [Example](#reusable-php-linter)                           |
-| [reusable-puppet-linter.yml][014]                       | Lints Puppet manifests to identify syntax errors, coding issues and style violations.            | [Example](#reusable-puppet-linter)                        |
-| [reusable-python-ci.yml][015]                           | Runs a complete Python quality assurance pipeline across multiple Python versions.               | [Example](#reusable-python-ci)                            |
-| [reusable-python-code-auditor.yml][016]                 | Audits Python source code for quality issues using multiple static analysis tools.               | [Example](#reusable-python-code-auditor)                  |
-| [reusable-python-dependency-updater.yml][017]           | Checks Python dependencies for available updates and reports outdated packages.                  | [Example](#reusable-python-dependency-updater)            |
-| [reusable-python-docstring-checker.yml][018]            | Checks Python docstrings for completeness and compliance with documentation standards.           | [Example](#reusable-python-docstring-checker)             |
-| [reusable-python-linter.yml][019]                       | Lints Python source code to identify errors, code smells and maintainability issues.             | [Example](#reusable-python-linter)                        |
-| [reusable-python-makefile-ci][020]                      | Runs Python project CI through configurable Make targets across multiple Python versions.        | [Example](#reusable-python-makefile-ci)                   |
-| [reusable-python-security-scanner.yml][021]             | Scans Python source code for common security vulnerabilities and insecure coding practices.      | [Example](#reusable-python-security-scanner)              |
-| [reusable-python-style-guide-checker.yml][022]          | Checks Python source code for compliance with the PEP 8 style guide.                             | [Example](#reusable-python-style-guide-checker)           |
-| [reusable-ruby-code-smell-detector.yml][023]            | Detects code smells and maintainability issues in Ruby source code.                              | [Example](#reusable-ruby-code-smell-detector)             |
-| [reusable-ruby-linter.yml][024]                         | Lints Ruby source code to identify coding issues, style violations and potential problems.       | [Example](#reusable-ruby-linter)                          |
-| [reusable-secrets-scanner.yml][025]                     | Scans repositories for exposed secrets and sensitive credentials.                                | [Example](#reusable-secrets-scanner)                      |
-| [reusable-shell-script-linter.yml][026]                 | Lints shell scripts to identify syntax errors, portability issues and common scripting mistakes. | [Example](#reusable-shell-script-linter)                  |
-| [reusable-stale-issue-and-pull-request-handle.yml][028] | Marks and closes inactive issues and pull requests using configurable stale policies.            | [Example](#reusable-stale-issue-and-pull-request-handler) |
-| [reusable-workflow-clean-up.yml][029]                   | Cleans up old workflow runs and artifacts using configurable retention policies.                 | [Example](#reusable-workflow-clean-up)                    |
-| [reusable-workflow-run-purger.yml][029]                 | Removes obsolete and unwanted GitHub Actions workflow runs.                                      | [Example](#reusable-workflow-run-purger)                  |
-| [reusable-workflow-notifier.yml][027]                   | Sends configurable notifications summarising GitHub Actions workflow results.                    | [Example](#reusable-workflow-notifier)                    |
-| [reusable-workflow-summary.yml][030]                    | Generates a comprehensive Markdown summary of a GitHub Actions workflow run.                     | [Example](#reusable-workflow-summary)                     |
-| [reusable-yaml-linter.yml][031]                         | Lints YAML files to identify syntax errors, formatting issues and style violations.              | [Example](#reusable-yaml-linter)                          |
+| Workflow file                                           | Purpose                                                                                                    | Example                                                   |
+| :------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------: |
+| [reusable-citation-validator.yml][001]                  | Validates repository citation files against the required format and standards.                             | [Example](#reusable-citation-validator)                   |
+| [reusable-code-analysis.yml][002]                       | Performs GitHub CodeQL security and quality analysis on supported languages.                               | [Example](#reusable-code-analysis)                        |
+| [reusable-dependabot-manager.yml][003]                  | Automates the review, approval and management of Dependabot pull requests.                                 | [Example](#reusable-dependabot-manager)                   |
+| [reusable-dockerfile-linter.yml][004]                   | Lints Dockerfiles to identify syntax errors, best practice violations and potential issues.                | [Example](#reusable-dockerfile-linter)                    |
+| [reusable-first-time-contributor-greetings.yml][005]    | Welcomes first-time issue authors and pull request contributors.                                           | [Example](#reusable-first-time-contributor-greetings)     |
+| [reusable-github-actions-security.yml][006]             | Verifies that GitHub Actions are securely pinned to immutable commit SHAs.                                 | [Example](#reusable-github-actions-security)              |
+| [reusable-github-release-generator.yml][007]            | Automatically generates and publishes GitHub Releases with a generated changelog.                          | [Example](#reusable-github-release-generator)             |
+| [reusable-json-validator.yml][008]                      | Validates JSON files to ensure they are syntactically correct and well-formed.                             | [Example](#reusable-json-validator)                       |
+| [reusable-link-checker.yml][009]                        | Checks documentation and source files for broken, unreachable and invalid hyperlinks.                      | [Example](#reusable-link-checker)                         |
+| [reusable-markdown-linter.yml][010]                     | Lints Markdown files to enforce consistent formatting and documentation standards.                         | [Example](#reusable-markdown-linter)                      |
+| [reusable-mkdocs-site-publisher.yml][011]               | Builds MkDocs documentation sites and publishes them to GitHub Pages..                                     | [Example](#reusable-mkdocs-site-publisher)                |
+| [reusable-perl-linter.yml][012]                         | Lints Perl source files to identify syntax errors, coding issues and style violations.                     | [Example](#reusable-perl-linter)                          |
+| [reusable-php-linter.yml][013]                          | Lints PHP source files to identify syntax errors, coding issues and style violations.                      | [Example](#reusable-php-linter)                           |
+| [reusable-puppet-linter.yml][014]                       | Lints Puppet manifests to identify syntax errors, coding issues and style violations.                      | [Example](#reusable-puppet-linter)                        |
+| [reusable-python-ci.yml][015]                           | Runs a complete Python quality assurance pipeline across multiple Python versions.                         | [Example](#reusable-python-ci)                            |
+| [reusable-python-code-auditor.yml][016]                 | Audits Python source code for quality issues using multiple static analysis tools.                         | [Example](#reusable-python-code-auditor)                  |
+| [reusable-python-dependency-updater.yml][017]           | Checks Python dependencies for available updates and reports outdated packages.                            | [Example](#reusable-python-dependency-updater)            |
+| [reusable-python-docstring-checker.yml][018]            | Checks Python docstrings for completeness and compliance with documentation standards.                     | [Example](#reusable-python-docstring-checker)             |
+| [reusable-python-linter.yml][019]                       | Lints Python source code to identify errors, code smells and maintainability issues.                       | [Example](#reusable-python-linter)                        |
+| [reusable-python-makefile-ci][020]                      | Runs Python project CI through configurable Make targets across multiple Python versions.                  | [Example](#reusable-python-makefile-ci)                   |
+| [reusable-python-security-scanner.yml][021]             | Scans Python source code for common security vulnerabilities and insecure coding practices.                | [Example](#reusable-python-security-scanner)              |
+| [reusable-python-style-guide-checker.yml][022]          | Checks Python source code for compliance with the PEP 8 style guide.                                       | [Example](#reusable-python-style-guide-checker)           |
+| [reusable-ruby-code-smell-detector.yml][023]            | Detects code smells and maintainability issues in Ruby source code.                                        | [Example](#reusable-ruby-code-smell-detector)             |
+| [reusable-ruby-linter.yml][024]                         | Lints Ruby source code to identify coding issues, style violations and potential problems.                 | [Example](#reusable-ruby-linter)                          |
+| [reusable-secrets-scanner.yml][025]                     | Scans repositories for exposed secrets and sensitive credentials.                                          | [Example](#reusable-secrets-scanner)                      |
+| [reusable-shell-script-linter.yml][026]                 | Lints shell scripts to identify syntax errors, portability issues and common scripting mistakes.           | [Example](#reusable-shell-script-linter)                  |
+| [reusable-stale-issue-and-pull-request-handle.yml][028] | Marks and closes inactive issues and pull requests using configurable stale policies.                      | [Example](#reusable-stale-issue-and-pull-request-handler) |
+| [reusable-workflow-clean-up.yml][029]                   | Maintains GitHub Actions workflow history, artifacts, and retention policies with comprehensive reporting. | [Example](#reusable-workflow-clean-up)                    |
+| [reusable-workflow-run-purger.yml][029]                 | Removes obsolete and unwanted GitHub Actions workflow runs.                                                | [Example](#reusable-workflow-run-purger)                  |
+| [reusable-workflow-notifier.yml][027]                   | Sends configurable notifications summarising GitHub Actions workflow results.                              | [Example](#reusable-workflow-notifier)                    |
+| [reusable-workflow-summary.yml][030]                    | Generates a comprehensive Markdown summary of a GitHub Actions workflow run.                               | [Example](#reusable-workflow-summary)                     |
+| [reusable-yaml-linter.yml][031]                         | Lints YAML files to identify syntax errors, formatting issues and style violations.                        | [Example](#reusable-yaml-linter)                          |
 
 [001]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-citation-validator.yml
 [002]: https://github.com/the-lupaxa-project/.github/tree/master/.github/workflows/reusable-code-analysis.yml
@@ -1436,10 +1436,12 @@ jobs:
 
 <h2 id="reusable-workflow-clean-up">Workflow Clean Up</h2>
 
-**Reusable Workflow Clean Up** removes old GitHub Actions workflow runs and, optionally, old workflow artifacts according to configurable retention and
-preservation rules. It supports dry-run mode, branch-based preservation, representative run retention, forced clean-up of non-default branch runs, delete caps,
-throttling delays, progress reporting and configurable verbosity. By generating a Markdown clean-up report and optionally uploading it as an artifact, this
-workflow provides an auditable and controlled way to reduce Actions history clutter, manage artifact storage and apply consistent repository maintenance policies.
+**Reusable Workflow Clean Up** provides comprehensive maintenance for GitHub Actions workflow history. It can remove obsolete workflow runs created by deleted
+or renamed workflows, immediately purge cancelled, failed or skipped runs when required, apply flexible age-based retention policies, and optionally clean up
+expired workflow artifacts. Representative workflow runs can be preserved for a chosen branch, including the latest successful, failed, cancelled and timed-out
+runs, or the last N successful runs, ensuring important execution history is retained. The workflow supports dry-run mode, configurable deletion limits, API
+throttling controls, detailed progress logging, and generates a comprehensive Markdown audit report that can be uploaded as a workflow artifact for review and
+compliance purposes.
 
 <details>
 <summary><strong>Click to expand: Inputs Accepted by this workflow</strong></summary>

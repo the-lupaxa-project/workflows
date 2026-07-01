@@ -1,7 +1,10 @@
-name: Reusable Workflow Clean Up
+name: Local Workflow Clean Up
 
 on:
-  workflow_call:
+  schedule:
+    - cron: "17 4 * * 0"
+
+  workflow_dispatch:
     inputs:
       retention_days:
         description: Delete completed workflow runs older than this many days.
@@ -18,43 +21,47 @@ on:
       dry_run:
         description: Report what would be deleted without deleting anything.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       cleanup_artifacts:
         description: Also delete old repository workflow artifacts.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "false"
 
       remove_obsolete:
-        description: Remove completed workflow runs whose workflow file no longer exists.
+        description: Remove workflow runs whose workflow file no longer exists.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       remove_cancelled:
-        description: Remove completed cancelled workflow runs regardless of retention age.
+        description: Remove cancelled workflow runs regardless of age.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "false"
 
       remove_failed:
-        description: Remove completed failed workflow runs regardless of retention age.
+        description: Remove failed workflow runs regardless of age.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "false"
 
       remove_skipped_immediately:
-        description: Remove completed skipped workflow runs regardless of retention age.
+        description: Remove skipped workflow runs regardless of age.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "false"
 
       remove_older_than:
-        description: >
-          Optional multi-line age rules for workflow-specific deletion.
-          Each line should be "age workflow", for example "30d *" or "7d Reusable Workflow Summary".
+        description: Multi-line age rules, for example "30d *" or "7d Workflow Name".
         required: false
         type: string
         default: ""
@@ -68,31 +75,36 @@ on:
       force_delete_non_default_branch:
         description: Force-delete completed runs not on preserve_branch, ignoring retention and representative keeps.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "false"
 
       keep_latest_successful:
         description: Keep the latest successful completed run for each workflow on preserve_branch.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       keep_latest_failed:
         description: Keep the latest failed completed run for each workflow on preserve_branch.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       keep_latest_cancelled:
         description: Keep the latest cancelled completed run for each workflow on preserve_branch.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       keep_latest_timed_out:
         description: Keep the latest timed-out completed run for each workflow on preserve_branch.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       keep_last_n_successful:
@@ -104,13 +116,15 @@ on:
       delete_skipped:
         description: Delete skipped runs when they are older than the retention period.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       delete_neutral:
         description: Delete neutral runs when they are older than the retention period.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       max_deletes_per_run:
@@ -140,13 +154,15 @@ on:
       verbosity:
         description: Log verbosity. Use quiet, normal, or verbose.
         required: false
-        type: string
+        type: choice
+        options: ["quiet", "normal", "verbose"]
         default: "normal"
 
       upload_report_artifact:
         description: Upload the generated Markdown cleanup report as a workflow artifact.
         required: false
-        type: string
+        type: choice
+        options: ["true", "false"]
         default: "true"
 
       report_artifact_retention_days:
@@ -155,57 +171,59 @@ on:
         type: string
         default: "90"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   actions: write
   contents: read
 
 jobs:
-  reusable-workflow-clean-up:
-    name: Reusable Workflow Clean Up
-    runs-on: ubuntu-latest
+  workflow-clean-up:
+    name: Workflow Clean Up
+    uses: ./.github/workflows/reusable-workflow-clean-up.yml
+    with:
+      retention_days: ${{ inputs.retention_days || '90' }}
+      artifact_retention_days: ${{ inputs.artifact_retention_days || '90' }}
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+      cleanup_artifacts: ${{ inputs.cleanup_artifacts || 'false' }}
+      remove_obsolete: ${{ inputs.remove_obsolete || 'true' }}
+      remove_cancelled: ${{ inputs.remove_cancelled || 'false' }}
+      remove_failed: ${{ inputs.remove_failed || 'false' }}
+      remove_skipped_immediately: ${{ inputs.remove_skipped_immediately || 'false' }}
+      remove_older_than: ${{ inputs.remove_older_than || '' }}
+      preserve_branch: ${{ inputs.preserve_branch || 'master' }}
+      force_delete_non_default_branch: ${{ inputs.force_delete_non_default_branch || 'false' }}
+      keep_latest_successful: ${{ inputs.keep_latest_successful || 'true' }}
+      keep_latest_failed: ${{ inputs.keep_latest_failed || 'true' }}
+      keep_latest_cancelled: ${{ inputs.keep_latest_cancelled || 'true' }}
+      keep_latest_timed_out: ${{ inputs.keep_latest_timed_out || 'true' }}
+      keep_last_n_successful: ${{ inputs.keep_last_n_successful || '3' }}
+      delete_skipped: ${{ inputs.delete_skipped || 'true' }}
+      delete_neutral: ${{ inputs.delete_neutral || 'true' }}
+      max_deletes_per_run: ${{ inputs.max_deletes_per_run || '250' }}
+      max_artifact_deletes_per_run: ${{ inputs.max_artifact_deletes_per_run || '250' }}
+      delete_sleep_seconds: ${{ inputs.delete_sleep_seconds || '1.0' }}
+      progress_every: ${{ inputs.progress_every || '50' }}
+      verbosity: ${{ inputs.verbosity || 'normal' }}
+      upload_report_artifact: ${{ inputs.upload_report_artifact || 'true' }}
+      report_artifact_retention_days: ${{ inputs.report_artifact_retention_days || '90' }}
 
-    steps:
-      - name: Checkout Workflows Repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
-        with:
-          repository: the-lupaxa-project/workflows
-          path: lupaxa-dotgithub
+  generate-workflow-summary:
+    name: Generate Workflow Summary
+    needs:
+      - workflow-clean-up
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-summary.yml
 
-      - name: Run Workflow Clean Up
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          CLEANUP_WORKFLOW_RUNS_RETENTION_DAYS: ${{ inputs.retention_days }}
-          CLEANUP_WORKFLOW_RUNS_ARTIFACT_RETENTION_DAYS: ${{ inputs.artifact_retention_days }}
-          CLEANUP_WORKFLOW_RUNS_DRY_RUN: ${{ inputs.dry_run }}
-          CLEANUP_WORKFLOW_RUNS_CLEANUP_ARTIFACTS: ${{ inputs.cleanup_artifacts }}
-          CLEANUP_WORKFLOW_RUNS_REMOVE_OBSOLETE: ${{ inputs.remove_obsolete }}
-          CLEANUP_WORKFLOW_RUNS_REMOVE_CANCELLED: ${{ inputs.remove_cancelled }}
-          CLEANUP_WORKFLOW_RUNS_REMOVE_FAILED: ${{ inputs.remove_failed }}
-          CLEANUP_WORKFLOW_RUNS_REMOVE_SKIPPED_IMMEDIATELY: ${{ inputs.remove_skipped_immediately }}
-          CLEANUP_WORKFLOW_RUNS_REMOVE_OLDER_THAN: ${{ inputs.remove_older_than }}
-          CLEANUP_WORKFLOW_RUNS_PRESERVE_BRANCH: ${{ inputs.preserve_branch }}
-          CLEANUP_WORKFLOW_RUNS_FORCE_DELETE_NON_DEFAULT_BRANCH: ${{ inputs.force_delete_non_default_branch }}
-          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_SUCCESSFUL: ${{ inputs.keep_latest_successful }}
-          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_FAILED: ${{ inputs.keep_latest_failed }}
-          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_CANCELLED: ${{ inputs.keep_latest_cancelled }}
-          CLEANUP_WORKFLOW_RUNS_KEEP_LATEST_TIMED_OUT: ${{ inputs.keep_latest_timed_out }}
-          CLEANUP_WORKFLOW_RUNS_KEEP_LAST_N_SUCCESSFUL: ${{ inputs.keep_last_n_successful }}
-          CLEANUP_WORKFLOW_RUNS_DELETE_SKIPPED: ${{ inputs.delete_skipped }}
-          CLEANUP_WORKFLOW_RUNS_DELETE_NEUTRAL: ${{ inputs.delete_neutral }}
-          CLEANUP_WORKFLOW_RUNS_MAX_DELETES: ${{ inputs.max_deletes_per_run }}
-          CLEANUP_WORKFLOW_RUNS_MAX_ARTIFACT_DELETES: ${{ inputs.max_artifact_deletes_per_run }}
-          CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS: ${{ inputs.delete_sleep_seconds }}
-          CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY: ${{ inputs.progress_every }}
-          CLEANUP_WORKFLOW_RUNS_VERBOSITY: ${{ inputs.verbosity }}
-        run: |
-          python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py
-          find "${RUNNER_TEMP}" -maxdepth 1 -name "cleanup-workflow-runs-*.md" -print
-
-      - name: Upload Clean Up Report Artifact
-        if: ${{ inputs.upload_report_artifact == 'true' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
-        with:
-          name: cleanup-workflow-runs-report
-          path: ${{ runner.temp }}/cleanup-workflow-runs-*.md
-          retention-days: ${{ inputs.report_artifact_retention_days }}
-          if-no-files-found: error
+  generate-workflow-notifications:
+    name: Generate Workflow Notifications
+    needs:
+      - generate-workflow-summary
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-notifier.yml
+    with:
+      notify_on_results: "failure,timed_out"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
