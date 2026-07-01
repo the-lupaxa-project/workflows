@@ -17,6 +17,7 @@ import re
 import sys
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, Iterable, List, NoReturn, Optional, Set, TextIO, Tuple, cast
 from urllib.error import HTTPError, URLError
 
@@ -172,7 +173,6 @@ def default_summary_filename() -> str:
     """Build the default Markdown summary artifact path."""
     workflow_ref = os.environ.get("GITHUB_WORKFLOW_REF", "")
     workflow_file = workflow_file_name_from_ref(workflow_ref)
-
     workflow_name = os.environ.get("GITHUB_WORKFLOW", "")
     run_id = os.environ.get("GITHUB_RUN_ID", "")
     run_attempt = os.environ.get("GITHUB_RUN_ATTEMPT", "1")
@@ -185,13 +185,9 @@ def default_summary_filename() -> str:
     ]
 
     filename = "-".join(part for part in name_parts if part) + ".md"
-    workspace = os.environ.get("GITHUB_WORKSPACE", "").strip()
+    output_dir = os.environ.get("RUNNER_TEMP", "").strip() or os.getcwd()
 
-    if workspace:
-        return os.path.join(workspace, filename)
-
-    return filename
-
+    return str(Path(output_dir) / filename)
 
 def short_sha(sha: str) -> str:
     """Return the short seven-character version of a Git commit SHA."""

@@ -47,13 +47,13 @@ jobs:
           WORKFLOW_IGNORE_JOBS: "Reusable Generate Workflow Summary,Reusable Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
         run: |
           python lupaxa-dotgithub/.github/scripts/workflow-summary.py
-          ls -la "${{ github.workspace }}"/workflow-summary-*.md
+          find "${RUNNER_TEMP}" -maxdepth 1 -name "workflow-summary-*.md" -print
 
       - name: Upload Workflow Summary Artifact
         if: ${{ inputs.upload_artifact }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
         with:
           name: workflow-summary
-          path: ${{ github.workspace }}/workflow-summary-*.md
+          path: ${{ runner.temp }}/workflow-summary-*.md
           retention-days: ${{ inputs.artifact_retention_days }}
           if-no-files-found: error
