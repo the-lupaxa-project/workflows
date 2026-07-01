@@ -2,10 +2,10 @@ name: Local First-Time Contributor Greetings
 
 on:
   pull_request:
+    branches-ignore:
+      - 'dependabot/**'
 
   issues:
-
-  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
