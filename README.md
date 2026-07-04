@@ -4,93 +4,84 @@
     </a>
 </p>
 
-<h1 align="center">The Lupaxa Project: Reusable Workflows</h1>
+<h1 align="center">The Lupaxa Project: Workflows Repository</h1>
 
-This repository acts as a **central catalog of reusable workflows** for:
+This repository contains the shared reusable GitHub Actions workflows used throughout **The Lupaxa Project**.
 
-- Standardised linting
-- Security scanning
-- Workflow hardening
-- Release preparation & tagging
-- Dependency automation
-- Slack notifications
-- Check-jobs validation
-- Code quality enforcement
+By centralising reusable workflows in a single repository, all repositories across every Lupaxa GitHub organisation can share a consistent, secure, and maintainable CI/CD platform while avoiding duplication.
 
-There are two layers:
+## Purpose
 
-1. **Reusable workflows**
-   - Live in this repo: `.github/workflows/reusable-*.yml`
-   - Called by other repos via `uses: the-lupaxa-project/workflows/.github/workflows/<reusable-workflow>@master`
+This repository provides:
 
-2. **Local workflows**
-   - Live in this repo: `.github/workflows/local-*.yml`
-   - Use `uses: ./.github/workflows/reusable-*.yml` to call the shared logic.
+- Reusable GitHub Actions workflows.
+- Shared CI/CD automation.
+- Common quality assurance pipelines.
+- Security and compliance workflows.
+- Release and documentation automation.
+- Workflow maintenance and repository management utilities.
 
-A complete description of each reusable workflow is available in the [workflow catalogue](WORKFLOWS.md) which also includes input tables, behaviour notes, and consumer examples.
+Each workflow is designed to be reusable, configurable, and version controlled so improvements and fixes can be adopted consistently across the project.
 
-<h2>General policy</h2>
+## Workflow Architecture
 
-Across **ALL** Lupaxa Project repositories, we require **ALL 3<sup>rd</sup> party actions** to be pinned to a specific commit SHA **NOT** a version tag.
+The reusable workflows in this repository are intended to be called from workflows within individual repositories using GitHub's `workflow_call` feature.
 
-To help enforce this, we provide:
+A typical repository contains a small local workflow responsible for defining when a workflow should run. That workflow delegates the implementation to one of the reusable workflows maintained here.
 
-- reusable-github-actions-security.yml to check and validate **ALL** actions are pinned correctly.
-- Local security-hardening workflows in consuming repos that call this reusable workflow.
+This approach provides:
 
-These security-hardening workflows:
+- Consistent behaviour across repositories.
+- Centralised maintenance.
+- Reduced duplication.
+- Simpler repository-level workflows.
+- Easier adoption of improvements and bug fixes.
 
-- Scan all workflow files under .github/workflows/.
-- Fail the build if they detect uses: entries that:
-  - Point to 3<sup>rd</sup> actions without @&lt;SHA&gt;, or
-  - Use @&lt;BRANCH&gt;, or version tags (@&lt;TAG&gt;) that are not allow-listed.
+## Repository Contents
 
-> [!NOTE]
-> **There is one deliberate exception:**
->
-> Calls to the-lupaxa-project/workflows/.github/workflows/*.yml are **explicitly** allow-listed in the security-hardening configuration.
+The repository contains:
 
-This allows all Lupaxa Project repos to reference organisation workflows using @master, for example:
+| Path | Purpose |
+| :--- | :------ |
+| `.github/workflows/` | Reusable GitHub Actions workflows. |
+| `docs/workflows/` | Documentation for each reusable workflow. |
+| `WORKFLOWS.md` | Index of all available reusable workflows. |
 
-```yml
-  uses: the-lupaxa-project/workflows/.github/workflows/reusable-github-actions-security.yml@master
-```
+## Workflow Naming Convention
 
-This provides:
+All reusable workflows follow a consistent naming convention.
 
-- Automatic updates to shared workflows via the this repo.
-- Strong SHA pinning for all other third-party actions.
+| Item | Convention |
+| :--- | :--------- |
+| Location | `.github/workflows/` |
+| Filename | `reusable-<workflow-name>.yml` |
+| Invocation | `uses: the-lupaxa-project/workflows/.github/workflows/<workflow>.yml@master` |
 
-<h2>Naming Conventions</h2>
+This convention provides a predictable interface for every reusable workflow within the repository.
 
-<h3>Reusable workflows</h3>
+## Compatibility
 
-- Location: the-lupaxa-project/workflows/.github/workflows/
-- Naming pattern: reusable-&lt;NAME&gt;.yml
-- Purpose: reusable primitives and bundles that other repos call.
+These workflows are developed primarily for repositories within **The Lupaxa Project**.
 
-<h4>Examples</h4>
+Many workflows are generic and may also be suitable for use in other GitHub organisations; however, only use within The Lupaxa Project is officially supported.
 
-- reusable-code-analysis.yml
-- reusable-markdown-linter.yml
-- reusable-secrets-scanner.yml
-- reusable-yaml-linter.yml
+## Documentation
 
-<h3>Consuming workflows</h3>
+Documentation for each reusable workflow is provided in the `docs/workflows/` directory.
 
-- Location: .github/workflows/ in a consuming repository.
-- Naming pattern: &lt;NAME&gt;.yml
-- Purpose: thin orchestration wrappers that:
-- Define triggers (on:),
-- Group jobs logically,
-- Call one or more reusable-*.yml workflows via uses:.
+The `WORKFLOWS.md` document provides a complete catalogue of available workflows together with links to the detailed documentation for each one.
 
-<h4>Consumption Example</h4>
+## Contributing
 
-- code-analysis.yml
-- markdown-linter.yml
-- security-scanner.yml
-- yaml-linter.yml
+Improvements, bug fixes, and new reusable workflows are welcome.
+
+Please read the organisation-wide documentation before contributing:
+
+- Code of Conduct
+- Contributing Guide
+- Security Policy
+
+These documents are maintained in the central `.github` repository.
 
 <h1></h1>
 

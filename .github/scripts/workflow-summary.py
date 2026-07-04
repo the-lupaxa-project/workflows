@@ -283,10 +283,10 @@ def github_api_get_json(url: str, token: str) -> Tuple[Dict[str, Any], Optional[
     req = urllib.request.Request(url, headers=github_api_headers(token))
 
     try:
-        with urllib.request.urlopen(req) as resp:
-            status = resp.getcode()
-            body_bytes = resp.read()
-            link_header = resp.headers.get("Link", "")
+        with urllib.request.urlopen(req) as response:
+            status = response.getcode()
+            body_bytes = response.read()
+            link_header = response.headers.get("Link", "")
     except HTTPError as exc:
         body = decode_http_error(exc)
         if body:
