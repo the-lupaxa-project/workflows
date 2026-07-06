@@ -6,20 +6,22 @@
 
 <h1 align="center">The Lupaxa Project: Governance</h1>
 
-**The Lupaxa Project** is coordinated through organisation-wide governance designed to ensure transparent decision-making, fairness,
-and long-term sustainability across all repositories and organisations within the ecosystem.
+**The Lupaxa Project** maintains a single organisation-wide Governance Guide that defines how decisions are made, how projects are managed and how the ecosystem evolves over time.
 
-The central governance documentation is maintained here: [The Lupaxa Project: Governance][1]
+The authoritative Governance Guide is available here: [The Lupaxa Project: Governance][1]
+
+It includes guidance on:
+
+- Governance roles, responsibilities and decision-making.
+- How proposals are discussed, reviewed and approved.
+- Repository and project lifecycle management.
+- Organisational oversight and long-term stewardship.
+
+Unless explicitly stated otherwise, this Governance Guide applies to every repository and organisation within **The Lupaxa Project**.
+
+Repository-specific exceptions or additional guidance, where applicable, should be documented separately within the repository itself.
 
 [1]: https://github.com/the-lupaxa-project/.github/blob/master/GOVERNANCE.md
-
-This document covers:
-
-- How decisions are proposed, discussed, and approved
-- Governance roles and responsibilities
-- How projects join, transition, or retire within the ecosystem
-
-These organisation-wide governance rules apply across **The Lupaxa Project** as a whole.
 
 <h1></h1>
 

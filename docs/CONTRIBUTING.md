@@ -6,20 +6,24 @@
 
 <h1 align="center">The Lupaxa Project: How to Contribute</h1>
 
-**The Lupaxa Project** uses a shared set of contribution guidelines to ensure a consistent development and collaboration experience across
-all repositories and organisations. These guidelines promote clarity, quality, and fairness in how we work together.
+**The Lupaxa Project** maintains a single organisation-wide Contributing Guide to provide a consistent development and collaboration experience across every repository and organisation.
 
-The central contributing guide is maintained here: [The Lupaxa Project: How to Contribute][1]
+The authoritative Contributing Guide is available here: [The Lupaxa Project: How to Contribute][1]
+
+It includes guidance on:
+
+- Reporting bugs and requesting new features.
+- Development workflows and coding standards.
+- Branching, commits and Pull Request expectations.
+- Code review and approval processes.
+- Release and versioning conventions.
+- Community expectations and collaboration.
+
+Unless explicitly stated otherwise, this Contributing Guide applies to every repository and organisation within **The Lupaxa Project**.
+
+Repository-specific exceptions or additional guidance, where applicable, should be documented separately within the repository itself.
 
 [1]: https://github.com/the-lupaxa-project/.github/blob/master/CONTRIBUTING.md
-
-This document covers:
-
-- Issue reporting and feature request expectations
-- Development workflows and code review requirements
-- Commit, branch, and release conventions
-
-These organisation-wide contribution requirements apply across **The Lupaxa Project** as a whole.
 
 <h1></h1>
 

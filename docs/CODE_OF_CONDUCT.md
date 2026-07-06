@@ -6,21 +6,22 @@
 
 <h1 align="center">The Lupaxa Project: Code of Conduct</h1>
 
-**The Lupaxa Project** maintains a single organisation-wide Code of Conduct that applies to every project, community space, and event
-within the ecosystem. It defines expected behaviours, unacceptable conduct, and how concerns are handled to ensure a safe and welcoming
-environment for all.
+**The Lupaxa Project** maintains a single organisation-wide Code of Conduct that applies to every project, community space and event throughout the ecosystem.
 
-The central Code of Conduct is maintained here: [The Lupaxa Project: Code of Conduct][1]
+The authoritative Code of Conduct is available here: [The Lupaxa Project: Code of Conduct][1]
+
+It includes guidance on:
+
+- Expected respectful, professional and inclusive behaviour.
+- Unacceptable conduct and enforcement procedures.
+- Reporting concerns privately or publicly.
+- How reported concerns are reviewed and resolved.
+
+Unless explicitly stated otherwise, this Code of Conduct applies to every repository, organisation and community space within **The Lupaxa Project**.
+
+Repository-specific exceptions or additional guidance, where applicable, should be documented separately within the repository itself.
 
 [1]: https://github.com/the-lupaxa-project/.github/blob/master/CODE_OF_CONDUCT.md
-
-This document covers:
-
-- Expected respectful and inclusive behaviour
-- Prohibited conduct and enforcement standards
-- How to report concerns privately or publicly
-
-These organisation-wide conduct expectations apply across **The Lupaxa Project** as a whole.
 
 <h1></h1>
 

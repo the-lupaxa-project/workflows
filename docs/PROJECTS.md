@@ -6,20 +6,22 @@
 
 <h1 align="center">The Lupaxa Project: Projects Overview</h1>
 
-**The Lupaxa Project** spans multiple organisations and hundreds of repositories. A central index provides a clear overview of how the ecosystem
-fits together, how repositories are grouped, and where to begin exploring.
+**The Lupaxa Project** maintains a single organisation-wide Projects Overview to help contributors and users navigate the ecosystem of organisations, repositories and shared projects.
 
-The central project index is maintained here: [The Lupaxa Project: Projects Overview][1]
+The authoritative Projects Overview is available here: [The Lupaxa Project: Projects Overview][1]
+
+It includes guidance on:
+
+- The overall structure of The Lupaxa Project ecosystem.
+- GitHub organisations and their responsibilities.
+- Repository groupings by purpose and technology.
+- Key projects and recommended starting points for exploration.
+
+Unless explicitly stated otherwise, this Projects Overview applies to every repository and organisation within **The Lupaxa Project**.
+
+Repository-specific exceptions or additional guidance, where applicable, should be documented separately within the repository itself.
 
 [1]: https://github.com/the-lupaxa-project/.github/blob/master/PROJECTS.md
-
-This document covers:
-
-- Organisation structure across the ecosystem
-- Grouping of repositories by purpose or domain
-- Links to key entry-point projects
-
-These organisation-wide organisational structures apply across **The Lupaxa Project** as a whole.
 
 <h1></h1>
 

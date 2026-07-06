@@ -6,20 +6,22 @@
 
 <h1 align="center">The Lupaxa Project: Maintainers</h1>
 
-**The Lupaxa Project** centrally manages maintainer responsibilities, expectations, and appointments to ensure accountability, clarity,
-and continuity across the entire ecosystem. This approach guarantees clear ownership and consistent stewardship for every repository.
+**The Lupaxa Project** maintains a single organisation-wide Maintainers Guide that defines the responsibilities, expectations and governance of repository maintainers across every organisation and repository.
 
-The central maintainers documentation is maintained here: [The Lupaxa Project: Maintainer][1]
+The authoritative Maintainers Guide is available here: [The Lupaxa Project: Maintainers][1]
+
+It includes guidance on:
+
+- Maintainer roles, responsibilities and expectations.
+- Appointing, transitioning and retiring maintainers.
+- Ownership and stewardship of repositories and projects.
+- Contact guidance for maintainers and areas of responsibility.
+
+Unless explicitly stated otherwise, this Maintainers Guide applies to every repository and organisation within **The Lupaxa Project**.
+
+Repository-specific exceptions or additional guidance, where applicable, should be documented separately within the repository itself.
 
 [1]: https://github.com/the-lupaxa-project/.github/blob/master/MAINTAINERS.md
-
-This document covers:
-
-- How maintainers are selected, transitioned, or retired
-- Defined responsibilities and authority levels
-- Contact guidance for individual areas and repositories
-
-These organisation-wide maintainer responsibilities apply across **The Lupaxa Project** as a whole.
 
 <h1></h1>
 
