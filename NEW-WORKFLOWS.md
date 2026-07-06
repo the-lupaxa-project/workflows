@@ -14,6 +14,19 @@ into reusable workflows, repositories benefit from consistent behaviour, simplif
 The workflows are designed to be modular, reusable, configurable and easy to adopt, allowing individual repositories to remain small while still benefiting
 from a comprehensive CI/CD platform.
 
+> [!NOTE]
+>
+> ## Repository at a Glance
+>
+> This repository provides the shared GitHub Actions automation platform used throughout **The Lupaxa Project**.
+>
+> - **32 reusable workflows** organised into **7 functional categories**.
+> - Shared automation used across all Lupaxa Project repositories.
+> - Consistent workflow interfaces with configurable inputs.
+> - Centralised maintenance with minimal repository duplication.
+> - Built around GitHub reusable workflows (`workflow_call`).
+> - Designed with security, consistency and long-term maintainability in mind.
+
 # Contents
 
 - [Workflow Catalogue](#workflow-catalogue)
@@ -22,7 +35,7 @@ from a comprehensive CI/CD platform.
 - [Design Principles](#design-principles)
 - [Standard Validation Interface](#standard-validation-interface)
 - [Repository Quality](#repository-quality)
-- [Language Quality](#language-quality)
+- [Language Analysis](#language-analysis)
 - [Security](#security)
 - [Documentation](#documentation)
 - [Release Management](#release-management)
@@ -37,48 +50,47 @@ from a comprehensive CI/CD platform.
 
 The following table provides a quick overview of every reusable workflow available in this repository.
 
-| Workflow                                                                    | Category              | Level        | Purpose                                          |
-| :-------------------------------------------------------------------------- | :-------------------- | :----------: | :----------------------------------------------- |
-| [Citation Validator](#citation-validator)                                   | Repository Quality    | Basic        | Validate `CITATION.cff` files.                   |
-| [Code Analysis](#code-analysis)                                             | Security              | Intermediate | Perform GitHub CodeQL analysis.                  |
-| [Dependabot Manager](#dependabot-manager)                                   | Repository Automation | Intermediate | Automate Dependabot Pull Requests.               |
-| [Dockerfile Linter](#dockerfile-linter)                                     | Language Quality      | Basic        | Validate Dockerfiles.                            |
-| [First-Time Contributor Greetings](#first-time-contributor-greetings)       | Repository Automation | Basic        | Welcome first-time contributors.                 |
-| [GitHub Actions Security](#github-actions-security)                         | Security              | Intermediate | Validate GitHub Actions security.                |
-| [GitHub Release Generator](#github-release-generator)                       | Release Management    | Advanced     | Create GitHub Releases.                          |
-| [JSON Validator](#json-validator)                                           | Repository Quality    | Basic        | Validate JSON documents.                         |
-| [Link Checker](#link-checker)                                               | Repository Quality    | Intermediate | Validate hyperlinks in documentation.            |
-| [Markdown Linter](#markdown-linter)                                         | Repository Quality    | Basic        | Validate Markdown documentation.                 |
-| [MkDocs Site Publisher](#mkdocs-site-publisher)                             | Documentation         | Advanced     | Build and publish MkDocs documentation.          |
-| [Perl Linter](#perl-linter)                                                 | Language Quality      | Basic        | Lint Perl source code.                           |
-| [PHP Linter](#php-linter)                                                   | Language Quality      | Basic        | Lint PHP source code.                            |
-| [Puppet Linter](#puppet-linter)                                             | Language Quality      | Basic        | Validate Puppet manifests.                       |
-| [Python Code Auditor](#python-code-auditor)                                 | Language Quality      | Basic        | Perform advanced Python static analysis.         |
-| [Python Continuous Integration](#python-continuous-integration)             | Language Quality      | Advanced     | Complete Python Continuous Integration pipeline. |
-| [Python Continuous Integration (Make)](#python-continuous-integration-make) | Language Quality      | Intermediate | Run Python CI using repository Make targets.     |
-| [Python Dependency Updater](#python-dependency-updater)                     | Release Management    | Basic        | Detect outdated Python dependencies.             |
-| [Python DocString Checker](#python-docstring-checker)                       | Language Quality      | Basic        | Validate Python docstrings.                      |
-| [Python Linter](#python-linter)                                             | Language Quality      | Basic        | Lint Python source code.                         |
-| [Python Security Scanner](#python-security-scanner)                         | Language Quality      | Basic        | Scan Python projects for security issues.        |
-| [Python Style Guide Checker](#python-style-guide-checker)                   | Language Quality      | Basic        | Validate Python coding standards.                |
-| [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Quality      | Basic        | Detect Ruby code smells.                         |
-| [Ruby Linter](#ruby-linter)                                                 | Language Quality      | Basic        | Lint Ruby source code.                           |
-| [Secrets Scanner](#secrets-scanner)                                         | Security              | Intermediate | Detect exposed credentials and secrets.          |
-| [Shell Script Linter](#shell-script-linter)                                 | Language Quality      | Basic        | Validate shell scripts.                          |
-| [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation | Intermediate | Manage inactive Issues and Pull Requests.        |
-| [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation | Advanced     | Clean workflow runs and workflow artifacts.      |
-| [Workflow Notifier](#workflow-notifier)                                     | Repository Automation | Advanced     | Send Slack workflow notifications.               |
-| [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation | Basic        | Verify scheduled workflow execution.             |
-| [Workflow Summary](#workflow-summary)                                       | Repository Automation | Intermediate | Generate workflow execution summaries.           |
-| [YAML Linter](#yaml-linter)                                                 | Repository Quality    | Basic        | Validate YAML configuration files.               |
+| Workflow                                                                    | Category               | Level        | Typical Use                                                                    |
+| :-------------------------------------------------------------------------- | :--------------------- | :----------: | :----------------------------------------------------------------------------- |
+| [Citation Validator](#citation-validator)                                   | Repository Quality     | Basic        | Validate repository citation metadata before publishing.                       |
+| [Code Analysis](#code-analysis)                                             | Security               | Intermediate | Identify security vulnerabilities and code quality issues using GitHub CodeQL. |
+| [Dependabot Manager](#dependabot-manager)                                   | Repository Automation  | Intermediate | Automatically manage Dependabot Pull Requests.                                 |
+| [Dockerfile Linter](#dockerfile-linter)                                     | Language Analysis      | Basic        | Check Dockerfiles for best practices and common issues.                        |
+| [First-Time Contributor Greetings](#first-time-contributor-greetings)       | Repository Automation  | Basic        | Welcome new contributors with automated messages.                              |
+| [GitHub Actions Security](#github-actions-security)                         | Security               | Intermediate | Verify GitHub Actions workflows follow security best practices.                |
+| [GitHub Release Generator](#github-release-generator)                       | Release Management     | Advanced     | Create and publish GitHub Releases from repository tags.                       |
+| [JSON Validator](#json-validator)                                           | Repository Quality     | Basic        | Validate JSON configuration and data files.                                    |
+| [Link Checker](#link-checker)                                               | Repository Quality     | Intermediate | Detect broken or invalid links in documentation.                               |
+| [Markdown Linter](#markdown-linter)                                         | Repository Quality     | Basic        | Check Markdown documentation for formatting and style issues.                  |
+| [MkDocs Site Publisher](#mkdocs-site-publisher)                             | Documentation          | Advanced     | Build and publish MkDocs documentation to GitHub Pages.                        |
+| [Perl Linter](#perl-linter)                                                 | Language Analysis      | Basic        | Analyse Perl source code for syntax and quality issues.                        |
+| [PHP Linter](#php-linter)                                                   | Language Analysis      | Basic        | Analyse PHP source code for syntax and coding issues.                          |
+| [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
+| [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
+| [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
+| [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
+| [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
+| [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
+| [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
+| [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
+| [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
+| [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
+| [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
+| [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
+| [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
+| [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
+| [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
+| [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
+| [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
+| [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
+| [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
 
-#### Level Guide
-
-| Level            | Description                                                                                                    |
-| :--------------- | :------------------------------------------------------------------------------------------------------------- |
-| **Basic**        | Thin wrapper around a shared validation pipeline with minimal configuration.                                   |
-| **Intermediate** | Performs orchestration, exposes multiple configuration options, or integrates with one or more GitHub Actions. |
-| **Advanced**     | Feature-rich automation with extensive configuration, multiple stages, or complex repository management tasks. |
+> [!TIP]
+> **Level Guide**
+>
+> - **Basic** – Simple wrapper around a shared validation pipeline with minimal configuration.
+> - **Intermediate** – Adds orchestration, multiple configuration options or integrates with additional GitHub Actions.
+> - **Advanced** – Provides feature-rich automation with extensive configuration, multiple stages or comprehensive repository management.
 
 [↑ Back to Contents](#contents)
 
@@ -86,8 +98,8 @@ The following table provides a quick overview of every reusable workflow availab
 
 All workflows within this repository are implemented using GitHub's `workflow_call` feature.
 
-Instead of embedding large amounts of workflow logic into every repository, individual repositories contain only lightweight workflows responsible for
-deciding **when** automation should execute.
+Instead of embedding large amounts of workflow logic into every repository, individual repositories contain only lightweight workflows responsible for deciding
+**when** automation should execute.
 
 The implementation itself is delegated to a reusable workflow maintained within this repository.
 
@@ -135,8 +147,8 @@ Every reusable workflow follows the same engineering philosophy.
 
 ## Consistency
 
-Workflows expose consistent interfaces wherever practical, making it easier to move between different workflows without learning a new configuration model
-each time.
+Workflows expose consistent interfaces wherever practical, making it easier to move between different workflows without learning a new configuration model each
+time.
 
 ## Simplicity
 
@@ -166,69 +178,51 @@ Learning one validation workflow therefore makes the others immediately familiar
 
 ## Common Inputs
 
-Unless stated this is the common set of inputs that the reuable workflows will accept.
+Unless stated otherwise, these are the common inputs supported by validation workflows.
 
 | Input           | Description                                   |
 | :-------------- | :-------------------------------------------- |
 | `include_files` | Files or regular expressions to include.      |
 | `exclude_files` | Files or regular expressions to exclude.      |
+| `no_color`      | Disable ANSI coloured output.                 |
 | `report_only`   | Report problems without failing the workflow. |
 | `show_errors`   | Display detailed validation errors.           |
 | `show_skipped`  | Display skipped files.                        |
-| `no_color`      | Disable ANSI coloured output.                 |
+
+## Common Setup
 
 Unless documented otherwise, validation workflows:
 
 - require only `contents: read` permission;
 - require no secrets;
-- produce no workflow outputs;
 - execute a shared **CICDToolbox** validation pipeline.
 
 [↑ Back to Contents](#contents)
 
 # Repository Quality
 
-Repository Quality workflows validate repository metadata, documentation and configuration files.
+Repository Quality workflows validate repository metadata, documentation and configuration files to help maintain consistent, well-structured repositories.
 
-These workflows are typically executed as part of Continuous Integration and help ensure repositories remain consistent, well-structured and compliant with
-project standards.
-
-| Workflow                                  | Purpose                               |
-| :---------------------------------------- | :------------------------------------ |
-| [Citation Validator](#citation-validator) | Validate citation metadata.           |
-| [JSON Validator](#json-validator)         | Validate JSON documents.              |
-| [Link Checker](#link-checker)             | Validate hyperlinks in documentation. |
-| [Markdown Linter](#markdown-linter)       | Validate Markdown documentation.      |
-| [YAML Linter](#yaml-linter)               | Validate YAML configuration.          |
+| Workflow                                  | Typical Use                                                   |
+| :---------------------------------------- | :------------------------------------------------------------ |
+| [Citation Validator](#citation-validator) | Validate repository citation metadata before publishing.      |
+| [JSON Validator](#json-validator)         | Validate JSON configuration and data files.                   |
+| [Link Checker](#link-checker)             | Detect broken or invalid links in documentation.              |
+| [Markdown Linter](#markdown-linter)       | Check Markdown documentation for formatting and style issues. |
+| [YAML Linter](#yaml-linter)               | Validate YAML configuration files.                            |
 
 ## Citation Validator
 
-Validates `CITATION.cff` and related citation metadata to ensure it conforms to the expected format and standards before changes are merged. This workflow
-helps maintain accurate, consistent and well-formed citation metadata throughout a project, making it particularly useful for documentation repositories and
-projects that rely on structured citation files.
+Validates CITATION.cff and related citation metadata to ensure it conforms to the Citation File Format specification. This workflow helps repositories maintain
+accurate and machine-readable citation information for users, package indexes and research tools.
 
 ### Inputs
 
-[Common Inputs](#common-inputs)
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
 ```yaml
-name: Citation Validator
-
-on:
-  pull_request:
-    paths:
-      - "CITATION.cff"
-  push:
-    branches:
-      - "**"
-    paths:
-      - "CITATION.cff"
-
-permissions:
-  contents: read
-
 jobs:
   citations:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-citation-validator.yml@master
@@ -236,32 +230,15 @@ jobs:
 
 ## JSON Validator
 
-Validates JSON files throughout a repository to ensure they are syntactically correct and conform to the JSON specification before changes are merged. By
-detecting malformed or invalid JSON early in the development process, this workflow helps prevent configuration errors, deployment failures and application
-issues caused by incorrectly formatted JSON documents.
+Validates JSON files to ensure they are syntactically correct and suitable for use by applications, automation and configuration management systems.
 
 ### Inputs
 
-[Common Inputs](#common-inputs)
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
 ```yaml
-ame: JSON Linter
-
-on:
-  pull_request:
-    paths:
-      - "**/*.json"
-  push:
-    branches:
-      - "**"
-    paths:
-      - "**/*.json"
-
-permissions:
-  contents: read
-
 jobs:
   json:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-json-validator.yml@master
@@ -269,15 +246,13 @@ jobs:
 
 ## Link Checker
 
-Sscans repository files for hyperlinks and verifies that they resolve correctly, helping to identify broken, redirected or otherwise invalid links before
-changes are merged. By automatically validating links across documentation and source files, this workflow helps maintain accurate, reliable documentation
-and improves the overall quality and user experience of a project.
+Checks hyperlinks throughout repository documentation to identify broken, redirected or invalid links before documentation is published or released.
 
 Unlike the other Repository Quality workflows, Link Checker also supports additional configuration for AwesomeBot.
 
 ### Inputs
 
-[Common Inputs](#common-inputs)
+[↑ Common Inputs](#common-inputs)
 
 ### Additional Inputs
 
@@ -289,19 +264,6 @@ Unlike the other Repository Quality workflows, Link Checker also supports additi
 ### Example
 
 ```yaml
-name: Link Checker
-
-on:
-  pull_request:
-    paths:
-      - "**/*.md"
-  push:
-    paths:
-      - "**/*.md"
-
-permissions:
-  contents: read
-
 jobs:
   links:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-link-checker.yml@master
@@ -309,13 +271,11 @@ jobs:
 
 ## Markdown Linter
 
-Analyses Markdown files to identify formatting inconsistencies, style violations and documentation issues before they are merged into the repository. By
-enforcing consistent Markdown standards across documentation, this workflow helps improve readability, maintainability and the overall quality of project
-documentation.
+Analyses Markdown documentation for formatting, structure and style issues to help maintain consistent, readable and high-quality project documentation.
 
 ### Inputs
 
-[Common Inputs](#common-inputs)
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
@@ -327,18 +287,11 @@ jobs:
 
 ## YAML Linter
 
-Validates YAML configuration files and detects syntax errors, formatting inconsistencies and deviations from established YAML best practices before changes
-are merged. It supports configurable file inclusion and exclusion patterns, optional report-only mode for non-blocking validation, and configurable diagnostic
-output to suit different development and CI workflows. By validating YAML configuration files early in the development process, this workflow helps prevent
-configuration errors, deployment failures and automation issues while promoting consistent, maintainable YAML across repositories.
+Validates YAML files for syntax errors and formatting issues, helping ensure configuration files remain reliable, readable and suitable for automation.
 
-### Pipeline
+### Inputs
 
-CICDToolbox YAML Linter
-
-### Interface
-
-Standard Validation Interface
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
@@ -350,40 +303,23 @@ jobs:
 
 [↑ Back to Contents](#contents)
 
-# Language Quality
+# Continuous Integration
 
-Language Quality workflows perform language-specific linting, static analysis and continuous integration.
+Continuous Integration workflows provide complete build, test and validation pipelines for supported languages.
 
-Most language validation workflows use the **Standard Validation Interface**, allowing repositories to configure different language validators in exactly
-the same way.
+Unlike the validation workflows described in the previous section, these workflows orchestrate multiple quality tools and testing stages to provide
+comprehensive Continuous Integration for a project.
 
-| Workflow                   | Pipeline    |
-| :------------------------- | :---------- |
-| Dockerfile Linter          | Hadolint    |
-| Perl Linter                | Perl Critic |
-| PHP Linter                 | PHP Lint    |
-| Puppet Linter              | Puppet Lint |
-| Python Linter              | pylint      |
-| Python Style Guide Checker | pycodestyle |
-| Python DocString Checker   | pydocstyle  |
-| Python Code Auditor        | pylama      |
-| Python Security Scanner    | Bandit      |
-| Ruby Linter                | RuboCop     |
-| Ruby Code Smell Detector   | Reek        |
-| Shell Script Linter        | ShellCheck  |
-
-All of the above workflows:
-
-- use the Standard Validation Interface;
-- require only `contents: read`;
-- require no secrets;
-- execute a shared CICDToolbox validation pipeline.
+| Workflow                                                                    | Typical Use                                     |
+| :-------------------------------------------------------------------------- | :---------------------------------------------- |
+| [Python Continuous Integration](#python-continuous-integration)             | Build, lint, test and validate Python projects. |
+| [Python Continuous Integration (Make)](#python-continuous-integration-make) | Execute Makefile-driven Python CI pipelines.    |
 
 ## Python Continuous Integration
 
-Provides a complete Continuous Integration pipeline for Python projects.
-
-Unlike the validation workflows, Python Continuous Integration performs a full project build, static analysis and automated test execution.
+Provides a complete Continuous Integration pipeline for Python projects, including dependency installation, linting, type checking and automated testing across
+multiple Python versions. This workflow is intended for repositories that follow a conventional Python project structure. It automatically installs project
+dependencies before executing a standard quality pipeline consisting of linting, static analysis and automated tests.
 
 ### Features
 
@@ -396,18 +332,10 @@ Unlike the validation workflows, Python Continuous Integration performs a full p
 
 ### Inputs
 
-| Input             | Description                                              |
-| :---------------- | :------------------------------------------------------- |
-| `python_versions` | Python versions to test.                                 |
-| `paths`           | Comma-separated list of project directories to validate. |
-
-### Additional Permissions
-
-None.
-
-### Required Secrets
-
-None.
+| Input             | Description                                                       |
+| :---------------- | :---------------------------------------------------------------- |
+| `paths`           | Comma-separated list of project directories or files to validate. |
+| `python_versions` | Comma-separated list of Python versions to test.                  |
 
 ### Example
 
@@ -421,194 +349,101 @@ jobs:
 
 ### Notes
 
-Project dependencies are installed automatically before running Ruff, mypy and pytest. If a `tests/` directory is present, the workflow automatically executes
-the project's test suite.
+This workflow installs project dependencies automatically before running Ruff, mypy and pytest. If a `tests/` directory exists, the project's test suite is
+executed automatically.
 
 ## Python Continuous Integration (Make)
 
-Runs Continuous Integration using the repository's existing Makefile.
+Executes Continuous Integration using the repository's existing Makefile targets, allowing projects to retain custom build logic while using a shared reusable
+workflow.
 
-This workflow is intended for repositories that standardise their build process through Make targets.
+This workflow is intended for repositories that standardise their development lifecycle through Make targets. Rather than embedding the CI implementation within
+the reusable workflow, it delegates execution to the project's existing Makefile.
 
 ### Features
 
-- Matrix testing.
+- Matrix testing across multiple Python versions.
 - Configurable Make targets.
-- Supports custom project layouts.
 - Minimal repository configuration.
+- Supports custom project layouts.
+- Reuses existing repository automation.
 
 ### Inputs
 
-| Input             | Description                                      |
-| :---------------- | :----------------------------------------------- |
-| `python_versions` | Python versions to test.                         |
-| `install_target`  | Make target used to install dependencies.        |
-| `ci_target`       | Make target executed for Continuous Integration. |
+| Input             | Description                                             |
+| :---------------- | :------------------------------------------------------ |
+| `ci_target`       | Make target executed to perform Continuous Integration. |
+| `install_target`  | Make target used to install project dependencies.       |
+| `python_versions` | Comma-separated list of Python versions to test.        |
 
 ### Example
 
 ```yaml
 jobs:
-  ci:
+  python-ci:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-makefile-ci.yml@master
 ```
 
 ### Notes
 
-Rather than implementing the CI logic directly, this workflow delegates execution to the repository's Makefile, allowing projects to define their own quality
-pipeline while maintaining a consistent entry point.
+This workflow provides a lightweight wrapper around a repository's existing Makefile-based automation. It allows each project to define its own build and
+quality process while providing a consistent reusable workflow interface across The Lupaxa Project.
 
-## Python Linter
+[↑ Back to Contents](#contents)
 
-Runs the shared Python linting pipeline.
+# Language Analysis
 
-### Pipeline
+Language Analysis workflows perform language-specific linting and static analysis.
 
-CICDToolbox Pylint
+Most language validation workflows use the **Standard Validation Interface**, allowing repositories to configure different language validators in exactly
+the same way.
 
-### Interface
+| Workflow                                                  | Typical Use                                                 |
+| :-------------------------------------------------------- | :---------------------------------------------------------- |
+| [Dockerfile Linter](#dockerfile-linter)                   | Check Dockerfiles for best practices and common issues.     |
+| [Perl Linter](#perl-linter)                               | Analyse Perl source code for syntax and quality issues.     |
+| [PHP Linter](#php-linter)                                 | Analyse PHP source code for syntax and coding issues.       |
+| [Puppet Linter](#puppet-linter)                           | Validate Puppet manifests against best practices.           |
+| [Python Code Auditor](#python-code-auditor)               | Perform comprehensive static analysis of Python projects.   |
+| [Python DocString Checker](#python-docstring-checker)     | Validate Python documentation strings.                      |
+| [Python Linter](#python-linter)                           | Check Python source code for linting issues.                |
+| [Python Security Scanner](#python-security-scanner)       | Scan Python projects for common security vulnerabilities.   |
+| [Python Style Guide Checker](#python-style-guide-checker) | Verify compliance with Python style guidelines.             |
+| [Ruby Code Smell Detector](#ruby-code-smell-detector)     | Detect maintainability and design issues in Ruby code.      |
+| [Ruby Linter](#ruby-linter)                               | Check Ruby source code against coding standards.            |
+| [Shell Script Linter](#shell-script-linter)               | Analyse shell scripts for portability and scripting issues. |
 
-Standard Validation Interface
+All of the above workflows:
 
-### Example
+- use the Standard Validation Interface;
+- require only `contents: read`;
+- require no secrets;
+- execute a shared CICDToolbox validation pipeline.
 
-```yaml
-jobs:
-  pylint:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-linter.yml@master
-```
+## Dockerfile Linter
 
-## Python Style Guide Checker
+Analyses Dockerfiles for syntax issues, security concerns and container best practices using Hadolint. This helps ensure container images are built using
+modern, secure and maintainable practices.
 
-Checks Python source code against recognised style guidelines.
+### Inputs
 
-### Pipeline
-
-CICDToolbox pycodestyle
-
-### Interface
-
-Standard Validation Interface
-
-### Example
-
-```yaml
-jobs:
-  style:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-style-guide-checker.yml@master
-```
-
-## Python DocString Checker
-
-Validates Python docstrings.
-
-### Pipeline
-
-CICDToolbox pydocstyle
-
-### Interface
-
-Standard Validation Interface
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
 ```yaml
 jobs:
-  docstrings:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-docstring-checker.yml@master
-```
-
-## Python Code Auditor
-
-Performs comprehensive static analysis of Python projects.
-
-### Pipeline
-
-CICDToolbox Pylama
-
-### Interface
-
-Standard Validation Interface
-
-### Example
-
-```yaml
-jobs:
-  audit:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-code-auditor.yml@master
-```
-
-## Python Security Scanner
-
-Performs security analysis using Bandit.
-
-### Pipeline
-
-CICDToolbox Bandit
-
-### Interface
-
-Standard Validation Interface
-
-### Example
-
-```yaml
-jobs:
-  security:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-security-scanner.yml@master
-```
-
-## Python Dependency Updater
-
-Checks Python dependencies for available updates.
-
-### Pipeline
-
-CICDToolbox PUR
-
-### Interface
-
-Standard Validation Interface
-
-### Example
-
-```yaml
-jobs:
-  dependencies:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-dependency-updater.yml@master
-```
-
-## PHP Linter
-
-Performs static analysis of PHP source code.
-
-### Pipeline
-
-CICDToolbox PHP Lint
-
-### Interface
-
-Standard Validation Interface
-
-### Example
-
-```yaml
-jobs:
-  php:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-php-linter.yml@master
+  dockerfile:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-dockerfile-linter.yml@master
 ```
 
 ## Perl Linter
 
-Performs static analysis of Perl source code.
+Analyses Perl source code for syntax errors, style issues and maintainability concerns using the standard Perl validation pipeline.
 
-### Pipeline
+### Inputs
 
-CICDToolbox Perl Critic
-
-### Interface
-
-Standard Validation Interface
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
@@ -618,17 +453,29 @@ jobs:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-perl-linter.yml@master
 ```
 
+## PHP Linter
+
+Validates PHP source code for syntax errors and common coding issues, helping maintain reliable and consistent PHP projects.
+
+### Inputs
+
+[↑ Common Inputs](#common-inputs)
+
+### Example
+
+```yaml
+jobs:
+  php:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-php-linter.yml@master
+```
+
 ## Puppet Linter
 
-Validates Puppet manifests.
+Checks Puppet manifests for syntax, style and best practice compliance, helping maintain consistent and reliable infrastructure code.
 
-### Pipeline
+### Inputs
 
-CICDToolbox Puppet Lint
-
-### Interface
-
-Standard Validation Interface
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
@@ -638,37 +485,93 @@ jobs:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-puppet-linter.yml@master
 ```
 
-## Ruby Linter
+## Python Code Auditor
 
-Runs RuboCop against Ruby projects.
+Executes comprehensive static analysis of Python projects using multiple quality checks to identify maintainability issues beyond traditional linting.
 
-### Pipeline
+### Inputs
 
-CICDToolbox RuboCop
-
-### Interface
-
-Standard Validation Interface
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
 ```yaml
 jobs:
-  ruby:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-ruby-linter.yml@master
+  audit:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-code-auditor.yml@master
+```
+
+## Python DocString Checker
+
+Checks Python docstrings for completeness and compliance with recognised documentation standards, helping maintain well-documented APIs and libraries.
+
+### Inputs
+
+[↑ Common Inputs](#common-inputs)
+
+### Example
+
+```yaml
+jobs:
+  docstrings:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-docstring-checker.yml@master
+```
+
+## Python Linter
+
+Analyses Python source code for syntax, style and programming issues using the standard Python linting pipeline.
+
+### Inputs
+
+[↑ Common Inputs](#common-inputs)
+
+### Example
+
+```yaml
+jobs:
+  pylint:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-linter.yml@master
+```
+
+## Python Security Scanner
+
+Performs automated security analysis of Python projects using Bandit to identify common security vulnerabilities before deployment or release.
+
+### Inputs
+
+[↑ Common Inputs](#common-inputs)
+
+### Example
+
+```yaml
+jobs:
+  security:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-security-scanner.yml@master
+```
+
+## Python Style Guide Checker
+
+Checks Python source code against recognised style guidelines to encourage consistent formatting and maintainable code.
+
+### Inputs
+
+[↑ Common Inputs](#common-inputs)
+
+### Example
+
+```yaml
+jobs:
+  style:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-style-guide-checker.yml@master
 ```
 
 ## Ruby Code Smell Detector
 
-Analyses Ruby projects for design issues and code smells.
+Analyses Ruby projects for design issues, complexity and maintainability concerns using Reek to encourage cleaner object-oriented design.
 
-### Pipeline
+### Inputs
 
-CICDToolbox Reek
-
-### Interface
-
-Standard Validation Interface
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
@@ -678,17 +581,29 @@ jobs:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-ruby-code-smell-detector.yml@master
 ```
 
+## Ruby Linter
+
+Analyses Ruby source code using RuboCop to identify syntax, style and maintainability issues while encouraging consistent coding standards.
+
+### Inputs
+
+[↑ Common Inputs](#common-inputs)
+
+### Example
+
+```yaml
+jobs:
+  ruby:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-ruby-linter.yml@master
+```
+
 ## Shell Script Linter
 
-Runs ShellCheck against shell scripts.
+Analyses shell scripts for syntax errors, portability issues and common scripting mistakes using ShellCheck.
 
-### Pipeline
+### Inputs
 
-CICDToolbox ShellCheck
-
-### Interface
-
-Standard Validation Interface
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
@@ -696,26 +611,6 @@ Standard Validation Interface
 jobs:
   shellcheck:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-shell-script-linter.yml@master
-```
-
-## Dockerfile Linter
-
-Validates Dockerfiles using Hadolint.
-
-### Pipeline
-
-CICDToolbox Hadolint
-
-### Interface
-
-Standard Validation Interface
-
-### Example
-
-```yaml
-jobs:
-  dockerfile:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-dockerfile-linter.yml@master
 ```
 
 [↑ Back to Contents](#contents)
@@ -726,15 +621,16 @@ Security workflows help identify vulnerabilities in source code, repository conf
 
 These workflows are intended to complement the language-specific validation workflows by focusing on security posture rather than coding style or correctness.
 
-| Workflow                | Purpose                                 |
-| :---------------------- | :-------------------------------------- |
-| Code Analysis           | Perform GitHub CodeQL analysis.         |
-| GitHub Actions Security | Validate GitHub Actions security.       |
-| Secrets Scanner         | Detect exposed secrets and credentials. |
+| Workflow                                            | Typical Use                                                                    |
+| :-------------------------------------------------- | :----------------------------------------------------------------------------- |
+| [Code Analysis](#code-analysis)                     | Identify security vulnerabilities and code quality issues using GitHub CodeQL. |
+| [GitHub Actions Security](#github-actions-security) | Verify GitHub Actions workflows follow security best practices.                |
+| [Secrets Scanner](#secrets-scanner)                 | Detect exposed secrets and credentials in repositories.                        |
 
 ## Code Analysis
 
-Performs static application security testing using **GitHub CodeQL**.
+Performs static application security testing using GitHub CodeQL. The workflow analyses supported programming languages for security vulnerabilities,
+reliability issues and code quality problems before publishing results to GitHub Code Scanning.
 
 Unlike the validation workflows, Code Analysis uses GitHub's native Code Scanning platform and publishes results directly into the repository's Security tab.
 
@@ -759,10 +655,6 @@ actions: read
 security-events: write
 ```
 
-### Required Secrets
-
-None.
-
 ### Example
 
 ```yaml
@@ -779,10 +671,8 @@ Results are published directly to GitHub Code Scanning where they can be reviewe
 
 ## GitHub Actions Security
 
-Checks GitHub Actions workflows for common security issues.
-
-The workflow validates that third-party actions are pinned to immutable commit SHAs and verifies that workflow references comply with the project's security
-policy.
+Reviews GitHub Actions workflows to ensure third-party actions are pinned to immutable commit SHAs and comply with The Lupaxa Project's workflow security
+standards.
 
 ### Features
 
@@ -804,10 +694,6 @@ policy.
 pull-requests: write
 ```
 
-### Required Secrets
-
-None.
-
 ### Example
 
 ```yaml
@@ -823,7 +709,8 @@ without triggering validation failures.
 
 ## Secrets Scanner
 
-Scans repositories for exposed credentials using **TruffleHog**.
+Scans repositories and Git history for exposed credentials, API keys and other sensitive information using TruffleHog, helping prevent accidental secret
+disclosure.
 
 Unlike the validation workflows, Secrets Scanner analyses repository history as well as the working tree to identify verified and potential secrets.
 
@@ -849,10 +736,6 @@ Unlike the validation workflows, Secrets Scanner analyses repository history as 
 pull-requests: read
 ```
 
-### Required Secrets
-
-None.
-
 ### Example
 
 ```yaml
@@ -871,15 +754,14 @@ The repository is checked out with the complete Git history to allow TruffleHog 
 
 Documentation workflows build and publish project documentation.
 
-| Workflow              | Purpose                                          |
-| :-------------------- | :----------------------------------------------- |
-| MkDocs Site Publisher | Build and publish documentation to GitHub Pages. |
+| Workflow                                        | Typical Use                                             |
+| :---------------------------------------------- | :------------------------------------------------------ |
+| [MkDocs Site Publisher](#mkdocs-site-publisher) | Build and publish MkDocs documentation to GitHub Pages. |
 
 ## MkDocs Site Publisher
 
-Builds and publishes MkDocs documentation.
-
-This workflow provides the standard documentation publishing pipeline used throughout **The Lupaxa Project**.
+Builds MkDocs documentation sites and publishes them to GitHub Pages using a consistent deployment pipeline. The workflow simplifies documentation publishing
+while ensuring repeatable builds.
 
 ### Features
 
@@ -906,10 +788,6 @@ deployments: write
 id-token: write
 ```
 
-### Required Secrets
-
-None.
-
 ### Example
 
 ```yaml
@@ -929,14 +807,14 @@ be generated and published.
 
 Release Management workflows automate project releases and dependency maintenance.
 
-| Workflow                  | Purpose                              |
-| :------------------------ | :----------------------------------- |
-| GitHub Release Generator  | Publish GitHub Releases.             |
-| Python Dependency Updater | Detect outdated Python dependencies. |
+| Workflow                                                | Typical Use                                              |
+| :------------------------------------------------------ | :------------------------------------------------------- |
+| [GitHub Release Generator](#github-release-generator)   | Create and publish GitHub Releases from repository tags. |
+| [Python Dependency Updater](#python-dependency-updater) | Check Python dependencies for available updates.         |
 
 ## GitHub Release Generator
 
-Creates GitHub Releases from repository tags.
+Automatically creates GitHub Releases by generating release notes, resolving version information and publishing releases from repository tags.
 
 ### Features
 
@@ -982,17 +860,11 @@ If no tag is supplied, the workflow automatically determines the version from th
 
 ## Python Dependency Updater
 
-Checks Python projects for outdated dependencies.
+Checks Python projects for outdated dependencies using automated dependency analysis, helping repositories remain current with the latest package releases.
 
-This workflow uses the **Standard Validation Interface** and executes the shared **CICDToolbox PUR** pipeline.
+### Inputs
 
-### Pipeline
-
-CICDToolbox PUR
-
-### Interface
-
-Standard Validation Interface
+[↑ Common Inputs](#common-inputs)
 
 ### Example
 
@@ -1006,26 +878,22 @@ jobs:
 
 # Repository Automation
 
-Repository Automation workflows simplify the day-to-day management of GitHub repositories by automating common maintenance tasks.
+Repository Automation workflows manage repositories, Issues, Pull Requests, workflow runs and external integrations.
 
-Unlike validation workflows, these workflows interact directly with repositories, Issues, Pull Requests, workflow runs and external notification systems.
-
-| Workflow                           | Purpose                                    |
-| :--------------------------------- | :----------------------------------------- |
-| Dependabot Manager                 | Automate Dependabot Pull Request handling. |
-| First-Time Contributor Greetings   | Welcome first-time contributors.           |
-| Stale Issue & Pull Request Handler | Manage inactive Issues and Pull Requests.  |
-| Workflow Summary                   | Generate workflow summaries.               |
-| Workflow Notifier                  | Send Slack workflow notifications.         |
-| Workflow Clean Up                  | Maintain workflow history and artifacts.   |
-| Workflow Scheduler Test            | Verify scheduled workflow execution.       |
+| Workflow                                                                 | Typical Use                                                  |
+| :----------------------------------------------------------------------- | :----------------------------------------------------------- |
+| [Dependabot Manager](#dependabot-manager)                                | Automatically manage Dependabot Pull Requests.               |
+| [First-Time Contributor Greetings](#first-time-contributor-greetings)    | Welcome new contributors with automated messages.            |
+| [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler) | Automatically manage inactive Issues and Pull Requests.      |
+| [Workflow Summary](#workflow-summary)                                    | Generate summaries of GitHub Actions workflow runs.          |
+| [Workflow Notifier](#workflow-notifier)                                  | Send workflow status notifications to Slack.                 |
+| [Workflow Clean Up](#workflow-clean-up)                                  | Remove obsolete workflow runs and artifacts.                 |
+| [Workflow Scheduler Test](#workflow-scheduler-test)                      | Verify scheduled GitHub Actions workflows execute correctly. |
 
 ## Dependabot Manager
 
-Automates the handling of Pull Requests opened by **Dependabot**.
-
-Rather than manually reviewing routine dependency updates, this workflow can automatically approve, label and merge eligible Pull Requests according to the
-configured policy.
+Automatically manages Pull Requests created by Dependabot by applying labels, approving updates and merging eligible dependency changes according to the
+configured repository policy.
 
 ### Features
 
@@ -1053,10 +921,6 @@ contents: write
 pull-requests: write
 ```
 
-### Required Secrets
-
-None.
-
 ### Example
 
 ```yaml
@@ -1071,9 +935,8 @@ This workflow only executes when the triggering actor is `dependabot[bot]`.
 
 ## First-Time Contributor Greetings
 
-Welcomes users making their first contribution to a repository.
-
-The workflow automatically posts friendly welcome messages when contributors open their first Issue or Pull Request.
+Automatically posts friendly welcome messages when contributors open their first Issue or Pull Request. The workflow provides a consistent onboarding
+experience while encouraging community participation.
 
 ### Features
 
@@ -1113,10 +976,8 @@ jobs:
 
 ## Stale Issue & Pull Request Handler
 
-Automatically manages inactive Issues and Pull Requests.
-
-Repositories can define independent policies for Issues and Pull Requests, allowing stale discussions to be identified, labelled and eventually closed if no
-further activity occurs.
+Identifies inactive Issues and Pull Requests, applies configurable stale labels, notifies contributors and optionally closes abandoned discussions according to
+repository policy.
 
 ### Features
 
@@ -1134,12 +995,6 @@ issues: write
 pull-requests: write
 ```
 
-### Optional Secrets
-
-```text
-slack_webhook_url
-```
-
 ### Example
 
 ```yaml
@@ -1154,9 +1009,7 @@ The workflow is built on GitHub's official `actions/stale` action while exposing
 
 ## Workflow Summary
 
-Generates a Markdown summary of the current workflow execution.
-
-The generated report provides a concise overview of the workflow run and may optionally be uploaded as a workflow artifact.
+Generates concise Markdown summaries of GitHub Actions workflow runs and optionally uploads them as workflow artifacts for later review.
 
 ### Features
 
@@ -1189,10 +1042,7 @@ jobs:
 
 ## Workflow Notifier
 
-Sends Slack notifications summarising workflow execution.
-
-This workflow provides a consistent notification mechanism across **The Lupaxa Project**, allowing repositories to publish workflow results without
-implementing their own notification logic.
+Sends configurable Slack notifications summarising GitHub Actions workflow execution, helping teams monitor automation activity and quickly identify failures.
 
 ### Features
 
@@ -1241,7 +1091,8 @@ notifications while maintaining repository security.
 
 ## Workflow Clean Up
 
-Maintains GitHub Actions workflow history and workflow artifacts.
+Manages GitHub Actions workflow runs and artifacts by applying configurable retention policies, removing obsolete history and generating detailed cleanup
+reports.
 
 This is the most comprehensive reusable workflow within the repository and provides fine-grained control over workflow retention, artifact cleanup and
 historical workflow management.
@@ -1285,10 +1136,6 @@ Rather than documenting every individual option here, repository maintainers sho
 actions: write
 ```
 
-### Required Secrets
-
-None.
-
 ### Example
 
 ```yaml
@@ -1306,9 +1153,8 @@ thousands of workflow runs.
 
 ## Workflow Scheduler Test
 
-Provides a lightweight workflow for verifying scheduled GitHub Actions execution.
-
-This workflow is primarily intended for testing and troubleshooting scheduled workflows.
+Provides a lightweight diagnostic workflow for confirming that scheduled GitHub Actions workflows are executing correctly and that runner environments are
+operating as expected.
 
 ### Features
 
@@ -1317,18 +1163,6 @@ This workflow is primarily intended for testing and troubleshooting scheduled wo
 - Displays execution time.
 - Displays GitHub context.
 - Lightweight diagnostic output.
-
-### Inputs
-
-None.
-
-### Additional Permissions
-
-None.
-
-### Required Secrets
-
-None.
 
 ### Example
 
@@ -1341,35 +1175,6 @@ jobs:
 [↑ Back to Contents](#contents)
 
 # Frequently Asked Questions
-
-## Which workflow should I use?
-
-The table below provides a quick reference for selecting the appropriate workflow.
-
-| I want to...                             | Workflow                             |
-| :--------------------------------------- | :----------------------------------- |
-| Validate repository metadata             | Citation Validator                   |
-| Validate JSON files                      | JSON Validator                       |
-| Validate Markdown documentation          | Markdown Linter                      |
-| Validate YAML configuration              | YAML Linter                          |
-| Validate hyperlinks                      | Link Checker                         |
-| Lint Python projects                     | Python Linter                        |
-| Run a complete Python CI pipeline        | Python Continuous Integration        |
-| Run Python CI using Make                 | Python Continuous Integration (Make) |
-| Scan Python projects for security issues | Python Security Scanner              |
-| Detect outdated Python dependencies      | Python Dependency Updater            |
-| Lint PHP, Perl, Puppet or Ruby projects  | Language Quality workflows           |
-| Scan for repository secrets              | Secrets Scanner                      |
-| Perform CodeQL analysis                  | Code Analysis                        |
-| Publish documentation                    | MkDocs Site Publisher                |
-| Generate GitHub Releases                 | GitHub Release Generator             |
-| Welcome first-time contributors          | First-Time Contributor Greetings     |
-| Manage Dependabot Pull Requests          | Dependabot Manager                   |
-| Manage stale Issues and Pull Requests    | Stale Issue & Pull Request Handler   |
-| Generate workflow summaries              | Workflow Summary                     |
-| Send Slack notifications                 | Workflow Notifier                    |
-| Clean workflow history                   | Workflow Clean Up                    |
-| Test scheduled workflows                 | Workflow Scheduler Test              |
 
 ## Can multiple reusable workflows be used together?
 
@@ -1519,23 +1324,50 @@ A typical repository might use the following workflow stack.
 Repository
 │
 ├── Repository Quality
+│   ├── Citation Validator
+│   ├── JSON Validator
+│   ├── Link Checker
 │   ├── Markdown Linter
-│   ├── YAML Linter
-│   └── Link Checker
+│   └── YAML Linter
 │
-├── Language Quality
-│   └── Python Continuous Integration
+├── Continuous Integration
+│   ├── Python Continuous Integration
+│   └── Python Continuous Integration (Make)
+│
+├── Language Analysis
+│   ├── Dockerfile Linter
+│   ├── Perl Linter
+│   ├── PHP Linter
+│   ├── Puppet Linter
+│   ├── Python Code Auditor
+│   ├── Python DocString Checker
+│   ├── Python Linter
+│   ├── Python Security Scanner
+│   ├── Python Style Guide Checker
+│   ├── Ruby Code Smell Detector
+│   ├── Ruby Linter
+│   └── Shell Script Linter
 │
 ├── Security
 │   ├── Code Analysis
+│   ├── GitHub Actions Security
 │   └── Secrets Scanner
 │
 ├── Documentation
 │   └── MkDocs Site Publisher
 │
+├── Release Management
+│   ├── GitHub Release Generator
+│   └── Python Dependency Updater
+│
 └── Repository Automation
-    ├── Workflow Summary
-    └── Workflow Notifier
+    ├── Dependabot Manager
+    ├── First-Time Contributor Greetings
+    ├── Stale Issue & Pull Request Handler
+    ├── Workflow Clean Up
+    ├── Workflow Notifier
+    ├── Workflow Scheduler Test
+    └── Workflow Summary
 ```
 
 Repositories are free to adopt only those workflows that are appropriate for their requirements.
