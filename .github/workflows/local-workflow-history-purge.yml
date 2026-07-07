@@ -21,23 +21,11 @@ on:
         type: string
         default: "0.25"
 
-      verbosity:
-        description: "Output verbosity (0=summary, 1=progress, 2=detailed)."
-        required: false
-        type: string
-        default: "1"
-
       retries:
         description: "Number of retries for transient GitHub API failures."
         required: false
         type: string
         default: "3"
-
-      yes:
-        description: "I understand this will permanently delete GitHub Actions workflow history."
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   actions: write
@@ -51,6 +39,4 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
       limit: ${{ inputs.limit }}
       delay_seconds: ${{ inputs.delay_seconds }}
-      verbosity: ${{ inputs.verbosity }}
       retries: ${{ inputs.retries }}
-      yes: ${{ inputs.yes }}
