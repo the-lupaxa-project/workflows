@@ -24,8 +24,7 @@ on:
       verbosity:
         description: "Output verbosity (0=summary, 1=progress, 2=detailed)."
         required: false
-        type: choice
-        options: ["0", "1", "2"]
+        type: string
         default: "1"
 
       retries:
