@@ -42,8 +42,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-generate-workflow-summary:
-    name: Reusable Generate Workflow Summary
+  generate-workflow-summary:
+    name: Generate Workflow Summary
     runs-on: ubuntu-latest
 
     steps:
@@ -56,7 +56,7 @@ jobs:
       - name: Generate Workflow Summary
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          WORKFLOW_IGNORE_JOBS: "Reusable Generate Workflow Summary,Reusable Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
+          WORKFLOW_IGNORE_JOBS: "Generate Workflow Summary,Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
           WORKFLOW_SUMMARY_API_RETRIES: ${{ inputs.api_retries }}
           WORKFLOW_SUMMARY_JOBS_TO_FETCH: ${{ inputs.jobs_to_fetch }}
         run: |

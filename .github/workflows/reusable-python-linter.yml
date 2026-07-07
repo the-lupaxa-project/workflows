@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-python-linter:
-    name: Reusable Python Linter
+  python-linter:
+    name: Python Linter
     runs-on: ubuntu-latest
 
     steps:

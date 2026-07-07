@@ -44,8 +44,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-workflow-history-purge:
-    name: Reusable Workflow History Purge
+  workflow-history-purge:
+    name: Workflow History Purge
     runs-on: ubuntu-latest
 
     steps:

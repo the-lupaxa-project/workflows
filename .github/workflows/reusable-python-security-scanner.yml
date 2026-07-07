@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-python-security-scanner:
-    name: Reusable Python Security Scanner
+  python-security-scanner:
+    name: Python Security Scanner
     runs-on: ubuntu-latest
 
     steps:

@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-python-dependency-updater:
-    name: Reusable Python Dependency Updater
+  python-dependency-updater:
+    name: Python Dependency Updater
     runs-on: ubuntu-latest
 
     steps:

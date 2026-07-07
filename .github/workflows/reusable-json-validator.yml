@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-json-validator:
-    name: Reusable JSON Validator
+  json-validator:
+    name: JSON Validator
     runs-on: ubuntu-latest
 
     steps:

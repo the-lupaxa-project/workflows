@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-citation-validator:
-    name: Reusable Citation Validator
+  citation-validator:
+    name: Citation Validator
     runs-on: ubuntu-latest
 
     steps:

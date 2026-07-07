@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-ruby-code-smell-detector:
-    name: Reusable Ruby Code Smell Detector
+  ruby-code-smell-detector:
+    name: Ruby Code Smell Detector
     runs-on: ubuntu-latest
 
     steps:

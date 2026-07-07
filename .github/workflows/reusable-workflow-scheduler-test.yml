@@ -7,8 +7,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-workflow-scheduler-test:
-    name: Reusable Workflow Scheduler Test
+  workflow-scheduler-test:
+    name: Workflow Scheduler Test
     runs-on: ubuntu-latest
 
     steps:

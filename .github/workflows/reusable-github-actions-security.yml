@@ -23,8 +23,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  reusable-github-actions-security:
-    name: Reusable GitHub Actions Security
+  github-actions-security:
+    name: GitHub Actions Security
     runs-on: ubuntu-latest
 
     steps:

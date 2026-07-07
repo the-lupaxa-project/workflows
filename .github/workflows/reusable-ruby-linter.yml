@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-ruby-linter:
-    name: Reusable Ruby Linter
+  ruby-linter:
+    name: Ruby Linter
     runs-on: ubuntu-latest
 
     steps:

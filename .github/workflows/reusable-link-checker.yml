@@ -52,8 +52,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-link-checker:
-    name: Reusable Link Checker
+  link-checker:
+    name: Link Checker
     runs-on: ubuntu-latest
 
     steps:

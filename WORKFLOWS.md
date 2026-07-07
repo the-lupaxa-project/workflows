@@ -49,41 +49,41 @@ from a comprehensive CI/CD platform.
 
 The following table provides a quick overview of every reusable workflow available in this repository.
 
-| Workflow                                                                    | Category               | Level        | Typical Use                                                                    |
-| :-------------------------------------------------------------------------- | :--------------------- | :----------: | :----------------------------------------------------------------------------- |
-| [Citation Validator](#citation-validator)                                   | Repository Quality     | Basic        | Validate repository citation metadata before publishing.                       |
-| [Code Analysis](#code-analysis)                                             | Security               | Intermediate | Identify security vulnerabilities and code quality issues using GitHub CodeQL. |
-| [Dependabot Manager](#dependabot-manager)                                   | Repository Automation  | Intermediate | Automatically manage Dependabot Pull Requests.                                 |
-| [Dockerfile Linter](#dockerfile-linter)                                     | Language Analysis      | Basic        | Check Dockerfiles for best practices and common issues.                        |
-| [First-Time Contributor Greetings](#first-time-contributor-greetings)       | Repository Automation  | Basic        | Welcome new contributors with automated messages.                              |
-| [GitHub Actions Security](#github-actions-security)                         | Security               | Intermediate | Verify GitHub Actions workflows follow security best practices.                |
-| [GitHub Release Generator](#github-release-generator)                       | Release Management     | Advanced     | Create and publish GitHub Releases from repository tags.                       |
-| [JSON Validator](#json-validator)                                           | Repository Quality     | Basic        | Validate JSON configuration and data files.                                    |
-| [Link Checker](#link-checker)                                               | Repository Quality     | Intermediate | Detect broken or invalid links in documentation.                               |
-| [Markdown Linter](#markdown-linter)                                         | Repository Quality     | Basic        | Check Markdown documentation for formatting and style issues.                  |
-| [MkDocs Site Publisher](#mkdocs-site-publisher)                             | Documentation          | Advanced     | Build and publish MkDocs documentation to GitHub Pages.                        |
-| [Perl Linter](#perl-linter)                                                 | Language Analysis      | Basic        | Analyse Perl source code for syntax and quality issues.                        |
-| [PHP Linter](#php-linter)                                                   | Language Analysis      | Basic        | Analyse PHP source code for syntax and coding issues.                          |
-| [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
-| [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
-| [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
-| [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
-| [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
-| [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
-| [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
-| [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
-| [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
-| [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
-| [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
-| [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
-| [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
-| [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
-| [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
-| [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
-| [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
-| [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
-| [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
-| [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
+| #   | Workflow                                                                    | Category               | Level        | Typical Use                                                                    |
+| :-: |:-------------------------------------------------------------------------- | :--------------------- | :----------: | :----------------------------------------------------------------------------- |
+|   1 | [Citation Validator](#citation-validator)                                   | Repository Quality     | Basic        | Validate repository citation metadata before publishing.                       |
+|   2 | [Code Analysis](#code-analysis)                                             | Security               | Intermediate | Identify security vulnerabilities and code quality issues using GitHub CodeQL. |
+|   3 | [Dependabot Manager](#dependabot-manager)                                   | Repository Automation  | Intermediate | Automatically manage Dependabot Pull Requests.                                 |
+|   4 | [Dockerfile Linter](#dockerfile-linter)                                     | Language Analysis      | Basic        | Check Dockerfiles for best practices and common issues.                        |
+|   5 | [First-Time Contributor Greetings](#first-time-contributor-greetings)       | Repository Automation  | Basic        | Welcome new contributors with automated messages.                              |
+|   6 | [GitHub Actions Security](#github-actions-security)                         | Security               | Intermediate | Verify GitHub Actions workflows follow security best practices.                |
+|   7 | [GitHub Release Generator](#github-release-generator)                       | Release Management     | Advanced     | Create and publish GitHub Releases from repository tags.                       |
+|   8 | [JSON Validator](#json-validator)                                           | Repository Quality     | Basic        | Validate JSON configuration and data files.                                    |
+|   9 | [Link Checker](#link-checker)                                               | Repository Quality     | Intermediate | Detect broken or invalid links in documentation.                               |
+|  10 | [Markdown Linter](#markdown-linter)                                         | Repository Quality     | Basic        | Check Markdown documentation for formatting and style issues.                  |
+|  11 | [MkDocs Site Publisher](#mkdocs-site-publisher)                             | Documentation          | Advanced     | Build and publish MkDocs documentation to GitHub Pages.                        |
+|  12 | [Perl Linter](#perl-linter)                                                 | Language Analysis      | Basic        | Analyse Perl source code for syntax and quality issues.                        |
+|  13 | [PHP Linter](#php-linter)                                                   | Language Analysis      | Basic        | Analyse PHP source code for syntax and coding issues.                          |
+|  14 | [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
+|  15 | [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
+|  16 | [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
+|  17 | [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
+|  18 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
+|  19 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
+|  20 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
+|  21 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
+|  22 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
+|  23 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
+|  24 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
+|  25 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
+|  26 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
+|  27 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
+|  28 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
+|  29 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
+|  30 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
+|  31 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
+|  32 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
+|  33 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
 
 > [!TIP]
 > **Level Guide**

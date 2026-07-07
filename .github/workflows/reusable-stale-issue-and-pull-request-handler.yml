@@ -98,8 +98,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  reusable-stale-issue-and-pull-request-handler:
-    name: Reusable Stale Issue & Pull Request Handler
+  stale-issue-and-pull-request-handler:
+    name: Stale Issue & Pull Request Handler
     runs-on: ubuntu-latest
 
     steps:

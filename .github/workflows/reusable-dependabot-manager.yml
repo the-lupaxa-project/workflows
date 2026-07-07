@@ -44,8 +44,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  reusable-dependabot-manager:
-    name: Reusable Dependabot Manager
+  dependabot-manager:
+    name: Dependabot Manager
     runs-on: ubuntu-latest
 
     if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'pull_request' }}

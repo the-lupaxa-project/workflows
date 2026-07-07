@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-php-linter:
-    name: Reusable PHP Linter
+  php-linter:
+    name: PHP Linter
     runs-on: ubuntu-latest
 
     steps:

@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-yaml-linter:
-    name: Reusable YAML Linter
+  yaml-linter:
+    name: YAML Linter
     runs-on: ubuntu-latest
 
     steps:

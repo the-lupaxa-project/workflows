@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-puppet-linter:
-    name: Reusable Puppet Linter
+  puppet-linter:
+    name: Puppet Linter
     runs-on: ubuntu-latest
 
     steps:

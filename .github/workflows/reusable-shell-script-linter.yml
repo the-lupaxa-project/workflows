@@ -31,8 +31,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-shell-script-linter:
-    name: Reusable Shell Script Linter
+  shell-script-linter:
+    name: Shell Script Linter
     runs-on: ubuntu-latest
 
     steps:

@@ -16,8 +16,8 @@ permissions:
   security-events: write
 
 jobs:
-  reusable-code-analysis:
-    name: Reusable Code Analysis
+  code-analysis:
+    name: Code Analysis
     runs-on: ubuntu-latest
 
     steps:

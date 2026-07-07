@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-dockerfile-linter:
-    name: Reusable Dockerfile Linter
+  dockerfile-linter:
+    name: Dockerfile Linter
     runs-on: ubuntu-latest
 
     steps:

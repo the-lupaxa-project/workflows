@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-python-docstring-checker:
-    name: Reusable Python DocString Checker
+  python-docstring-checker:
+    name: Python DocString Checker
     runs-on: ubuntu-latest
 
     steps:

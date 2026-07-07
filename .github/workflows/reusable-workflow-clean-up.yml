@@ -110,8 +110,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-workflow-clean-up:
-    name: Reusable Workflow Clean Up
+  workflow-clean-up:
+    name: Workflow Clean Up
     runs-on: ubuntu-latest
 
     steps:

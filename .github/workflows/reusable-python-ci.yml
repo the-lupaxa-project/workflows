@@ -18,8 +18,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-python-ci:
-    name: Reusable Python CI
+  python-ci:
+    name: Python CI
     runs-on: ubuntu-latest
 
     strategy:

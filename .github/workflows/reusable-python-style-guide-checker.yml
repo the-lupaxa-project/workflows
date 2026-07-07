@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-python-style-guide-checker:
-    name: Reusable Python Style Guide Checker
+  python-style-guide-checker:
+    name: Python Style Guide Checker
     runs-on: ubuntu-latest
 
     steps:

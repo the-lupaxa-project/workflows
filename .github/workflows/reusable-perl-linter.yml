@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-perl-linter:
-    name: Reusable Perl Linter
+  perl-linter:
+    name: Perl Linter
     runs-on: ubuntu-latest
 
     steps:

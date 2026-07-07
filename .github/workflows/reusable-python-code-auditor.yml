@@ -41,8 +41,8 @@ permissions:
   contents: read
 
 jobs:
-  reusable-python-code-auditor:
-    name: Reusable Python Code Auditor
+  python-code-auditor:
+    name: Python Code Auditor
     runs-on: ubuntu-latest
 
     steps:

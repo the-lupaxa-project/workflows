@@ -26,8 +26,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  reusable-first-time-contributor-greetings:
-    name: Reusable First-Time Contributor Greetings
+  first-time-contributor-greetings:
+    name: First-Time Contributor Greetings
     runs-on: ubuntu-latest
 
     steps:
