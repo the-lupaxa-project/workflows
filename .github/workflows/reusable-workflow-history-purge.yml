@@ -33,7 +33,7 @@ on:
         type: string
         default: "3"
 
-      yes:
+      confirm:
         description: "Confirm destructive deletion when dry_run is false."
         required: false
         type: boolean
@@ -63,6 +63,6 @@ jobs:
           PURGE_DELAY_SECONDS: ${{ inputs.delay_seconds }}
           PURGE_VERBOSITY: ${{ inputs.verbosity }}
           PURGE_RETRIES: ${{ inputs.retries }}
-          PURGE_YES: ${{ inputs.yes }}
+          PURGE_CONFIRM: ${{ inputs.confirm }}
         run: |
           python lupaxa-workflows/.github/scripts/workflow-history-purge.py

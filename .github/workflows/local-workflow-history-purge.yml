@@ -34,6 +34,12 @@ on:
         type: string
         default: "3"
 
+      confirm:
+        description: "I understand this will permanently delete GitHub Actions workflow history."
+        required: false
+        type: boolean
+        default: false
+
 permissions:
   actions: write
   contents: read
@@ -48,3 +54,4 @@ jobs:
       delay_seconds: ${{ inputs.delay_seconds }}
       verbosity: ${{ inputs.verbosity }}
       retries: ${{ inputs.retries }}
+      confirm: ${{ inputs.confirm }}

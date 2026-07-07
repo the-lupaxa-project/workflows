@@ -12,7 +12,7 @@ Optional environment:
   PURGE_DELAY_SECONDS=0.25
   PURGE_VERBOSITY=1
   PURGE_RETRIES=3
-  PURGE_YES=false
+  PURGE_CONFIRM=false
 """
 
 from __future__ import annotations
@@ -214,8 +214,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        "--yes",
-        default=env_bool("PURGE_YES", False),
+        "--confirm",
+        default=env_bool("PURGE_CONFIRM", False),
         action="store_true",
         help="Required when --dry-run=false to confirm destructive deletion.",
     )
@@ -246,9 +246,9 @@ def main() -> int:
     stats = Stats()
     started = datetime.now(timezone.utc)
 
-    if not args.dry_run and not args.yes:
+    if not args.dry_run and not args.confirm:
         print(
-            "ERROR: refusing to delete workflow runs without --yes when --dry-run=false",
+            "ERROR: refusing to delete workflow runs without --confirm when --dry-run=false",
             file=sys.stderr,
         )
         return 2
