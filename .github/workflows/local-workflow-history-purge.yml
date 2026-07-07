@@ -21,6 +21,12 @@ on:
         type: string
         default: "0.25"
 
+      verbosity:
+        description: "Output verbosity (0=summary, 1=progress, 2=detailed)."
+        required: false
+        type: string
+        default: "1"
+
       retries:
         description: "Number of retries for transient GitHub API failures."
         required: false
@@ -39,4 +45,5 @@ jobs:
       dry_run: ${{ inputs.dry_run }}
       limit: ${{ inputs.limit }}
       delay_seconds: ${{ inputs.delay_seconds }}
+      verbosity: ${{ inputs.verbosity }}
       retries: ${{ inputs.retries }}
