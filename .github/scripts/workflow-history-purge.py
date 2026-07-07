@@ -109,10 +109,11 @@ def api_request(
 
             if exc.code in {403, 429, 500, 502, 503, 504} and attempt < retries:
                 stats.retries += 1
-                sleep_for = min(60, 2 ** attempt * 5)
+                sleep_for = min(60, 2**attempt * 5)
                 print(
                     f"[RETRY] {method} {url} failed with HTTP {exc.code}; retrying in {sleep_for}s",
-                    file=sys.stderr, flush=True
+                    file=sys.stderr,
+                    flush=True,
                 )
                 time.sleep(sleep_for)
                 continue
@@ -122,10 +123,11 @@ def api_request(
         except urllib.error.URLError as exc:
             if attempt < retries:
                 stats.retries += 1
-                sleep_for = min(60, 2 ** attempt * 5)
+                sleep_for = min(60, 2**attempt * 5)
                 print(
                     f"[RETRY] {method} {url} failed: {exc}; retrying in {sleep_for}s",
-                    file=sys.stderr, flush=True
+                    file=sys.stderr,
+                    flush=True,
                 )
                 time.sleep(sleep_for)
                 continue
@@ -135,21 +137,45 @@ def api_request(
     raise RuntimeError(f"{method} {url} failed after retries")
 
 
-def iter_workflow_runs(repository: str, token: str, retries: int, stats: Stats) -> Any:
+def get_workflow_runs_page(
+    repository: str,
+    token: str,
+    retries: int,
+    stats: Stats,
+    page: int = 1,
+    per_page: int = 100,
+) -> list[dict[str, Any]]:
+    query = urllib.parse.urlencode({"per_page": per_page, "page": page})
+    data = api_request(
+        "GET",
+        f"/repos/{repository}/actions/runs?{query}",
+        token,
+        retries,
+        stats,
+    )
+
+    return data.get("workflow_runs", [])
+
+
+def iter_workflow_runs_for_dry_run(
+    repository: str,
+    token: str,
+    retries: int,
+    stats: Stats,
+) -> Any:
     page = 1
     per_page = 100
 
     while True:
-        query = urllib.parse.urlencode({"per_page": per_page, "page": page})
-        data = api_request(
-            "GET",
-            f"/repos/{repository}/actions/runs?{query}",
-            token,
-            retries,
-            stats,
+        runs = get_workflow_runs_page(
+            repository=repository,
+            token=token,
+            retries=retries,
+            stats=stats,
+            page=page,
+            per_page=per_page,
         )
 
-        runs = data.get("workflow_runs", [])
         if not runs:
             break
 
@@ -174,7 +200,7 @@ def delete_run(repository: str, run_id: int, token: str, retries: int, stats: St
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Delete all completed GitHub Actions workflow runs for the current repository.",
+        description="Delete completed GitHub Actions workflow runs for the current repository.",
     )
 
     parser.add_argument(
@@ -227,29 +253,24 @@ def should_skip(status: str) -> bool:
     return status in SKIPPED_STATUSES
 
 
-def print_header(repository: str, dry_run: bool, limit: int, delay: float, retries: int) -> None:
+def print_header(repository: str, dry_run: bool, limit: int, delay: float, retries: int, confirm: bool) -> None:
     print("Workflow History Purge", flush=True)
     print("======================", flush=True)
     print(f"Repository : {repository}", flush=True)
     print(f"Dry run    : {str(dry_run).lower()}", flush=True)
+    print(f"Confirm    : {str(confirm).lower()}", flush=True)
     print(f"Limit      : {limit if limit else 'unlimited'}", flush=True)
     print(f"Delay      : {delay}s", flush=True)
     print(f"Retries    : {retries}", flush=True)
     print("", flush=True)
 
 
-def main() -> int:
-    args = build_parser().parse_args()
-
-    token = require_env("GITHUB_TOKEN")
-    repository = require_env("GITHUB_REPOSITORY")
-    stats = Stats()
-    started = datetime.now(timezone.utc)
-
+def validate_args(args: argparse.Namespace) -> int:
     if not args.dry_run and not args.confirm:
         print(
             "ERROR: refusing to delete workflow runs without --confirm when --dry-run=false",
-            file=sys.stderr, flush=True
+            file=sys.stderr,
+            flush=True,
         )
         return 2
 
@@ -265,60 +286,149 @@ def main() -> int:
         print("ERROR: --retries must be 0 or greater", file=sys.stderr, flush=True)
         return 2
 
-    if args.verbosity >= 1:
-        print_header(repository, args.dry_run, args.limit, args.delay, args.retries)
+    return 0
 
-    delete_count = 0
 
-    for run in iter_workflow_runs(repository, token, args.retries, stats):
-        stats.inspected += 1
+def handle_run(
+    *,
+    run: dict[str, Any],
+    repository: str,
+    token: str,
+    args: argparse.Namespace,
+    stats: Stats,
+    candidate_count: int,
+) -> tuple[int, bool]:
+    stats.inspected += 1
 
-        run_id = int(run["id"])
-        name = run.get("name") or "(unnamed workflow)"
-        status = run.get("status") or "unknown"
-        conclusion = run.get("conclusion") or "none"
-        created_at = run.get("created_at") or "unknown"
+    run_id = int(run["id"])
+    name = run.get("name") or "(unnamed workflow)"
+    status = run.get("status") or "unknown"
+    conclusion = run.get("conclusion") or "none"
+    created_at = run.get("created_at") or "unknown"
 
-        if should_skip(status):
-            stats.skipped += 1
-            if args.verbosity >= 2:
-                print(f"[SKIP]   {run_id} | {status:<12} | {created_at} | {name}", flush=True)
+    if should_skip(status):
+        stats.skipped += 1
+        if args.verbosity >= 2:
+            print(f"[SKIP]   {run_id} | {status:<12} | {created_at} | {name}", flush=True)
+        return candidate_count, False
+
+    if status != "completed":
+        stats.skipped += 1
+        if args.verbosity >= 2:
+            print(f"[SKIP]   {run_id} | {status:<12} | {created_at} | {name}", flush=True)
+        return candidate_count, False
+
+    if args.limit and candidate_count >= args.limit:
+        stats.skipped += 1
+        if args.verbosity >= 2:
+            print(f"[LIMIT]  {run_id} | {conclusion:<12} | {created_at} | {name}", flush=True)
+        return candidate_count, False
+
+    candidate_count += 1
+
+    if args.dry_run:
+        stats.skipped += 1
+        if args.verbosity >= 1:
+            print(f"[DRY]    {candidate_count:>5} | {run_id} | {conclusion:<12} | {name}", flush=True)
+        return candidate_count, False
+
+    try:
+        delete_run(repository, run_id, token, args.retries, stats)
+        stats.deleted += 1
+
+        if args.verbosity >= 1:
+            print(f"[DELETE] {candidate_count:>5} | {run_id} | {conclusion:<12} | {name}", flush=True)
+
+        if args.delay > 0:
+            time.sleep(args.delay)
+
+        return candidate_count, True
+
+    except RuntimeError as exc:
+        stats.failed += 1
+        print(f"[FAILED] {run_id} | {name} | {exc}", file=sys.stderr, flush=True)
+        return candidate_count, False
+
+
+def run_dry_run(repository: str, token: str, args: argparse.Namespace, stats: Stats) -> None:
+    candidate_count = 0
+
+    for run in iter_workflow_runs_for_dry_run(repository, token, args.retries, stats):
+        candidate_count, _ = handle_run(
+            run=run,
+            repository=repository,
+            token=token,
+            args=args,
+            stats=stats,
+            candidate_count=candidate_count,
+        )
+
+
+def run_delete(repository: str, token: str, args: argparse.Namespace, stats: Stats) -> None:
+    candidate_count = 0
+    pass_number = 0
+
+    while True:
+        if args.limit and candidate_count >= args.limit:
+            break
+
+        pass_number += 1
+
+        if args.verbosity >= 2:
+            print(f"[PASS]   Fetching page 1, pass {pass_number}", flush=True)
+
+        runs = get_workflow_runs_page(
+            repository=repository,
+            token=token,
+            retries=args.retries,
+            stats=stats,
+            page=1,
+            per_page=100,
+        )
+
+        if not runs:
+            break
+
+        deleted_this_pass = 0
+        deletable_seen_this_pass = 0
+
+        for run in runs:
+            if args.limit and candidate_count >= args.limit:
+                break
+
+            status = run.get("status") or "unknown"
+            if status == "completed":
+                deletable_seen_this_pass += 1
+
+            before_deleted = stats.deleted
+
+            candidate_count, deleted = handle_run(
+                run=run,
+                repository=repository,
+                token=token,
+                args=args,
+                stats=stats,
+                candidate_count=candidate_count,
+            )
+
+            if deleted or stats.deleted > before_deleted:
+                deleted_this_pass += 1
+
+        if deleted_this_pass > 0:
             continue
 
-        if status != "completed":
-            stats.skipped += 1
-            if args.verbosity >= 2:
-                print(f"[SKIP]   {run_id} | {status:<12} | {created_at} | {name}", flush=True)
-            continue
+        if deletable_seen_this_pass == 0:
+            break
 
-        if args.limit and delete_count >= args.limit:
-            stats.skipped += 1
-            if args.verbosity >= 2:
-                print(f"[LIMIT]  {run_id} | {conclusion:<12} | {created_at} | {name}", flush=True)
-            continue
+        if args.verbosity >= 1:
+            print(
+                "[STOP]   No deletions completed during this pass; stopping to avoid an infinite loop.",
+                flush=True,
+            )
+        break
 
-        if args.dry_run:
-            stats.skipped += 1
-            delete_count += 1
-            if args.verbosity >= 1:
-                print(f"[DRY]    {delete_count:>5} | {run_id} | {conclusion:<12} | {name}", flush=True)
-            continue
 
-        try:
-            delete_run(repository, run_id, token, args.retries, stats)
-            stats.deleted += 1
-            delete_count += 1
-
-            if args.verbosity >= 1:
-                print(f"[DELETE] {delete_count:>5} | {run_id} | {conclusion:<12} | {name}", flush=True)
-
-            if args.delay > 0:
-                time.sleep(args.delay)
-
-        except RuntimeError as exc:
-            stats.failed += 1
-            print(f"[FAILED] {run_id} | {name} | {exc}", file=sys.stderr, flush=True)
-
+def print_summary(repository: str, args: argparse.Namespace, stats: Stats, started: datetime) -> None:
     elapsed = datetime.now(timezone.utc) - started
 
     print("", flush=True)
@@ -326,6 +436,7 @@ def main() -> int:
     print("-------", flush=True)
     print(f"Repository : {repository}", flush=True)
     print(f"Mode       : {'dry-run' if args.dry_run else 'delete'}", flush=True)
+    print(f"Confirm    : {str(args.confirm).lower()}", flush=True)
     print(f"Inspected  : {stats.inspected}", flush=True)
     print(f"Deleted    : {stats.deleted}", flush=True)
     print(f"Skipped    : {stats.skipped}", flush=True)
@@ -333,6 +444,30 @@ def main() -> int:
     print(f"Retries    : {stats.retries}", flush=True)
     print(f"Limit      : {args.limit if args.limit else 'unlimited'}", flush=True)
     print(f"Elapsed    : {str(elapsed).split('.')[0]}", flush=True)
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+
+    validation_result = validate_args(args)
+    if validation_result:
+        return validation_result
+
+    token = require_env("GITHUB_TOKEN")
+    repository = require_env("GITHUB_REPOSITORY")
+
+    stats = Stats()
+    started = datetime.now(timezone.utc)
+
+    if args.verbosity >= 1:
+        print_header(repository, args.dry_run, args.limit, args.delay, args.retries, args.confirm)
+
+    if args.dry_run:
+        run_dry_run(repository, token, args, stats)
+    else:
+        run_delete(repository, token, args, stats)
+
+    print_summary(repository, args, stats, started)
 
     return 1 if stats.failed else 0
 
