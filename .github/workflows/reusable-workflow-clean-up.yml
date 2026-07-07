@@ -198,8 +198,7 @@ jobs:
           CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY: ${{ inputs.progress_every }}
           CLEANUP_WORKFLOW_RUNS_VERBOSITY: ${{ inputs.verbosity }}
         run: |
-          python lupaxa-dotgithub/.github/scripts/cleanup-workflow-runs.py
-          find "${RUNNER_TEMP}" -maxdepth 1 -name "cleanup-workflow-runs-*.md" -print
+          python -u lupaxa-dotgithub/.github/scripts/workflow-clean-up.py
 
       - name: Upload Clean Up Report Artifact
         if: ${{ inputs.upload_report_artifact == 'true' }}

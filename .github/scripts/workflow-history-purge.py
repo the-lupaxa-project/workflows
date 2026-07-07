@@ -65,7 +65,7 @@ def env_bool(name: str, default: bool) -> bool:
 def require_env(name: str) -> str:
     value = os.getenv(name)
     if not value:
-        print(f"ERROR: required environment variable {name} is not set", file=sys.stderr)
+        print(f"ERROR: required environment variable {name} is not set", file=sys.stderr, flush=True)
         raise SystemExit(2)
     return value
 
@@ -112,7 +112,7 @@ def api_request(
                 sleep_for = min(60, 2 ** attempt * 5)
                 print(
                     f"[RETRY] {method} {url} failed with HTTP {exc.code}; retrying in {sleep_for}s",
-                    file=sys.stderr,
+                    file=sys.stderr, flush=True
                 )
                 time.sleep(sleep_for)
                 continue
@@ -125,7 +125,7 @@ def api_request(
                 sleep_for = min(60, 2 ** attempt * 5)
                 print(
                     f"[RETRY] {method} {url} failed: {exc}; retrying in {sleep_for}s",
-                    file=sys.stderr,
+                    file=sys.stderr, flush=True
                 )
                 time.sleep(sleep_for)
                 continue
@@ -228,14 +228,14 @@ def should_skip(status: str) -> bool:
 
 
 def print_header(repository: str, dry_run: bool, limit: int, delay: float, retries: int) -> None:
-    print("Workflow History Purge")
-    print("======================")
-    print(f"Repository : {repository}")
-    print(f"Dry run    : {str(dry_run).lower()}")
-    print(f"Limit      : {limit if limit else 'unlimited'}")
-    print(f"Delay      : {delay}s")
-    print(f"Retries    : {retries}")
-    print("")
+    print("Workflow History Purge", flush=True)
+    print("======================", flush=True)
+    print(f"Repository : {repository}", flush=True)
+    print(f"Dry run    : {str(dry_run).lower()}", flush=True)
+    print(f"Limit      : {limit if limit else 'unlimited'}", flush=True)
+    print(f"Delay      : {delay}s", flush=True)
+    print(f"Retries    : {retries}", flush=True)
+    print("", flush=True)
 
 
 def main() -> int:
@@ -249,20 +249,20 @@ def main() -> int:
     if not args.dry_run and not args.confirm:
         print(
             "ERROR: refusing to delete workflow runs without --confirm when --dry-run=false",
-            file=sys.stderr,
+            file=sys.stderr, flush=True
         )
         return 2
 
     if args.limit < 0:
-        print("ERROR: --limit must be 0 or greater", file=sys.stderr)
+        print("ERROR: --limit must be 0 or greater", file=sys.stderr, flush=True)
         return 2
 
     if args.delay < 0:
-        print("ERROR: --delay must be 0 or greater", file=sys.stderr)
+        print("ERROR: --delay must be 0 or greater", file=sys.stderr, flush=True)
         return 2
 
     if args.retries < 0:
-        print("ERROR: --retries must be 0 or greater", file=sys.stderr)
+        print("ERROR: --retries must be 0 or greater", file=sys.stderr, flush=True)
         return 2
 
     if args.verbosity >= 1:
@@ -282,26 +282,26 @@ def main() -> int:
         if should_skip(status):
             stats.skipped += 1
             if args.verbosity >= 2:
-                print(f"[SKIP]   {run_id} | {status:<12} | {created_at} | {name}")
+                print(f"[SKIP]   {run_id} | {status:<12} | {created_at} | {name}", flush=True)
             continue
 
         if status != "completed":
             stats.skipped += 1
             if args.verbosity >= 2:
-                print(f"[SKIP]   {run_id} | {status:<12} | {created_at} | {name}")
+                print(f"[SKIP]   {run_id} | {status:<12} | {created_at} | {name}", flush=True)
             continue
 
         if args.limit and delete_count >= args.limit:
             stats.skipped += 1
             if args.verbosity >= 2:
-                print(f"[LIMIT]  {run_id} | {conclusion:<12} | {created_at} | {name}")
+                print(f"[LIMIT]  {run_id} | {conclusion:<12} | {created_at} | {name}", flush=True)
             continue
 
         if args.dry_run:
             stats.skipped += 1
             delete_count += 1
             if args.verbosity >= 1:
-                print(f"[DRY]    {delete_count:>5} | {run_id} | {conclusion:<12} | {name}")
+                print(f"[DRY]    {delete_count:>5} | {run_id} | {conclusion:<12} | {name}", flush=True)
             continue
 
         try:
@@ -310,29 +310,29 @@ def main() -> int:
             delete_count += 1
 
             if args.verbosity >= 1:
-                print(f"[DELETE] {delete_count:>5} | {run_id} | {conclusion:<12} | {name}")
+                print(f"[DELETE] {delete_count:>5} | {run_id} | {conclusion:<12} | {name}", flush=True)
 
             if args.delay > 0:
                 time.sleep(args.delay)
 
         except RuntimeError as exc:
             stats.failed += 1
-            print(f"[FAILED] {run_id} | {name} | {exc}", file=sys.stderr)
+            print(f"[FAILED] {run_id} | {name} | {exc}", file=sys.stderr, flush=True)
 
     elapsed = datetime.now(timezone.utc) - started
 
-    print("")
-    print("Summary")
-    print("-------")
-    print(f"Repository : {repository}")
-    print(f"Mode       : {'dry-run' if args.dry_run else 'delete'}")
-    print(f"Inspected  : {stats.inspected}")
-    print(f"Deleted    : {stats.deleted}")
-    print(f"Skipped    : {stats.skipped}")
-    print(f"Failed     : {stats.failed}")
-    print(f"Retries    : {stats.retries}")
-    print(f"Limit      : {args.limit if args.limit else 'unlimited'}")
-    print(f"Elapsed    : {str(elapsed).split('.')[0]}")
+    print("", flush=True)
+    print("Summary", flush=True)
+    print("-------", flush=True)
+    print(f"Repository : {repository}", flush=True)
+    print(f"Mode       : {'dry-run' if args.dry_run else 'delete'}", flush=True)
+    print(f"Inspected  : {stats.inspected}", flush=True)
+    print(f"Deleted    : {stats.deleted}", flush=True)
+    print(f"Skipped    : {stats.skipped}", flush=True)
+    print(f"Failed     : {stats.failed}", flush=True)
+    print(f"Retries    : {stats.retries}", flush=True)
+    print(f"Limit      : {args.limit if args.limit else 'unlimited'}", flush=True)
+    print(f"Elapsed    : {str(elapsed).split('.')[0]}", flush=True)
 
     return 1 if stats.failed else 0
 

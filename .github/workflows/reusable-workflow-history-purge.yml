@@ -65,4 +65,4 @@ jobs:
           PURGE_RETRIES: ${{ inputs.retries }}
           PURGE_CONFIRM: ${{ inputs.confirm }}
         run: |
-          python lupaxa-workflows/.github/scripts/workflow-history-purge.py
+          python -u lupaxa-workflows/.github/scripts/workflow-history-purge.py
