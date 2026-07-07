@@ -46,7 +46,7 @@ permissions:
 
 jobs:
   workflow-history-purge:
-    name: ⚠️ Workflow History Purge
+    name: Workflow History Purge
     uses: ./.github/workflows/reusable-workflow-history-purge.yml
     with:
       dry_run: ${{ inputs.dry_run }}
@@ -55,3 +55,21 @@ jobs:
       verbosity: ${{ inputs.verbosity }}
       retries: ${{ inputs.retries }}
       confirm: ${{ inputs.confirm }}
+
+  generate-workflow-summary:
+    name: Generate Workflow Summary
+    needs:
+      - workflow-history-purge
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-summary.yml
+
+  generate-workflow-notifications:
+    name: Generate Workflow Notifications
+    needs:
+      - generate-workflow-summary
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-notifier.yml
+    with:
+      notify_on_results: "failure,timed_out"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
