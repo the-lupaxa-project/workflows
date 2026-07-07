@@ -1156,7 +1156,9 @@ thousands of workflow runs.
 
 Permanently deletes completed GitHub Actions workflow runs from a repository.
 
-Unlike **Workflow Clean Up**, which applies configurable retention policies, **Workflow History Purge** is intended for one-off administrative tasks where all historical workflow runs should be removed. Typical use cases include preparing template repositories, clearing test history or resetting repositories before publication.
+Unlike **Workflow Clean Up**, which applies configurable retention policies, **Workflow History Purge** is intended for one-off administrative tasks where all
+historical workflow runs should be removed. Typical use cases include preparing template repositories, clearing test history or resetting repositories before
+publication.
 
 ### Typical Use
 

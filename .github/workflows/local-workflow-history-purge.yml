@@ -1,9 +1,4 @@
-name: ⚠️ Workflow History Purge
-
-run-name: >
-  ⚠️ Workflow History Purge
-  (dry_run=${{ inputs.dry_run }},
-  limit=${{ inputs.limit }})
+name: Local Workflow History Purge
 
 on:
   workflow_dispatch:
