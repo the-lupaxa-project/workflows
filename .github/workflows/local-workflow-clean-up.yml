@@ -33,99 +33,23 @@ on:
         default: "true"
 
       remove_obsolete:
-        description: Remove workflow runs whose workflow file no longer exists.
+        description: Remove completed workflow runs whose workflow file no longer exists.
         required: false
         type: choice
         options: ["true", "false"]
         default: "true"
 
-      remove_cancelled:
-        description: Remove cancelled workflow runs regardless of age.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "false"
-
-      remove_failed:
-        description: Remove failed workflow runs regardless of age.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "false"
-
-      remove_skipped_immediately:
-        description: Remove skipped workflow runs regardless of age.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "false"
-
-      remove_older_than:
-        description: Multi-line age rules, for example "30d *" or "7d Workflow Name".
-        required: false
-        type: string
-        default: ""
-
       preserve_branch:
-        description: Branch to preserve representative workflow runs for.
+        description: Branch to preserve representative successful workflow runs for.
         required: false
         type: string
         default: "master"
-
-      force_delete_non_default_branch:
-        description: Force-delete completed runs not on preserve_branch, ignoring retention and representative keeps.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "false"
-
-      keep_latest_successful:
-        description: Keep the latest successful completed run for each workflow on preserve_branch.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "true"
-
-      keep_latest_failed:
-        description: Keep the latest failed completed run for each workflow on preserve_branch.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "true"
-
-      keep_latest_cancelled:
-        description: Keep the latest cancelled completed run for each workflow on preserve_branch.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "true"
-
-      keep_latest_timed_out:
-        description: Keep the latest timed-out completed run for each workflow on preserve_branch.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "true"
 
       keep_last_n_successful:
         description: Keep this many recent successful completed runs per workflow on preserve_branch.
         required: false
         type: string
         default: "3"
-
-      delete_skipped:
-        description: Delete skipped runs when they are older than the retention period.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "true"
-
-      delete_neutral:
-        description: Delete neutral runs when they are older than the retention period.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "true"
 
       max_deletes_per_run:
         description: Maximum workflow runs to delete in one cleanup execution. Use 0 for unlimited.
@@ -139,43 +63,12 @@ on:
         type: string
         default: "250"
 
-      delete_sleep_seconds:
-        description: Seconds to sleep between delete calls to reduce API throttling risk.
-        required: false
-        type: string
-        default: "1.0"
-
-      progress_every:
-        description: Print progress after this many inspected workflow runs. Use 0 to disable.
-        required: false
-        type: string
-        default: "50"
-
       verbosity:
         description: Log verbosity. Use quiet, normal, or verbose.
         required: false
         type: choice
         options: ["quiet", "normal", "verbose"]
         default: "normal"
-
-      api_retries:
-        description: Number of retries for transient GitHub API failures.
-        required: false
-        type: string
-        default: "3"
-
-      upload_report_artifact:
-        description: Upload the generated Markdown cleanup report as a workflow artifact.
-        required: false
-        type: choice
-        options: ["true", "false"]
-        default: "true"
-
-      report_artifact_retention_days:
-        description: Number of days to retain the uploaded cleanup report artifact.
-        required: false
-        type: string
-        default: "90"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -195,27 +88,18 @@ jobs:
       dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
       cleanup_artifacts: ${{ inputs.cleanup_artifacts || 'true' }}
       remove_obsolete: ${{ inputs.remove_obsolete || 'true' }}
-      remove_cancelled: ${{ inputs.remove_cancelled || 'false' }}
-      remove_failed: ${{ inputs.remove_failed || 'false' }}
-      remove_skipped_immediately: ${{ inputs.remove_skipped_immediately || 'false' }}
-      remove_older_than: ${{ inputs.remove_older_than || '' }}
       preserve_branch: ${{ inputs.preserve_branch || 'master' }}
-      force_delete_non_default_branch: ${{ inputs.force_delete_non_default_branch || 'false' }}
-      keep_latest_successful: ${{ inputs.keep_latest_successful || 'true' }}
-      keep_latest_failed: ${{ inputs.keep_latest_failed || 'true' }}
-      keep_latest_cancelled: ${{ inputs.keep_latest_cancelled || 'true' }}
-      keep_latest_timed_out: ${{ inputs.keep_latest_timed_out || 'true' }}
       keep_last_n_successful: ${{ inputs.keep_last_n_successful || '3' }}
-      delete_skipped: ${{ inputs.delete_skipped || 'true' }}
-      delete_neutral: ${{ inputs.delete_neutral || 'true' }}
+      delete_skipped: "true"
+      delete_neutral: "true"
       max_deletes_per_run: ${{ inputs.max_deletes_per_run || '250' }}
       max_artifact_deletes_per_run: ${{ inputs.max_artifact_deletes_per_run || '250' }}
-      delete_sleep_seconds: ${{ inputs.delete_sleep_seconds || '1.0' }}
-      progress_every: ${{ inputs.progress_every || '50' }}
+      delete_sleep_seconds: "1.0"
+      progress_every: "50"
       verbosity: ${{ inputs.verbosity || 'normal' }}
-      api_retries: ${{ inputs.api_retries || '3' }}
-      upload_report_artifact: ${{ inputs.upload_report_artifact || 'true' }}
-      report_artifact_retention_days: ${{ inputs.report_artifact_retention_days || '90' }}
+      api_retries: "3"
+      upload_report_artifact: "true"
+      report_artifact_retention_days: "90"
 
   generate-workflow-summary:
     name: Generate Workflow Summary

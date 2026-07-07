@@ -1092,44 +1092,56 @@ notifications while maintaining repository security.
 
 ## Workflow Clean Up
 
-Manages GitHub Actions workflow runs and artifacts by applying configurable retention policies, removing obsolete history and generating detailed cleanup
-reports.
+Maintains GitHub Actions workflow runs and artifacts using a simple retention-based cleanup policy.
 
-This is the most comprehensive reusable workflow within the repository and provides fine-grained control over workflow retention, artifact cleanup and
-historical workflow management.
+This workflow is intended for routine scheduled maintenance. It removes old completed workflow runs, optionally removes runs whose workflow file no longer
+exists, optionally deletes old workflow artifacts and preserves a small number of recent successful representative runs for each workflow on the configured branch.
 
-It is intended for scheduled execution to keep repositories tidy while preserving important workflow history.
+### Typical Use
+
+- Keep GitHub Actions history manageable.
+- Remove old completed workflow runs.
+- Remove runs from deleted or renamed workflow files.
+- Delete old workflow artifacts.
+- Preserve recent successful workflow history for reference.
+- Produce a Markdown cleanup report.
 
 ### Features
 
-- Workflow run retention policies.
-- Artifact cleanup.
-- Age-based cleanup.
-- Workflow-specific retention.
-- Branch preservation.
-- Representative run preservation.
+- Retention-based workflow run cleanup.
+- Optional artifact cleanup.
+- Optional obsolete workflow run removal.
+- Preserves the latest successful runs per workflow on the configured branch.
+- Optional deletion of old skipped and neutral runs.
 - Dry-run mode.
-- Detailed Markdown reporting.
-- Artifact upload.
-- API throttling controls.
-- Configurable verbosity.
+- Workflow run and artifact delete limits.
+- Configurable delay between delete requests.
+- Retry support for transient GitHub API failures.
+- Configurable progress output and verbosity.
+- Markdown report generation.
+- Optional report artifact upload.
 
-### Configuration
+### Inputs
 
-Workflow Clean Up exposes a comprehensive configuration interface covering:
-
-- Workflow retention periods.
-- Artifact retention periods.
-- Branch preservation rules.
-- Protected workflow selection.
-- Representative run preservation.
-- Status-specific cleanup rules.
-- Dry-run execution.
-- Report generation.
-- Progress reporting.
-- GitHub API request throttling.
-
-Rather than documenting every individual option here, repository maintainers should refer to the workflow source for the complete list of available inputs.
+| Input                            | Description                                                                           |
+| :------------------------------- | :------------------------------------------------------------------------------------ |
+| `retention_days`                 | Delete completed workflow runs older than this many days.                             |
+| `artifact_retention_days`        | Delete artifacts older than this many days when artifact cleanup is enabled.          |
+| `dry_run`                        | Report what would be deleted without deleting anything.                               |
+| `cleanup_artifacts`              | Also delete old repository workflow artifacts.                                        |
+| `remove_obsolete`                | Remove completed workflow runs whose workflow file no longer exists.                  |
+| `preserve_branch`                | Branch used when preserving representative successful workflow runs.                  |
+| `keep_last_n_successful`         | Number of recent successful completed runs to keep per workflow on `preserve_branch`. |
+| `delete_skipped`                 | Delete skipped runs when they are older than the retention period.                    |
+| `delete_neutral`                 | Delete neutral runs when they are older than the retention period.                    |
+| `max_deletes_per_run`            | Maximum workflow runs to delete in one cleanup execution. Use `0` for unlimited.      |
+| `max_artifact_deletes_per_run`   | Maximum artifacts to delete in one cleanup execution. Use `0` for unlimited.          |
+| `delete_sleep_seconds`           | Seconds to sleep between delete calls to reduce API throttling risk.                  |
+| `progress_every`                 | Print progress after this many inspected workflow runs. Use `0` to disable.           |
+| `verbosity`                      | Log verbosity. Use `quiet`, `normal` or `verbose`.                                    |
+| `api_retries`                    | Number of retries for transient GitHub API failures.                                  |
+| `upload_report_artifact`         | Upload the generated Markdown cleanup report as a workflow artifact.                  |
+| `report_artifact_retention_days` | Number of days to retain the uploaded cleanup report artifact.                        |
 
 ### Additional Permissions
 
@@ -1139,7 +1151,7 @@ actions: write
 
 ### Example
 
-```yaml
+```yml
 jobs:
   cleanup:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-workflow-clean-up.yml@master
@@ -1147,10 +1159,11 @@ jobs:
 
 ### Notes
 
-Unlike most workflows in this repository, Workflow Clean Up executes a dedicated Lupaxa management utility rather than a shared validation pipeline.
-
-It has been designed to support repositories ranging from small personal projects through to organisations containing hundreds of repositories and many
-thousands of workflow runs.
+- This workflow is designed for routine scheduled maintenance.
+- Dry-run mode should be used when introducing the workflow to a repository.
+- The currently running workflow run is always preserved.
+- This workflow is not intended to purge all workflow history.
+- Use Workflow History Purge when a repository-wide reset of Actions history is required.
 
 ## Workflow History Purge
 
