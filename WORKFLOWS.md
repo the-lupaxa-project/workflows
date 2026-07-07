@@ -1189,7 +1189,7 @@ publication.
 | `delay_seconds` | Delay between delete requests in seconds. |
 | `verbosity` | Output verbosity (`0` = summary, `1` = progress, `2` = detailed). |
 | `retries` | Number of retries for transient GitHub API failures. |
-| `yes` | Confirms destructive deletion when `dry_run` is disabled. |
+| `confirm` | Confirms destructive deletion when `dry_run` is disabled. |
 
 ### Default Permissions
 

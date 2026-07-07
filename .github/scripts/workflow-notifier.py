@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sys
+import time
 import urllib.request
 from datetime import datetime
 from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple
@@ -23,6 +24,10 @@ from urllib.error import HTTPError, URLError
 
 DEFAULT_JOBS_PER_PAGE = 100
 MAX_JOBS_PER_PAGE = 100
+DEFAULT_API_RETRIES = 3
+DEFAULT_RETRY_BASE_SECONDS = 5
+DEFAULT_RETRY_MAX_SECONDS = 60
+
 
 DEFAULT_IGNORED_JOBS = {
     "check jobs status",
@@ -59,6 +64,25 @@ def log(message: str = "") -> None:
 def env_value(name: str, default: str = "") -> str:
     """Read an environment variable as a string."""
     return os.environ.get(name, default)
+
+def env_int(name: str, default: int) -> int:
+    """Read an environment variable as an integer."""
+    raw_value = env_value(name, str(default)).strip()
+
+    try:
+        return int(raw_value)
+    except ValueError:
+        print(
+            f"{EMOJI_WARNING} Warning: {name}={raw_value!r} is not an integer; defaulting to {default}.",
+            file=sys.stderr,
+            flush=True,
+        )
+        return default
+
+
+def retry_sleep_seconds(attempt: int) -> int:
+    """Return the retry delay for an API attempt."""
+    return min(DEFAULT_RETRY_MAX_SECONDS, (2 ** attempt) * DEFAULT_RETRY_BASE_SECONDS)
 
 
 def first_line(value: str) -> str:
@@ -180,36 +204,77 @@ def validate_http_status(status: int, body_bytes: bytes, source: str) -> None:
     error(f"GitHub API returned HTTP {status} for {source}.")
 
 
+def github_api_get_json(
+    url: str,
+    token: str,
+    *,
+    retries: int = DEFAULT_API_RETRIES,
+) -> Tuple[Dict[str, Any], Optional[str]]:
+    """Fetch JSON from the GitHub API and return the payload plus next URL."""
+    retries = max(0, retries)
+
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(url, headers=github_api_headers(token))
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                status = resp.getcode()
+                body_bytes = resp.read()
+                link_header = resp.headers.get("Link", "")
+        except HTTPError as exc:
+            body = decode_http_error(exc)
+            if exc.code in {403, 429, 500, 502, 503, 504} and attempt < retries:
+                sleep_for = retry_sleep_seconds(attempt)
+                print(
+                    f"{EMOJI_WARNING} GitHub API returned HTTP {exc.code} for {url}; retrying in {sleep_for}s",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                time.sleep(sleep_for)
+                continue
+
+            if body:
+                print(body, file=sys.stderr, flush=True)
+            error(f"GitHub API returned HTTP {exc.code} for {url}: {exc.reason}")
+        except URLError as exc:
+            if attempt < retries:
+                sleep_for = retry_sleep_seconds(attempt)
+                print(
+                    f"{EMOJI_WARNING} Failed to reach GitHub API at {url}: {exc.reason}; retrying in {sleep_for}s",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                time.sleep(sleep_for)
+                continue
+
+            error(f"Failed to reach GitHub API at {url}: {exc.reason}")
+        except Exception as exc:
+            error(f"Unexpected error when calling GitHub API at {url}: {exc}")
+
+        validate_http_status(status, body_bytes, url)
+        return parse_json_object(body_bytes, url), parse_next_link(link_header)
+
+    error(f"GitHub API request failed after retries: {url}")
+
+
 def fetch_json_with_next(
     url: str,
     token: str,
+    *,
+    retries: int = DEFAULT_API_RETRIES,
 ) -> Tuple[Dict[str, Any], Optional[str]]:
-    """Fetch JSON from the GitHub API and return the payload plus next URL."""
-    req = urllib.request.Request(url, headers=github_api_headers(token))
-
-    try:
-        with urllib.request.urlopen(req) as resp:
-            status = resp.getcode()
-            body_bytes = resp.read()
-            link_header = resp.headers.get("Link", "")
-    except HTTPError as exc:
-        body = decode_http_error(exc)
-        if body:
-            print(body, file=sys.stderr, flush=True)
-        error(f"GitHub API returned HTTP {exc.code} for {url}: {exc.reason}")
-    except URLError as exc:
-        error(f"Failed to reach GitHub API at {url}: {exc.reason}")
-    except Exception as exc:
-        error(f"Unexpected error when calling GitHub API at {url}: {exc}")
-
-    validate_http_status(status, body_bytes, url)
-
-    return parse_json_object(body_bytes, url), parse_next_link(link_header)
+    """Compatibility wrapper for paginated GitHub API reads."""
+    return github_api_get_json(url, token, retries=retries)
 
 
-def fetch_json(url: str, token: str) -> Dict[str, Any]:
+def fetch_json(
+    url: str,
+    token: str,
+    *,
+    retries: int = DEFAULT_API_RETRIES,
+) -> Dict[str, Any]:
     """Fetch a single JSON object from the GitHub API."""
-    data, _next_url = fetch_json_with_next(url, token)
+    data, _next_url = github_api_get_json(url, token, retries=retries)
     return data
 
 
@@ -290,20 +355,22 @@ def completed_only(jobs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def fetch_jobs(
     jobs_url: str,
-    token: str
+    token: str,
+    *,
+    retries: int = DEFAULT_API_RETRIES,
 ) -> List[Dict[str, Any]]:
     """Fetch all workflow jobs from a paginated GitHub API endpoint."""
     all_jobs: List[Dict[str, Any]] = []
     url: Optional[str] = jobs_url
 
     while url:
-        jobs_data, next_url = fetch_json_with_next(url, token)
+        jobs_data, next_url = github_api_get_json(url, token, retries=retries)
 
         jobs_raw = jobs_data.get("jobs", [])
         if isinstance(jobs_raw, list):
             all_jobs.extend(job for job in jobs_raw if isinstance(job, dict))
 
-        log(f"{EMOJI_WORKFLOW} Loaded {len(all_jobs)} jobs so far")
+        log(f"{EMOJI_WORKFLOW} Loaded {len(all_jobs)} workflow jobs so far")
         url = next_url
 
     return all_jobs
@@ -327,13 +394,15 @@ def fetch_run_and_jobs(
     run_id: str,
     token: str,
     jobs_per_page: int,
+    *,
+    retries: int = DEFAULT_API_RETRIES,
 ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     """Fetch the workflow run payload and completed job list."""
     jobs_per_page = max(1, min(jobs_per_page, MAX_JOBS_PER_PAGE))
     base = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
 
-    run = fetch_json(base, token)
-    jobs = fetch_jobs(f"{base}/jobs?per_page={jobs_per_page}", token)
+    run = fetch_json(base, token, retries=retries)
+    jobs = fetch_jobs(f"{base}/jobs?per_page={jobs_per_page}", token, retries=retries)
     completed_jobs = completed_only(jobs)
 
     warn_if_no_completed_jobs(completed_jobs)
@@ -949,12 +1018,14 @@ def main() -> None:
         env_value("SEND_TO_SLACK_JOBS_TO_FETCH", str(DEFAULT_JOBS_PER_PAGE))
     )
     ignored_job_names = build_ignored_jobs()
+    api_retries = env_int("SEND_TO_SLACK_API_RETRIES", DEFAULT_API_RETRIES)
 
     workflow_run, completed_jobs = fetch_run_and_jobs(
         repo=repo,
         run_id=run_id,
         token=token,
         jobs_per_page=jobs_to_fetch,
+        retries=api_retries,
     )
 
     workflow_conclusion = resolve_workflow_conclusion(

@@ -33,6 +33,12 @@ on:
         type: string
         default: ""
 
+      api_retries:
+        description: "Number of retries for transient GitHub API failures."
+        required: false
+        type: string
+        default: "3"
+
     secrets:
       slack_webhook_url:
         required: true
@@ -59,7 +65,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
-          path: lupaxa-dotgithub
+          path: lupaxa-workflows
 
       - name: Send Workflow Notification
         env:
@@ -69,5 +75,6 @@ jobs:
           SEND_TO_SLACK_INCLUDE_JOBS: ${{ inputs.include_jobs }}
           SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE: ${{ inputs.include_commit_message }}
           SEND_TO_SLACK_IGNORE_JOBS: "Reusable Workflow Summary,Reusable Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
+          SEND_TO_SLACK_API_RETRIES: ${{ inputs.api_retries }}
         run: |
-          python lupaxa-dotgithub/.github/scripts/workflow-notifier.py
+          python -u lupaxa-workflows/.github/scripts/workflow-notifier.py

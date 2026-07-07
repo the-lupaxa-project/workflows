@@ -143,6 +143,12 @@ on:
         type: string
         default: "normal"
 
+      api_retries:
+        description: Number of retries for transient GitHub API failures.
+        required: false
+        type: string
+        default: "3"
+
       upload_report_artifact:
         description: Upload the generated Markdown cleanup report as a workflow artifact.
         required: false
@@ -197,6 +203,7 @@ jobs:
           CLEANUP_WORKFLOW_RUNS_DELETE_SLEEP_SECONDS: ${{ inputs.delete_sleep_seconds }}
           CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY: ${{ inputs.progress_every }}
           CLEANUP_WORKFLOW_RUNS_VERBOSITY: ${{ inputs.verbosity }}
+          CLEANUP_WORKFLOW_RUNS_API_RETRIES: ${{ inputs.api_retries }}
         run: |
           python -u lupaxa-dotgithub/.github/scripts/workflow-clean-up.py
 

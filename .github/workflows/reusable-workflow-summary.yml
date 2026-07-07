@@ -25,6 +25,18 @@ on:
         type: number
         default: 90
 
+      api_retries:
+        description: "Number of retries for transient GitHub API failures."
+        required: false
+        type: string
+        default: "3"
+
+      jobs_to_fetch:
+        description: "Number of workflow jobs to fetch per GitHub API page."
+        required: false
+        type: string
+        default: "100"
+
 permissions:
   actions: read
   contents: read
@@ -39,14 +51,16 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           repository: the-lupaxa-project/workflows
-          path: lupaxa-dotgithub
+          path: lupaxa-workflows
 
       - name: Generate Workflow Summary
         env:
           GITHUB_TOKEN: ${{ github.token }}
           WORKFLOW_IGNORE_JOBS: "Reusable Generate Workflow Summary,Reusable Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
+          WORKFLOW_SUMMARY_API_RETRIES: ${{ inputs.api_retries }}
+          WORKFLOW_SUMMARY_JOBS_TO_FETCH: ${{ inputs.jobs_to_fetch }}
         run: |
-          python lupaxa-dotgithub/.github/scripts/workflow-summary.py
+          python -u lupaxa-workflows/.github/scripts/workflow-summary.py
           find "${RUNNER_TEMP}" -maxdepth 1 -name "workflow-summary-*.md" -print
 
       - name: Upload Workflow Summary Artifact
