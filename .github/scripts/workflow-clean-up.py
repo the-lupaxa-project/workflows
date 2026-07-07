@@ -32,6 +32,7 @@ DEFAULT_DELETE_SLEEP_SECONDS = 1.0
 DEFAULT_PROGRESS_EVERY = 50
 DEFAULT_PRESERVE_BRANCH = "master"
 DEFAULT_VERBOSITY = "normal"
+DEFAULT_RETRIES = 3
 
 VALID_VERBOSITY = {"quiet", "normal", "verbose"}
 
@@ -48,6 +49,7 @@ EMOJI_STAR = "⭐"
 EMOJI_SUMMARY = "📊"
 EMOJI_SLEEP = "⏱️"
 EMOJI_VERBOSITY = "🔊"
+EMOJI_RETRY = "🔁"
 
 Run = Dict[str, Any]
 Artifact = Dict[str, Any]
@@ -221,36 +223,74 @@ def parse_github_json(body: bytes, url: str) -> Dict[str, Any]:
     return data
 
 
+def retry_sleep_seconds(attempt: int) -> int:
+    """Return the retry backoff duration for an attempt number."""
+    return min(60, 2**attempt * 5)
+
+
 def github_request(
     url: str,
     token: str,
     *,
     method: str = "GET",
 ) -> Tuple[Optional[Dict[str, Any]], Optional[str], int]:
-    """Send a request to the GitHub REST API."""
-    req = urllib.request.Request(url, headers=github_headers(token), method=method)
+    """Send a request to the GitHub REST API with retry handling."""
+    retries = parse_int(
+        env_value("CLEANUP_WORKFLOW_RUNS_RETRIES"),
+        default=DEFAULT_RETRIES,
+    )
 
-    try:
-        with urllib.request.urlopen(req) as resp:
-            status = resp.getcode()
-            body = resp.read()
-            next_url = parse_next_link(resp.headers.get("Link", ""))
-    except HTTPError as exc:
-        body_text = decode_http_error(exc)
-        if body_text:
-            print(body_text, file=sys.stderr, flush=True)
-        error(f"GitHub API returned HTTP {exc.code} for {method} {url}: {exc.reason}")
-    except URLError as exc:
-        error(f"Failed to reach GitHub API at {url}: {exc.reason}")
+    if retries < 0:
+        error("CLEANUP_WORKFLOW_RUNS_RETRIES must be 0 or greater.")
 
-    if method == "DELETE":
-        return None, None, status
+    transient_http_statuses = {403, 429, 500, 502, 503, 504}
 
-    if not (200 <= status < 300):
-        error(f"GitHub API returned HTTP {status} for {method} {url}")
+    for attempt in range(retries + 1):
+        req = urllib.request.Request(url, headers=github_headers(token), method=method)
 
-    return parse_github_json(body, url), next_url, status
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                status = resp.getcode()
+                body = resp.read()
+                next_url = parse_next_link(resp.headers.get("Link", ""))
 
+                if method == "DELETE":
+                    return None, None, status
+
+                if not (200 <= status < 300):
+                    error(f"GitHub API returned HTTP {status} for {method} {url}")
+
+                return parse_github_json(body, url), next_url, status
+
+        except HTTPError as exc:
+            body_text = decode_http_error(exc)
+
+            if exc.code in transient_http_statuses and attempt < retries:
+                sleep_for = retry_sleep_seconds(attempt)
+                log(
+                    f"{EMOJI_RETRY} [RETRY] {method} {url} failed with HTTP {exc.code}; "
+                    f"retrying in {sleep_for}s"
+                )
+                time.sleep(sleep_for)
+                continue
+
+            if body_text:
+                print(body_text, file=sys.stderr, flush=True)
+            error(f"GitHub API returned HTTP {exc.code} for {method} {url}: {exc.reason}")
+
+        except URLError as exc:
+            if attempt < retries:
+                sleep_for = retry_sleep_seconds(attempt)
+                log(
+                    f"{EMOJI_RETRY} [RETRY] {method} {url} failed: {exc.reason}; "
+                    f"retrying in {sleep_for}s"
+                )
+                time.sleep(sleep_for)
+                continue
+
+            error(f"Failed to reach GitHub API at {url}: {exc.reason}")
+
+    error(f"GitHub API request failed after retries for {method} {url}")
 
 def fetch_paginated_items(
     url: str,
@@ -990,6 +1030,12 @@ def read_config_from_env() -> Config:
     )
     validate_non_negative("CLEANUP_WORKFLOW_RUNS_PROGRESS_EVERY", progress_every)
 
+    retries = parse_int(
+        env_value("CLEANUP_WORKFLOW_RUNS_RETRIES"),
+        default=DEFAULT_RETRIES,
+    )
+    validate_non_negative("CLEANUP_WORKFLOW_RUNS_RETRIES", retries)
+
     dry_run = parse_bool(env_value("CLEANUP_WORKFLOW_RUNS_DRY_RUN"), default=True)
 
     return {
@@ -1056,6 +1102,7 @@ def read_config_from_env() -> Config:
         f"{EMOJI_ARTIFACT} Max artifact deletes per run": max_artifact_deletes_per_run,
         f"{EMOJI_SLEEP} Delete sleep seconds": delete_sleep_seconds,
         f"{EMOJI_SUMMARY} Progress every": progress_every,
+        f"{EMOJI_RETRY} Retries": retries,
         f"{EMOJI_VERBOSITY} Verbosity": parse_verbosity(),
     }
 

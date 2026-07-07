@@ -43,20 +43,20 @@ This approach provides:
 
 The repository contains:
 
-| Path | Purpose |
-| :--- | :------ |
-| `.github/workflows/` | Reusable GitHub Actions workflows. |
-| `docs/workflows/` | Documentation for each reusable workflow. |
-| `WORKFLOWS.md` | Index of all available reusable workflows. |
+| Path                 | Purpose                                    |
+| :------------------- | :----------------------------------------- |
+| `.github/workflows/` | Reusable GitHub Actions workflows.         |
+| `docs/workflows/`    | Documentation for each reusable workflow.  |
+| `WORKFLOWS.md`       | Index of all available reusable workflows. |
 
 ## Workflow Naming Convention
 
 All reusable workflows follow a consistent naming convention.
 
-| Item | Convention |
-| :--- | :--------- |
-| Location | `.github/workflows/` |
-| Filename | `reusable-<workflow-name>.yml` |
+| Item       | Convention                                                                   |
+| :--------- | :--------------------------------------------------------------------------- |
+| Location   | `.github/workflows/`                                                         |
+| Filename   | `reusable-<workflow-name>.yml`                                               |
 | Invocation | `uses: the-lupaxa-project/workflows/.github/workflows/<workflow>.yml@master` |
 
 This convention provides a predictable interface for every reusable workflow within the repository.
@@ -71,7 +71,7 @@ Many workflows are generic and may also be suitable for use in other GitHub orga
 
 Documentation for each reusable workflow is provided in the `docs/workflows/` directory.
 
-The `WORKFLOWS.md` document provides a complete catalogue of available workflows together with links to the detailed documentation for each one.
+The [`WORKFLOWS.md`](WORKFLOWS.md) document provides a complete catalogue of available workflows together with links to the detailed documentation for each one.
 
 ## Contributing
 
@@ -79,9 +79,9 @@ Improvements, bug fixes, and new reusable workflows are welcome.
 
 Please read the organisation-wide documentation before contributing:
 
-- Code of Conduct
-- Contributing Guide
-- Security Policy
+- [Code of Conduct](https://github.com/the-lupaxa-project/.github/blob/master/CODE_OF_CONDUCT.md)
+- [Contributing Guide](https://github.com/the-lupaxa-project/.github/blob/master/CONTRIBUTING.md)
+- [Security Policy](https://github.com/the-lupaxa-project/.github/blob/master/SECURITY.md)
 
 These documents are maintained in the central `.github` repository.
 
