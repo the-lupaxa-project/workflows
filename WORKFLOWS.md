@@ -50,7 +50,7 @@ from a comprehensive CI/CD platform.
 The following table provides a quick overview of every reusable workflow available in this repository.
 
 | #   | Workflow                                                                    | Category               | Level        | Typical Use                                                                    |
-| :-: |:-------------------------------------------------------------------------- | :--------------------- | :----------: | :----------------------------------------------------------------------------- |
+| :-: |:--------------------------------------------------------------------------- | :--------------------- | :----------: | :----------------------------------------------------------------------------- |
 |   1 | [Citation Validator](#citation-validator)                                   | Repository Quality     | Basic        | Validate repository citation metadata before publishing.                       |
 |   2 | [Code Analysis](#code-analysis)                                             | Security               | Intermediate | Identify security vulnerabilities and code quality issues using GitHub CodeQL. |
 |   3 | [Dependabot Manager](#dependabot-manager)                                   | Repository Automation  | Intermediate | Automatically manage Dependabot Pull Requests.                                 |
