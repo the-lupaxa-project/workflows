@@ -25,11 +25,8 @@ on:
         description: "Output verbosity (0=summary, 1=progress, 2=detailed)."
         required: false
         type: choice
+        options: ["0", "1", "2"]
         default: "1"
-        options:
-          - "0"
-          - "1"
-          - "2"
 
       retries:
         description: "Number of retries for transient GitHub API failures."
