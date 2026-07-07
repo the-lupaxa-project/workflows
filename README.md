@@ -8,7 +8,8 @@
 
 This repository contains the shared reusable GitHub Actions workflows used throughout **The Lupaxa Project**.
 
-By centralising reusable workflows in a single repository, all repositories across every Lupaxa GitHub organisation can share a consistent, secure, and maintainable CI/CD platform while avoiding duplication.
+By centralising reusable workflows in a single repository, all repositories across every Lupaxa GitHub organisation can share a consistent, secure, and
+maintainable CI/CD platform while avoiding duplication.
 
 ## Purpose
 
@@ -27,7 +28,8 @@ Each workflow is designed to be reusable, configurable, and version controlled s
 
 The reusable workflows in this repository are intended to be called from workflows within individual repositories using GitHub's `workflow_call` feature.
 
-A typical repository contains a small local workflow responsible for defining when a workflow should run. That workflow delegates the implementation to one of the reusable workflows maintained here.
+A typical repository contains a small local workflow responsible for defining when a workflow should run. That workflow delegates the implementation to one of
+the reusable workflows maintained here.
 
 This approach provides:
 

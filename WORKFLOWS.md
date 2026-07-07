@@ -79,6 +79,7 @@ The following table provides a quick overview of every reusable workflow availab
 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
+| [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
@@ -879,15 +880,16 @@ jobs:
 
 Repository Automation workflows manage repositories, Issues, Pull Requests, workflow runs and external integrations.
 
-| Workflow                                                                 | Typical Use                                                  |
-| :----------------------------------------------------------------------- | :----------------------------------------------------------- |
-| [Dependabot Manager](#dependabot-manager)                                | Automatically manage Dependabot Pull Requests.               |
-| [First-Time Contributor Greetings](#first-time-contributor-greetings)    | Welcome new contributors with automated messages.            |
-| [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler) | Automatically manage inactive Issues and Pull Requests.      |
-| [Workflow Summary](#workflow-summary)                                    | Generate summaries of GitHub Actions workflow runs.          |
-| [Workflow Notifier](#workflow-notifier)                                  | Send workflow status notifications to Slack.                 |
-| [Workflow Clean Up](#workflow-clean-up)                                  | Remove obsolete workflow runs and artifacts.                 |
-| [Workflow Scheduler Test](#workflow-scheduler-test)                      | Verify scheduled GitHub Actions workflows execute correctly. |
+| Workflow                                                                 | Typical Use                                                   |
+| :----------------------------------------------------------------------- | :------------------------------------------------------------ |
+| [Dependabot Manager](#dependabot-manager)                                | Automatically manage Dependabot Pull Requests.                |
+| [First-Time Contributor Greetings](#first-time-contributor-greetings)    | Welcome new contributors with automated messages.             |
+| [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler) | Automatically manage inactive Issues and Pull Requests.       |
+| [Workflow Clean Up](#workflow-clean-up)                                  | Remove obsolete workflow runs and artifacts.                  |
+| [Workflow History Purge](#workflow-history-purge)                        | Permanently delete completed GitHub Actions workflow history. |
+| [Workflow Notifier](#workflow-notifier)                                  | Send workflow status notifications to Slack.                  |
+| [Workflow Scheduler Test](#workflow-scheduler-test)                      | Verify scheduled GitHub Actions workflows execute correctly.  |
+| [Workflow Summary](#workflow-summary)                                    | Generate summaries of GitHub Actions workflow runs.           |
 
 ## Dependabot Manager
 
@@ -1150,6 +1152,75 @@ Unlike most workflows in this repository, Workflow Clean Up executes a dedicated
 It has been designed to support repositories ranging from small personal projects through to organisations containing hundreds of repositories and many
 thousands of workflow runs.
 
+## Workflow History Purge
+
+Permanently deletes completed GitHub Actions workflow runs from a repository.
+
+Unlike **Workflow Clean Up**, which applies configurable retention policies, **Workflow History Purge** is intended for one-off administrative tasks where all historical workflow runs should be removed. Typical use cases include preparing template repositories, clearing test history or resetting repositories before publication.
+
+### Typical Use
+
+- Remove historical workflow runs.
+- Reset GitHub Actions history.
+- Prepare template repositories.
+- Remove test and development workflow history.
+- Start a project with a clean workflow history.
+
+### Features
+
+- Deletes all completed workflow runs.
+- Automatically skips active and queued workflow runs.
+- Dry-run mode enabled by default.
+- Configurable deletion limit.
+- Configurable delay between API requests.
+- Automatic retry of transient GitHub API failures.
+- Configurable verbosity levels.
+- Produces a detailed execution summary.
+- Built-in confirmation safeguards for destructive operations.
+
+### Inputs
+
+| Input | Description |
+| :---- | :---------- |
+| `dry_run` | Report what would be deleted without deleting workflow runs. |
+| `limit` | Maximum number of completed workflow runs to delete. Use `0` for unlimited. |
+| `delay_seconds` | Delay between delete requests in seconds. |
+| `verbosity` | Output verbosity (`0` = summary, `1` = progress, `2` = detailed). |
+| `retries` | Number of retries for transient GitHub API failures. |
+| `yes` | Confirms destructive deletion when `dry_run` is disabled. |
+
+### Default Permissions
+
+```yaml
+actions: write
+contents: read
+```
+
+### Required Secrets
+
+None.
+
+### Example
+
+```yaml
+jobs:
+  workflow-history-purge:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-workflow-history-purge.yml@master
+    with:
+      dry_run: true
+```
+
+### Notes
+
+- This workflow permanently deletes GitHub Actions workflow history.
+- The currently executing workflow cannot be deleted and is automatically skipped.
+- Active and queued workflow runs are automatically skipped.
+- Dry-run mode is enabled by default.
+- A confirmation flag is required before destructive deletion is permitted.
+- This workflow is intended for occasional administrative use rather than routine repository maintenance.
+
+[↑ Back to Contents](#contents)
+
 ## Workflow Scheduler Test
 
 Provides a lightweight diagnostic workflow for confirming that scheduled GitHub Actions workflows are executing correctly and that runner environments are
@@ -1364,6 +1435,7 @@ Repository
     ├── First-Time Contributor Greetings
     ├── Stale Issue & Pull Request Handler
     ├── Workflow Clean Up
+    ├── Workflow History Purge
     ├── Workflow Notifier
     ├── Workflow Scheduler Test
     └── Workflow Summary
