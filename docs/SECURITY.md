@@ -1,10 +1,10 @@
 <p align="center">
     <a href="https://github.com/the-lupaxa-project">
-        <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/organisations/the-lupaxa-project/readme-logo.png" alt="The Lupaxa Project Logo" width="256" />
+        <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/organisations/the-lupaxa-project/readme-logo-320.png" alt="The Lupaxa Project Logo" width="320" />
     </a>
 </p>
 
-<h1 align="center">The Lupaxa Project: Security Policy</h1>
+<h1 align="center">Security Policy</h1>
 
 **The Lupaxa Project** maintains a single organisation-wide Security Policy to ensure security vulnerabilities are reported, assessed and handled responsibly across every repository and organisation.
 

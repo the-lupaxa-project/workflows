@@ -1,10 +1,10 @@
 <p align="center">
     <a href="https://github.com/the-lupaxa-project">
-        <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/organisations/the-lupaxa-project/readme-logo.png" alt="The Lupaxa Project Logo" width="256" />
+        <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/organisations/the-lupaxa-project/readme-logo-320.png" alt="The Lupaxa Project Logo" width="320" />
     </a>
 </p>
 
-<h1 align="center">The Lupaxa Project: Governance</h1>
+<h1 align="center">Governance</h1>
 
 **The Lupaxa Project** maintains a single organisation-wide Governance Guide that defines how decisions are made, how projects are managed and how the ecosystem evolves over time.
 

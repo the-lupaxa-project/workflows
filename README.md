@@ -1,10 +1,10 @@
 <p align="center">
     <a href="https://github.com/the-lupaxa-project">
-        <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/organisations/the-lupaxa-project/readme-logo.png" alt="The Lupaxa Project Logo" width="256" />
+        <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/organisations/the-lupaxa-project/readme-logo-320.png" alt="The Lupaxa Project Logo" width="320" />
     </a>
 </p>
 
-<h1 align="center">The Lupaxa Project: Workflows Repository</h1>
+<h1 align="center">Workflows Repository</h1>
 
 This repository contains the shared reusable GitHub Actions workflows used throughout **The Lupaxa Project**.
 
@@ -43,11 +43,10 @@ This approach provides:
 
 The repository contains:
 
-| Path                 | Purpose                                    |
-| :------------------- | :----------------------------------------- |
-| `.github/workflows/` | Reusable GitHub Actions workflows.         |
-| `docs/workflows/`    | Documentation for each reusable workflow.  |
-| `WORKFLOWS.md`       | Index of all available reusable workflows. |
+| Path                                     | Purpose                                    |
+| :--------------------------------------- | :----------------------------------------- |
+| [.github/workflows/](.github/workflows/) | Reusable GitHub Actions workflows.         |
+| [docs/WORKFLOWS.md](docs/WORKFLOWS.md)   | Index of all available reusable workflows. |
 
 ## Workflow Naming Convention
 
@@ -69,9 +68,7 @@ Many workflows are generic and may also be suitable for use in other GitHub orga
 
 ## Documentation
 
-Documentation for each reusable workflow is provided in the `docs/workflows/` directory.
-
-The [`WORKFLOWS.md`](WORKFLOWS.md) document provides a complete catalogue of available workflows together with links to the detailed documentation for each one.
+The [`WORKFLOWS.md`](docs/WORKFLOWS.md) document provides a complete catalogue of available workflows together with links to the detailed documentation for each one.
 
 ## Contributing
 
