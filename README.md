@@ -64,7 +64,7 @@ This convention provides a predictable interface for every reusable workflow wit
 
 These workflows are developed primarily for repositories within **The Lupaxa Project**.
 
-Many workflows are generic and may also be suitable for use in other GitHub organisations; however, only use within The Lupaxa Project is officially supported.
+Many workflows are generic and may also be suitable for use in other GitHub organisations; however, only use within **The Lupaxa Project** is officially supported.
 
 ## Documentation
 

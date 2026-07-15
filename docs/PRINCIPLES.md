@@ -5,7 +5,7 @@
 </p>
 <h1 align="center">Engineering Principles</h1>
 
-The Lupaxa Project maintains a single organisation-wide Engineering Principles document to provide a consistent set of values that guide engineering decisions across every repository and organisation.
+**The Lupaxa Project** maintains a single organisation-wide Engineering Principles document to provide a consistent set of values that guide engineering decisions across every repository and organisation.
 
 The authoritative Engineering Principles document is available here: [The Lupaxa Project: Engineering Principles][1]
 
@@ -17,7 +17,7 @@ It describes the principles that guide how we design, build, document, and maint
 * Reusable solutions and automation.
 * The values that underpin The Lupaxa Project.
 
-Unless explicitly stated otherwise, these Engineering Principles apply to every repository and organisation within The Lupaxa Project.
+Unless explicitly stated otherwise, these Engineering Principles apply to every repository and organisation within **The Lupaxa Project**.
 
 Repository-specific principles or additional guidance, where applicable, should be documented separately within the repository itself.
 
