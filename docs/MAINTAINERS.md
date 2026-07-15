@@ -21,7 +21,7 @@ Unless explicitly stated otherwise, this Maintainers Guide applies to every repo
 
 Repository-specific exceptions or additional guidance, where applicable, should be documented separately within the repository itself.
 
-[1]: https://github.com/the-lupaxa-project/.github/blob/master/MAINTAINERS.md
+[1]: https://github.com/the-lupaxa-project/.github/blob/master/docs/MAINTAINERS.md
 
 <a href="https://github.com/the-lupaxa-project">
     <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/components/footer.svg" alt="The Lupaxa Project Footer" width="100%" />
