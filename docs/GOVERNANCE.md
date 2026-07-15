@@ -23,15 +23,6 @@ Repository-specific exceptions or additional guidance, where applicable, should 
 
 [1]: https://github.com/the-lupaxa-project/.github/blob/master/GOVERNANCE.md
 
-<h1></h1>
-
-<p align="center">
-    <strong>
-        &copy; The Lupaxa Project.
-    </strong>
-    <br />
-    <em>
-        Where exploration meets precision.<br />
-        Where the untamed meets the engineered.
-    </em>
-</p>
+<a href="https://github.com/the-lupaxa-project">
+    <img src="https://raw.githubusercontent.com/the-lupaxa-project/brand-assets/master/logos/components/footer.svg" alt="The Lupaxa Project Footer" width="100%" />
+</a>
