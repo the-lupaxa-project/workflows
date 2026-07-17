@@ -11,11 +11,11 @@ The authoritative Engineering Principles document is available here: [The Lupaxa
 
 It describes the principles that guide how we design, build, document, and maintain our projects, including:
 
-* Engineering philosophy and decision-making.
-* Simplicity, consistency, and long-term maintainability.
-* Documentation and repository standards.
-* Reusable solutions and automation.
-* The values that underpin The Lupaxa Project.
+- Engineering philosophy and decision-making.
+- Simplicity, consistency, and long-term maintainability.
+- Documentation and repository standards.
+- Reusable solutions and automation.
+- The values that underpin The Lupaxa Project.
 
 Unless explicitly stated otherwise, these Engineering Principles apply to every repository and organisation within **The Lupaxa Project**.
 

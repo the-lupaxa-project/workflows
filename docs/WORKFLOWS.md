@@ -20,7 +20,7 @@ from a comprehensive CI/CD platform.
 >
 > This repository provides the shared GitHub Actions automation platform used throughout **The Lupaxa Project**.
 >
-> - **32 reusable workflows** organised into **7 functional categories**.
+> - **Over 30 reusable workflows** organised into **7 functional categories**.
 > - Shared automation used across all Lupaxa Project repositories.
 > - Consistent workflow interfaces with configurable inputs.
 > - Centralised maintenance with minimal repository duplication.
