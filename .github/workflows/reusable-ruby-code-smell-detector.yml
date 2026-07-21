@@ -1,0 +1,61 @@
+name: Reusable Ruby Code Smell Detector
+
+on:
+  workflow_call:
+    inputs:
+      include_files:
+        description: "Comma-separated list of Ruby files, globs, or regex patterns to include"
+        required: false
+        type: string
+
+      exclude_files:
+        description: "Comma-separated list of Ruby files, globs, or regex patterns to exclude"
+        required: false
+        type: string
+
+      report_only:
+        description: "Generate a report but do not fail the build"
+        required: false
+        type: boolean
+        default: false
+
+      show_errors:
+        description: "Show individual errors instead of only a per-file summary"
+        required: false
+        type: boolean
+        default: true
+
+      show_skipped:
+        description: "Show skipped files"
+        required: false
+        type: boolean
+        default: false
+
+      no_color:
+        description: "Disable coloured output"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  ruby-code-smell-detector:
+    name: Ruby Code Smell Detector
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Run Ruby Code Smells Detector
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+          SHOW_SKIPPED: ${{ inputs.show_skipped }}
+          NO_COLOR: ${{ inputs.no_color }}
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/reek/master/pipeline.sh)

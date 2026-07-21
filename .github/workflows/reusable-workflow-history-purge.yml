@@ -1,0 +1,68 @@
+name: Reusable Workflow History Purge
+
+on:
+  workflow_call:
+    inputs:
+      dry_run:
+        description: "Report what would be deleted without deleting workflow runs."
+        required: false
+        type: boolean
+        default: true
+
+      limit:
+        description: "Maximum number of completed workflow runs to delete. Use 0 for unlimited."
+        required: false
+        type: string
+        default: "0"
+
+      delay_seconds:
+        description: "Delay in seconds between delete requests."
+        required: false
+        type: string
+        default: "0.25"
+
+      verbosity:
+        description: "Output verbosity: 0 summary only, 1 progress, 2 detailed."
+        required: false
+        type: string
+        default: "1"
+
+      retries:
+        description: "Number of retries for transient GitHub API failures."
+        required: false
+        type: string
+        default: "3"
+
+      confirm:
+        description: "Confirm destructive deletion when dry_run is false."
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  workflow-history-purge:
+    name: Workflow History Purge
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Workflows Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          repository: the-lupaxa-project/workflows
+          path: lupaxa-workflows
+
+      - name: Purge Workflow History
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PURGE_DRY_RUN: ${{ inputs.dry_run }}
+          PURGE_LIMIT: ${{ inputs.limit }}
+          PURGE_DELAY_SECONDS: ${{ inputs.delay_seconds }}
+          PURGE_VERBOSITY: ${{ inputs.verbosity }}
+          PURGE_RETRIES: ${{ inputs.retries }}
+          PURGE_CONFIRM: ${{ inputs.confirm }}
+        run: |
+          python -u lupaxa-workflows/.github/scripts/workflow-history-purge.py

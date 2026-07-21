@@ -1,0 +1,90 @@
+name: Reusable MkDocs Site Publisher
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version to use"
+        required: false
+        default: "3.13"
+        type: string
+
+      use-dev-extras:
+        description: 'Try to install ".[dev]" from pyproject.toml'
+        required: false
+        default: true
+        type: boolean
+
+      cleanup:
+        description: "Clean up existing GitHub Pages deployments before deploying"
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  deployments: write
+
+jobs:
+  build-documentation:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set Up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install Documentation Dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+          if [ "${{ inputs.use-dev-extras }}" = "true" ]; then
+            echo "Attempting to install dev extras from pyproject.toml..."
+            if python -m pip install ".[dev]" 2>/dev/null; then
+              echo "Installed dev extras from pyproject.toml"
+            else
+              echo "Dev extras failed; falling back to mkdocs + theme only."
+              python -m pip install mkdocs mkdocs-material
+            fi
+          else
+            echo "Using bare mkdocs + theme (no dev extras)."
+            python -m pip install mkdocs mkdocs-material
+          fi
+
+      - name: Build MkDocs Site
+        run: mkdocs build --strict
+
+      - name: Upload GitHub Pages Artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
+        with:
+          path: site
+
+  deploy-github-pages:
+    name: Deploy to GitHub Pages
+    needs:
+      - build-documentation
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Clean Up Existing GitHub Pages Deployments
+        if: ${{ inputs.cleanup }}
+        uses: strumwolf/delete-deployment-environment@035f6d27c8b8951729f4d71b2d3d6a7975139476  # v4.0.0
+        with:
+          token: ${{ github.token }}
+          environment: github-pages
+          onlyRemoveDeployments: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128  # v5.0.0

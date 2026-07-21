@@ -1,0 +1,48 @@
+name: Local GitHub Actions Security
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
+
+  push:
+    branches:
+      - "**"
+    paths:
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+jobs:
+  github-actions-security:
+    name: GitHub Actions Security
+    uses: ./.github/workflows/reusable-github-actions-security.yml
+
+  generate-workflow-summary:
+    name: Generate Workflow Summary
+    needs:
+      - github-actions-security
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-summary.yml
+
+  generate-workflow-notifications:
+    name: Generate Workflow Notifications
+    needs:
+      - generate-workflow-summary
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-notifier.yml
+    with:
+      notify_on_results: "failure,timed_out"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

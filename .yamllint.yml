@@ -1,0 +1,207 @@
+# =============================================================================
+# yamllint Configuration
+#
+# This configuration is optimised for YAML files used throughout
+# The Lupaxa Project, particularly GitHub Actions workflows, configuration
+# files and project templates.
+#
+# The aim is to:
+#   - Catch syntax errors and potentially ambiguous YAML
+#   - Enforce consistent, readable formatting
+#   - Avoid false positives caused by GitHub Actions syntax
+#   - Avoid impractical line-length restrictions in workflow files
+# =============================================================================
+
+# Start with yamllint's default ruleset.
+# Individual rules are customised below.
+extends: default
+
+# -----------------------------------------------------------------------------
+# Ignored paths
+#
+# Exclude generated content, dependencies, build output, Python virtual
+# environments and Python bytecode caches from linting.
+# -----------------------------------------------------------------------------
+ignore: |
+  node_modules/
+  dist/
+  build/
+  vendor/
+  **/.venv/
+  **/__pycache__/
+
+rules:
+  # ---------------------------------------------------------------------------
+  # line-length
+  #
+  # Do not enforce a maximum line length.
+  #
+  # GitHub Actions expressions, URLs, commands and template values are often
+  # difficult or impossible to split without reducing readability.
+  # ---------------------------------------------------------------------------
+  line-length: disable
+
+  # ---------------------------------------------------------------------------
+  # document-start
+  #
+  # Do not require YAML files to begin with the `---` document-start marker.
+  #
+  # GitHub Actions workflows and most project configuration files conventionally
+  # omit this marker.
+  # ---------------------------------------------------------------------------
+  document-start: disable
+
+  # ---------------------------------------------------------------------------
+  # indentation
+  #
+  # Require two-space indentation throughout YAML files.
+  #
+  # Sequence indentation must remain consistent within each document. Block
+  # scalar content, such as multi-line scripts, is excluded from indentation
+  # checking because its formatting may be significant.
+  # ---------------------------------------------------------------------------
+  indentation:
+    spaces: 2
+    indent-sequences: consistent
+    check-multi-line-strings: false
+    level: error
+
+  # ---------------------------------------------------------------------------
+  # colons
+  #
+  # Do not permit spaces before a mapping colon and permit no more than one
+  # space after it.
+  #
+  # Example:
+  #
+  # key: value
+  # ---------------------------------------------------------------------------
+  colons:
+    max-spaces-before: 0
+    max-spaces-after: 1
+    level: error
+
+  # ---------------------------------------------------------------------------
+  # comments
+  #
+  # Require at least two spaces between YAML content and an inline comment.
+  #
+  # Example:
+  #
+  # key: value  # Explanation
+  # ---------------------------------------------------------------------------
+  comments:
+    min-spaces-from-content: 2
+    level: error
+
+  # ---------------------------------------------------------------------------
+  # braces
+  #
+  # Do not permit spaces immediately inside flow-mapping braces.
+  #
+  # Preferred:
+  #
+  # object: {key: value}
+  #
+  # Not preferred:
+  #
+  # object: { key: value }
+  # ---------------------------------------------------------------------------
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+    min-spaces-inside-empty: 0
+    max-spaces-inside-empty: 0
+    level: warning
+
+  # ---------------------------------------------------------------------------
+  # brackets
+  #
+  # Do not permit spaces immediately inside flow-sequence brackets.
+  #
+  # Preferred:
+  #
+  # values: [one, two, three]
+  #
+  # Not preferred:
+  #
+  # values: [ one, two, three ]
+  # ---------------------------------------------------------------------------
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+    min-spaces-inside-empty: 0
+    max-spaces-inside-empty: 0
+    level: warning
+
+  # ---------------------------------------------------------------------------
+  # trailing-spaces
+  #
+  # Reject whitespace at the end of lines.
+  # ---------------------------------------------------------------------------
+  trailing-spaces:
+    level: error
+
+  # ---------------------------------------------------------------------------
+  # new-line-at-end-of-file
+  #
+  # Require every YAML file to end with a newline.
+  # ---------------------------------------------------------------------------
+  new-line-at-end-of-file:
+    level: error
+
+  # ---------------------------------------------------------------------------
+  # new-lines
+  #
+  # Require Unix-style LF line endings on every platform.
+  # ---------------------------------------------------------------------------
+  new-lines:
+    type: unix
+    level: error
+
+  # ---------------------------------------------------------------------------
+  # empty-lines
+  #
+  # Permit no more than two consecutive blank lines.
+  #
+  # Blank lines are not permitted at the beginning of a file. At most one blank
+  # line may appear at the end, although the file must still end with a newline.
+  # ---------------------------------------------------------------------------
+  empty-lines:
+    max: 2
+    max-start: 0
+    max-end: 1
+
+  # ---------------------------------------------------------------------------
+  # truthy
+  #
+  # Require explicit boolean values such as `true` and `false`, but do not
+  # inspect mapping keys.
+  #
+  # Disabling key checking prevents GitHub Actions' required `on:` key from
+  # being incorrectly treated as a truthy value while retaining protection
+  # against ambiguous values such as `yes`, `no`, `on` and `off`.
+  # ---------------------------------------------------------------------------
+  truthy:
+    allowed-values:
+      - "true"
+      - "false"
+    check-keys: false
+    level: error
+
+  # ---------------------------------------------------------------------------
+  # octal-values
+  #
+  # Reject implicit and explicit octal numbers.
+  #
+  # Values requiring leading zeroes should be quoted so YAML interprets them
+  # as strings rather than numbers.
+  #
+  # Example:
+  #
+  # identifier: "010"
+  # ---------------------------------------------------------------------------
+  octal-values:
+    forbid-implicit-octal: true
+    forbid-explicit-octal: true
+    level: error

@@ -1,0 +1,41 @@
+name: Local Generate Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - '!v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
+      - '!v[0-9]+.[0-9]+.[0-9]+-dev[0-9]+'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  generate-release-notes:
+    name: Generate Release Notes
+    uses: ./.github/workflows/reusable-github-release-generator.yml
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-workflow-summary:
+    name: Generate Workflow Summary
+    needs:
+      - generate-release-notes
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-summary.yml
+
+  generate-workflow-notifications:
+    name: Generate Workflow Notifications
+    needs:
+      - generate-workflow-summary
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-notifier.yml
+    with:
+      notify_on_results: "failure,timed_out"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

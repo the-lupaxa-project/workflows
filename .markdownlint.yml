@@ -1,0 +1,177 @@
+# =============================================================================
+# markdownlint Configuration
+#
+# This configuration is optimised for GitHub and MkDocs documentation used
+# throughout The Lupaxa Project.
+#
+# The aim is to:
+#   • Maintain consistent formatting across all documentation.
+#   • Catch genuine authoring mistakes.
+#   • Relax rules that conflict with common GitHub documentation patterns.
+# =============================================================================
+
+# Enable all markdownlint rules by default.
+# Only the rules below are customised.
+default: true
+
+# -----------------------------------------------------------------------------
+# MD003 - Heading style
+#
+# Require ATX-style headings (#, ##, ###) throughout the project.
+# -----------------------------------------------------------------------------
+MD003:
+  style: atx
+
+# -----------------------------------------------------------------------------
+# MD004 - Unordered list style
+#
+# Require hyphens (-) for unordered lists.
+# -----------------------------------------------------------------------------
+MD004:
+  style: dash
+
+# -----------------------------------------------------------------------------
+# MD007 - Unordered list indentation
+#
+# Require nested lists to use two-space indentation.
+# -----------------------------------------------------------------------------
+MD007:
+  indent: 2
+
+# -----------------------------------------------------------------------------
+# MD013 - Line length
+#
+# Relax line length limits for readability.
+#
+# • Normal text: 240 characters
+# • Code blocks: 400 characters
+# • Tables are exempt
+# • Headings remain checked
+# -----------------------------------------------------------------------------
+MD013:
+  line_length: 240
+  code_block_line_length: 400
+  tables: false
+  headings: true
+
+# -----------------------------------------------------------------------------
+# MD024 - Duplicate headings
+#
+# Allow duplicate heading names provided they are not siblings.
+# -----------------------------------------------------------------------------
+MD024:
+  siblings_only: true
+
+# -----------------------------------------------------------------------------
+# MD026 - Trailing punctuation in headings
+#
+# Allow headings ending with punctuation such as:
+#
+#   ## Installation:
+#   ## What's New?
+# -----------------------------------------------------------------------------
+MD026:
+  punctuation: ""
+
+# -----------------------------------------------------------------------------
+# MD029 - Ordered list numbering
+#
+# Do not enforce ordered list numbering style.
+#
+# Both of the following are permitted:
+#
+# 1. First
+# 2. Second
+#
+# and
+#
+# 1. First
+# 1. Second
+# -----------------------------------------------------------------------------
+MD029: false
+
+# -----------------------------------------------------------------------------
+# MD033 - Inline HTML
+#
+# Allow all HTML.
+#
+# GitHub safely sanitises unsupported HTML and this project makes extensive use
+# of HTML for branding, images, layouts and <details> blocks.
+# -----------------------------------------------------------------------------
+MD033: false
+
+# -----------------------------------------------------------------------------
+# MD035 - Horizontal rule style
+#
+# Require Markdown horizontal rules to use three hyphens.
+# -----------------------------------------------------------------------------
+MD035:
+  style: "---"
+
+# -----------------------------------------------------------------------------
+# MD036 - Emphasis instead of headings
+#
+# Permit bold or italic text to be used as visual section labels.
+#
+# Example:
+#
+# **Important**
+# -----------------------------------------------------------------------------
+MD036: false
+
+# -----------------------------------------------------------------------------
+# MD040 - Fenced code language
+#
+# Require every fenced code block to specify a language for syntax
+# highlighting.
+# -----------------------------------------------------------------------------
+MD040: true
+
+# -----------------------------------------------------------------------------
+# MD041 - First line should be a top-level heading
+#
+# Allow branding, HTML or other preamble content before the first H1 while
+# still requiring every document to contain a top-level heading.
+# -----------------------------------------------------------------------------
+MD041:
+  allow_preamble: true
+
+# -----------------------------------------------------------------------------
+# MD046 - Code block style
+#
+# Require fenced code blocks rather than indented code blocks.
+# -----------------------------------------------------------------------------
+MD046:
+  style: fenced
+
+# -----------------------------------------------------------------------------
+# MD048 - Code fence style
+#
+# Require backticks (`) rather than tildes (~) for fenced code blocks.
+# -----------------------------------------------------------------------------
+MD048:
+  style: backtick
+
+# -----------------------------------------------------------------------------
+# MD049 - Emphasis style
+#
+# Require asterisks for italic text.
+#
+# Example:
+#
+# *Italic*
+# -----------------------------------------------------------------------------
+MD049:
+  style: asterisk
+
+# -----------------------------------------------------------------------------
+# MD050 - Strong emphasis style
+#
+# Require double asterisks for bold text.
+#
+# Example:
+#
+# **Bold**
+# -----------------------------------------------------------------------------
+MD050:
+  style: asterisk

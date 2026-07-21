@@ -1,0 +1,43 @@
+name: Local First-Time Contributor Greetings
+
+on:
+  pull_request:
+    branches-ignore:
+      - 'dependabot/**'
+
+  issues:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  first-time-contributor-greetings:
+    name: First-Time Contributor Greetings
+    uses: ./.github/workflows/reusable-first-time-contributor-greetings.yml
+    secrets:
+      repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-workflow-summary:
+    name: Generate Workflow Summary
+    needs:
+      - first-time-contributor-greetings
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-summary.yml
+
+  generate-workflow-notifications:
+    name: Generate Workflow Notifications
+    needs:
+      - generate-workflow-summary
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-notifier.yml
+    with:
+      notify_on_results: "failure,timed_out"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

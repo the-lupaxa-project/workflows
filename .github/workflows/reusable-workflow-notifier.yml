@@ -1,0 +1,80 @@
+name: Reusable Workflow Notifier
+
+on:
+  workflow_call:
+    inputs:
+      include_jobs:
+        description: >
+          "true" includes all jobs, "false" excludes jobs, and "on-failure"
+          includes jobs only when the workflow did not succeed.
+        required: false
+        type: string
+        default: "true"
+
+      include_commit_message:
+        description: "Include the commit message in the notification."
+        required: false
+        type: boolean
+        default: true
+
+      notify_on_results:
+        description: >
+          Comma-separated list of results to notify on, for example
+          "failure,cancelled,timed_out". Use "all" to notify on every result.
+        required: false
+        type: string
+        default: "all"
+
+      ignore_jobs:
+        description: >
+          Comma-separated list of job names to exclude from the per-job Slack fields.
+          Names are normalised and matched case-insensitively.
+        required: false
+        type: string
+        default: ""
+
+      api_retries:
+        description: "Number of retries for transient GitHub API failures."
+        required: false
+        type: string
+        default: "3"
+
+    secrets:
+      slack_webhook_url:
+        required: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  generate-workflow-notifier:
+    name: Generate Workflow Notifications
+    runs-on: ubuntu-latest
+
+    if: >
+      always() &&
+      github.actor != 'dependabot[bot]' &&
+      (
+        github.event_name != 'pull_request' ||
+        github.event.pull_request.head.repo.full_name == github.repository
+      )
+
+    steps:
+      - name: Checkout Workflows Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          repository: the-lupaxa-project/workflows
+          path: lupaxa-workflows
+
+      - name: Send Workflow Notification
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+          SEND_TO_SLACK_RESULTS: ${{ inputs.notify_on_results }}
+          SEND_TO_SLACK_INCLUDE_JOBS: ${{ inputs.include_jobs }}
+          SEND_TO_SLACK_INCLUDE_COMMIT_MESSAGE: ${{ inputs.include_commit_message }}
+          SEND_TO_SLACK_IGNORE_JOBS: "Generate Workflow Summary,Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
+          SEND_TO_SLACK_API_RETRIES: ${{ inputs.api_retries }}
+        run: |
+          python -u lupaxa-workflows/.github/scripts/workflow-notifier.py

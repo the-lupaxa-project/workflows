@@ -1,0 +1,125 @@
+name: Reusable Python CI
+
+on:
+  workflow_call:
+    inputs:
+      python-versions:
+        description: "JSON array of Python versions to test against"
+        required: false
+        type: string
+        default: '["3.10","3.11","3.12","3.13","3.14"]'
+
+      paths:
+        description: "Comma-separated list of Python files and/or directories to validate"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  python-ci:
+    name: Python CI
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ${{ fromJson(inputs.python-versions) }}
+
+    env:
+      PATHS: ${{ inputs.paths }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set Up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Show Python Version
+        run: |
+          python --version
+          which python
+
+      - name: Upgrade pip
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Install Project Requirements
+        run: |
+          set -e
+
+          if [ -f "requirements.txt" ]; then
+            echo "Installing requirements.txt ..."
+            python -m pip install -r requirements.txt
+          else
+            echo "No requirements.txt found; skipping."
+          fi
+
+          if [ -f "requirements-dev.txt" ]; then
+            echo "Installing requirements-dev.txt ..."
+            python -m pip install -r requirements-dev.txt
+          else
+            echo "No requirements-dev.txt found; skipping."
+          fi
+
+      - name: Install Development Tooling
+        run: |
+          python -m pip install ruff mypy pytest
+
+      - name: Expand Paths
+        id: expand_paths
+        run: |
+          IFS=',' read -r -a RAW <<< "${PATHS}"
+          ARGS=()
+
+          for p in "${RAW[@]}"; do
+            p="$(echo "${p}" | xargs)"
+            [ -z "${p}" ] && continue
+            ARGS+=("${p}")
+          done
+
+          printf "%s\n" "${ARGS[@]}" > args_list.txt
+          echo "args=$(printf '%s,' "${ARGS[@]}" | sed 's/,$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Check Python Syntax
+        run: |
+          set -e
+          echo "Checking syntax for:"
+          cat args_list.txt
+
+          while IFS= read -r p; do
+            if [ -f "${p}" ]; then
+              echo "Syntax checking file: ${p}"
+              python -m py_compile "${p}"
+            elif [ -d "${p}" ]; then
+              echo "Syntax checking directory: ${p}"
+              python -m compileall "${p}"
+            else
+              echo "ERROR: Path '${p}' does not exist." >&2
+              exit 1
+            fi
+          done < args_list.txt
+
+      - name: Run Ruff
+        run: |
+          echo "Running Ruff on:"
+          cat args_list.txt
+          ruff check $(cat args_list.txt)
+
+      - name: Run mypy
+        run: |
+          echo "Running mypy on:"
+          cat args_list.txt
+          mypy $(cat args_list.txt)
+
+      - name: Run pytest
+        run: |
+          if [ -d "tests" ]; then
+            echo "Running pytest..."
+            pytest -v
+          else
+            echo "No tests directory found — skipping pytest."
+          fi

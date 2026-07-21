@@ -1,0 +1,73 @@
+name: Reusable Workflow Summary
+
+on:
+  workflow_call:
+    inputs:
+      ignore_jobs:
+        description: >
+          Comma-separated list of job names to exclude from the summary.
+          Names are normalised and matched case-insensitively.
+        required: false
+        type: string
+        default: ""
+
+      upload_artifact:
+        description: "Upload the generated Markdown summary as a workflow artifact."
+        required: false
+        type: boolean
+        default: true
+
+      artifact_retention_days:
+        description: >
+          Number of days to retain the uploaded Markdown summary artifact.
+          Must not exceed the repository, organisation, or enterprise limit.
+        required: false
+        type: number
+        default: 90
+
+      api_retries:
+        description: "Number of retries for transient GitHub API failures."
+        required: false
+        type: string
+        default: "3"
+
+      jobs_to_fetch:
+        description: "Number of workflow jobs to fetch per GitHub API page."
+        required: false
+        type: string
+        default: "100"
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  generate-workflow-summary:
+    name: Generate Workflow Summary
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Workflows Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          repository: the-lupaxa-project/workflows
+          path: lupaxa-workflows
+
+      - name: Generate Workflow Summary
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WORKFLOW_IGNORE_JOBS: "Generate Workflow Summary,Generate Workflow Notifications,${{ inputs.ignore_jobs }}"
+          WORKFLOW_SUMMARY_API_RETRIES: ${{ inputs.api_retries }}
+          WORKFLOW_SUMMARY_JOBS_TO_FETCH: ${{ inputs.jobs_to_fetch }}
+        run: |
+          python -u lupaxa-workflows/.github/scripts/workflow-summary.py
+          find "${RUNNER_TEMP}" -maxdepth 1 -name "workflow-summary-*.md" -print
+
+      - name: Upload Workflow Summary Artifact
+        if: ${{ inputs.upload_artifact }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: workflow-summary
+          path: ${{ runner.temp }}/workflow-summary-*.md
+          retention-days: ${{ inputs.artifact_retention_days }}
+          if-no-files-found: error

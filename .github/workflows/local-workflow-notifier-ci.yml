@@ -1,0 +1,43 @@
+name: Local Workflow Notifier CI - workflow-notifier.py
+
+on:
+  push:
+    paths:
+      - ".github/scripts/workflow-notifier.py"
+      - ".github/workflows/local-workflow-notifier-ci.yml"
+
+  pull_request:
+    paths:
+      - ".github/scripts/workflow-notifier.py"
+      - ".github/workflows/local-workflow-notifier-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  python-ci:
+    name: Python CI
+    uses: ./.github/workflows/reusable-python-ci.yml
+    with:
+      paths: ".github/scripts/workflow-notifier.py"
+
+  generate-workflow-summary:
+    name: Generate Workflow Summary
+    needs:
+      - python-ci
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-summary.yml
+
+  generate-workflow-notifications:
+    name: Generate Workflow Notifications
+    needs:
+      - generate-workflow-summary
+    if: always()
+    uses: ./.github/workflows/reusable-workflow-notifier.yml
+    with:
+      notify_on_results: "failure,timed_out"
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
