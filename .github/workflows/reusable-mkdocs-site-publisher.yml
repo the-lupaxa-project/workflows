@@ -9,12 +9,6 @@ on:
         default: "3.13"
         type: string
 
-      use-dev-extras:
-        description: 'Try to install ".[dev]" from pyproject.toml'
-        required: false
-        default: true
-        type: boolean
-
       cleanup:
         description: "Clean up existing GitHub Pages deployments before deploying"
         required: false
@@ -23,9 +17,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
   deployments: write
+  id-token: write
+  pages: write
 
 jobs:
   build-documentation:
@@ -44,22 +38,11 @@ jobs:
       - name: Install Documentation Dependencies
         run: |
           python -m pip install --upgrade pip
-
-          if [ "${{ inputs.use-dev-extras }}" = "true" ]; then
-            echo "Attempting to install dev extras from pyproject.toml..."
-            if python -m pip install ".[dev]" 2>/dev/null; then
-              echo "Installed dev extras from pyproject.toml"
-            else
-              echo "Dev extras failed; falling back to mkdocs + theme only."
-              python -m pip install mkdocs mkdocs-material
-            fi
-          else
-            echo "Using bare mkdocs + theme (no dev extras)."
-            python -m pip install mkdocs mkdocs-material
-          fi
+          python -m pip install mkdocs mkdocs-material
+          python -m mkdocs --version
 
       - name: Build MkDocs Site
-        run: mkdocs build --strict
+        run: python -m mkdocs build --strict
 
       - name: Upload GitHub Pages Artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
