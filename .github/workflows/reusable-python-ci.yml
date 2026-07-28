@@ -67,7 +67,8 @@ jobs:
 
       - name: Install Development Tooling
         run: |
-          python -m pip install ruff mypy pytest
+          # Pin tooling so CI does not drift when unpinned latest releases change defaults.
+          python -m pip install "ruff==0.16.0" "mypy==1.19.1" "pytest==9.0.2"
 
       - name: Expand Paths
         id: expand_paths

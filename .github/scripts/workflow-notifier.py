@@ -18,9 +18,8 @@ import sys
 import time
 import urllib.request
 from datetime import datetime
-from typing import Any, Dict, List, NoReturn, Optional, Set, Tuple
+from typing import Any, NoReturn
 from urllib.error import HTTPError, URLError
-
 
 DEFAULT_JOBS_PER_PAGE = 100
 MAX_JOBS_PER_PAGE = 100
@@ -90,7 +89,7 @@ def first_line(value: str) -> str:
     return value.splitlines()[0].strip() if value.strip() else ""
 
 
-def parse_iso8601(value: Optional[str]) -> Optional[datetime]:
+def parse_iso8601(value: str | None) -> datetime | None:
     """Parse a GitHub-style ISO 8601 timestamp."""
     if not value:
         return None
@@ -127,7 +126,7 @@ def compute_duration(start: datetime, end: datetime) -> str:
     minutes = delta // 60
     seconds = delta - minutes * 60
 
-    parts: List[str] = []
+    parts: list[str] = []
 
     if days:
         parts.append(f"{days}d")
@@ -141,7 +140,7 @@ def compute_duration(start: datetime, end: datetime) -> str:
     return " ".join(parts)
 
 
-def parse_next_link(link_header: str) -> Optional[str]:
+def parse_next_link(link_header: str) -> str | None:
     """Extract the next-page URL from a GitHub API Link header."""
     if not link_header:
         return None
@@ -160,7 +159,7 @@ def parse_next_link(link_header: str) -> Optional[str]:
     return None
 
 
-def github_api_headers(token: str) -> Dict[str, str]:
+def github_api_headers(token: str) -> dict[str, str]:
     """Build headers for a GitHub REST API request."""
     return {
         "Authorization": f"Bearer {token}",
@@ -178,7 +177,7 @@ def decode_http_error(exc: HTTPError) -> str:
     return exc.read().decode("utf-8", errors="replace")
 
 
-def parse_json_object(body_bytes: bytes, source: str) -> Dict[str, Any]:
+def parse_json_object(body_bytes: bytes, source: str) -> dict[str, Any]:
     """Decode bytes as JSON and require a top-level object."""
     try:
         data = json.loads(body_bytes)
@@ -209,7 +208,7 @@ def github_api_get_json(
     token: str,
     *,
     retries: int = DEFAULT_API_RETRIES,
-) -> Tuple[Dict[str, Any], Optional[str]]:
+) -> tuple[dict[str, Any], str | None]:
     """Fetch JSON from the GitHub API and return the payload plus next URL."""
     retries = max(0, retries)
 
@@ -248,7 +247,7 @@ def github_api_get_json(
                 continue
 
             error(f"Failed to reach GitHub API at {url}: {exc.reason}")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - last-resort catch for unexpected urllib failures
             error(f"Unexpected error when calling GitHub API at {url}: {exc}")
 
         validate_http_status(status, body_bytes, url)
@@ -262,7 +261,7 @@ def fetch_json_with_next(
     token: str,
     *,
     retries: int = DEFAULT_API_RETRIES,
-) -> Tuple[Dict[str, Any], Optional[str]]:
+) -> tuple[dict[str, Any], str | None]:
     """Compatibility wrapper for paginated GitHub API reads."""
     return github_api_get_json(url, token, retries=retries)
 
@@ -272,7 +271,7 @@ def fetch_json(
     token: str,
     *,
     retries: int = DEFAULT_API_RETRIES,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fetch a single JSON object from the GitHub API."""
     data, _next_url = github_api_get_json(url, token, retries=retries)
     return data
@@ -286,9 +285,9 @@ def normalise_job_name(raw: str) -> str:
     return raw.strip()
 
 
-def parse_ignored_jobs(raw: str) -> Set[str]:
+def parse_ignored_jobs(raw: str) -> set[str]:
     """Parse comma-separated job names into a case-insensitive ignore set."""
-    ignored: Set[str] = set()
+    ignored: set[str] = set()
 
     for part in raw.split(","):
         name = normalise_job_name(part)
@@ -298,7 +297,7 @@ def parse_ignored_jobs(raw: str) -> Set[str]:
     return ignored
 
 
-def build_ignored_jobs() -> Set[str]:
+def build_ignored_jobs() -> set[str]:
     """Build the full set of ignored jobs from defaults and environment input."""
     ignored = set(DEFAULT_IGNORED_JOBS)
 
@@ -348,7 +347,7 @@ def normalise_jobs_per_page(raw_value: str) -> int:
     return min(jobs_per_page, MAX_JOBS_PER_PAGE)
 
 
-def completed_only(jobs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def completed_only(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Return only completed GitHub Actions jobs."""
     return [job for job in jobs if str(job.get("status") or "").lower() == "completed"]
 
@@ -358,10 +357,10 @@ def fetch_jobs(
     token: str,
     *,
     retries: int = DEFAULT_API_RETRIES,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Fetch all workflow jobs from a paginated GitHub API endpoint."""
-    all_jobs: List[Dict[str, Any]] = []
-    url: Optional[str] = jobs_url
+    all_jobs: list[dict[str, Any]] = []
+    url: str | None = jobs_url
 
     while url:
         jobs_data, next_url = github_api_get_json(url, token, retries=retries)
@@ -376,7 +375,7 @@ def fetch_jobs(
     return all_jobs
 
 
-def warn_if_no_completed_jobs(completed_jobs: List[Dict[str, Any]]) -> None:
+def warn_if_no_completed_jobs(completed_jobs: list[dict[str, Any]]) -> None:
     """Warn when no completed jobs were found for the workflow run."""
     if completed_jobs:
         return
@@ -396,7 +395,7 @@ def fetch_run_and_jobs(
     jobs_per_page: int,
     *,
     retries: int = DEFAULT_API_RETRIES,
-) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Fetch the workflow run payload and completed job list."""
     jobs_per_page = max(1, min(jobs_per_page, MAX_JOBS_PER_PAGE))
     base = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}"
@@ -410,7 +409,7 @@ def fetch_run_and_jobs(
     return run, completed_jobs
 
 
-def get_workflow_conclusion(workflow_run: Dict[str, Any]) -> str:
+def get_workflow_conclusion(workflow_run: dict[str, Any]) -> str:
     """Return the workflow run conclusion, falling back to status."""
     conclusion = str(workflow_run.get("conclusion") or "").strip().lower()
     status = str(workflow_run.get("status") or "").strip().lower()
@@ -424,12 +423,12 @@ def get_workflow_conclusion(workflow_run: Dict[str, Any]) -> str:
 
 
 def filtered_jobs(
-    completed_jobs: List[Dict[str, Any]],
-    ignored_job_names: Optional[Set[str]] = None,
-) -> List[Dict[str, Any]]:
+    completed_jobs: list[dict[str, Any]],
+    ignored_job_names: set[str] | None = None,
+) -> list[dict[str, Any]]:
     """Return completed jobs after applying the ignored-job set."""
     ignored = ignored_job_names or set()
-    selected: List[Dict[str, Any]] = []
+    selected: list[dict[str, Any]] = []
 
     for job in completed_jobs:
         name = normalise_job_name(str(job.get("name") or ""))
@@ -440,14 +439,14 @@ def filtered_jobs(
     return selected
 
 
-def job_conclusions(jobs: List[Dict[str, Any]]) -> List[str]:
+def job_conclusions(jobs: list[dict[str, Any]]) -> list[str]:
     """Return lower-cased conclusions for a list of jobs."""
     return [str(job.get("conclusion") or "").lower() for job in jobs]
 
 
 def derive_workflow_conclusion_from_jobs(
-    completed_jobs: List[Dict[str, Any]],
-    ignored_job_names: Optional[Set[str]] = None,
+    completed_jobs: list[dict[str, Any]],
+    ignored_job_names: set[str] | None = None,
 ) -> str:
     """Derive the overall workflow conclusion from completed job conclusions."""
     selected_jobs = filtered_jobs(completed_jobs, ignored_job_names)
@@ -473,9 +472,9 @@ def derive_workflow_conclusion_from_jobs(
 
 
 def determine_workflow_color_and_msg(
-    completed_jobs: List[Dict[str, Any]],
-    ignored_job_names: Optional[Set[str]] = None,
-) -> Tuple[str, str]:
+    completed_jobs: list[dict[str, Any]],
+    ignored_job_names: set[str] | None = None,
+) -> tuple[str, str]:
     """Return the Slack attachment colour and leading status message."""
     selected_jobs = filtered_jobs(completed_jobs, ignored_job_names)
 
@@ -503,10 +502,7 @@ def should_include_jobs(include_jobs_mode: str, workflow_conclusion: str) -> boo
     if mode == "false":
         return False
 
-    if mode == "on-failure" and workflow_conclusion == "success":
-        return False
-
-    return True
+    return not (mode == "on-failure" and workflow_conclusion == "success")
 
 
 def job_status_icon(conclusion: str) -> str:
@@ -531,7 +527,7 @@ def job_status_icon(conclusion: str) -> str:
     return EMOJI_UNKNOWN
 
 
-def job_duration(job: Dict[str, Any]) -> str:
+def job_duration(job: dict[str, Any]) -> str:
     """Return the duration for a completed job, or an empty string."""
     started_at = parse_iso8601(job.get("started_at"))
     completed_at = parse_iso8601(job.get("completed_at"))
@@ -542,7 +538,7 @@ def job_duration(job: Dict[str, Any]) -> str:
     return ""
 
 
-def build_single_job_field(job: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def build_single_job_field(job: dict[str, Any]) -> dict[str, Any] | None:
     """Build a Slack attachment field for one workflow job."""
     conclusion = str(job.get("conclusion") or "").lower()
     name = normalise_job_name(str(job.get("name") or ""))
@@ -567,16 +563,16 @@ def build_single_job_field(job: Dict[str, Any]) -> Optional[Dict[str, Any]]:
 
 
 def build_job_fields(
-    completed_jobs: List[Dict[str, Any]],
+    completed_jobs: list[dict[str, Any]],
     include_jobs_mode: str,
     workflow_conclusion: str,
-    ignored_job_names: Optional[Set[str]] = None,
-) -> List[Dict[str, Any]]:
+    ignored_job_names: set[str] | None = None,
+) -> list[dict[str, Any]]:
     """Build sorted Slack attachment fields for completed jobs."""
     if not should_include_jobs(include_jobs_mode, workflow_conclusion):
         return []
 
-    name_field_pairs: List[Tuple[str, Dict[str, Any]]] = []
+    name_field_pairs: list[tuple[str, dict[str, Any]]] = []
 
     for job in filtered_jobs(completed_jobs, ignored_job_names):
         name = normalise_job_name(str(job.get("name") or ""))
@@ -594,7 +590,7 @@ def build_job_fields(
     return [field for _name, field in name_field_pairs]
 
 
-def get_pull_requests(workflow_run: Dict[str, Any]) -> List[Dict[str, Any]]:
+def get_pull_requests(workflow_run: dict[str, Any]) -> list[dict[str, Any]]:
     """Return pull request objects from a workflow run payload."""
     pull_requests = workflow_run.get("pull_requests") or []
     if not isinstance(pull_requests, list):
@@ -603,7 +599,7 @@ def get_pull_requests(workflow_run: Dict[str, Any]) -> List[Dict[str, Any]]:
     return [pr for pr in pull_requests if isinstance(pr, dict)]
 
 
-def is_internal_pull_request(pr: Dict[str, Any], repo_url: str) -> bool:
+def is_internal_pull_request(pr: dict[str, Any], repo_url: str) -> bool:
     """Return whether a pull request targets the current repository."""
     base = pr.get("base") or {}
     if not isinstance(base, dict):
@@ -618,7 +614,7 @@ def is_internal_pull_request(pr: Dict[str, Any], repo_url: str) -> bool:
     return bool(repo_url) and base_repo_url == repo_url
 
 
-def format_pull_request_segment(pr: Dict[str, Any], html_url: str) -> Optional[str]:
+def format_pull_request_segment(pr: dict[str, Any], html_url: str) -> str | None:
     """Format a pull request segment for Slack mrkdwn."""
     if not html_url:
         return None
@@ -641,7 +637,7 @@ def format_pull_request_segment(pr: Dict[str, Any], html_url: str) -> Optional[s
     return f"<{link}|#{number}> from `{head_ref}` to `{base_ref}`"
 
 
-def build_pull_request_string(workflow_run: Dict[str, Any]) -> str:
+def build_pull_request_string(workflow_run: dict[str, Any]) -> str:
     """Build a Slack-friendly pull request summary string."""
     repository = workflow_run.get("repository") or {}
     if not isinstance(repository, dict):
@@ -650,7 +646,7 @@ def build_pull_request_string(workflow_run: Dict[str, Any]) -> str:
     repo_url = str(repository.get("url") or "")
     html_url = str(repository.get("html_url") or "")
 
-    segments: List[str] = []
+    segments: list[str] = []
 
     for pr in get_pull_requests(workflow_run):
         if not is_internal_pull_request(pr, repo_url):
@@ -663,7 +659,7 @@ def build_pull_request_string(workflow_run: Dict[str, Any]) -> str:
     return ", ".join(segments)
 
 
-def workflow_duration_string(workflow_run: Dict[str, Any]) -> str:
+def workflow_duration_string(workflow_run: dict[str, Any]) -> str:
     """Return the workflow run duration, or an empty string."""
     created_at = parse_iso8601(workflow_run.get("created_at"))
     updated_at = parse_iso8601(workflow_run.get("updated_at"))
@@ -674,14 +670,14 @@ def workflow_duration_string(workflow_run: Dict[str, Any]) -> str:
     return compute_duration(created_at, updated_at)
 
 
-def extract_repository(workflow_run: Dict[str, Any]) -> Dict[str, Any]:
+def extract_repository(workflow_run: dict[str, Any]) -> dict[str, Any]:
     """Return the workflow run repository object."""
     repository = workflow_run.get("repository") or {}
 
     return repository if isinstance(repository, dict) else {}
 
 
-def build_repo_footer(repository: Dict[str, Any]) -> str:
+def build_repo_footer(repository: dict[str, Any]) -> str:
     """Build the Slack attachment footer text for the repository."""
     repo_full_name = str(repository.get("full_name") or "").strip()
     repo_html_url = str(repository.get("html_url") or "").strip()
@@ -692,7 +688,7 @@ def build_repo_footer(repository: Dict[str, Any]) -> str:
     return ""
 
 
-def build_branch_link(workflow_run: Dict[str, Any], repository: Dict[str, Any]) -> str:
+def build_branch_link(workflow_run: dict[str, Any], repository: dict[str, Any]) -> str:
     """Build a Slack link for the workflow branch."""
     repo_html_url = str(repository.get("html_url") or "").strip()
     head_branch = str(workflow_run.get("head_branch") or "").strip()
@@ -703,7 +699,7 @@ def build_branch_link(workflow_run: Dict[str, Any], repository: Dict[str, Any]) 
     return head_branch
 
 
-def build_workflow_run_link(workflow_run: Dict[str, Any]) -> str:
+def build_workflow_run_link(workflow_run: dict[str, Any]) -> str:
     """Build a Slack link for the workflow run."""
     workflow_run_html_url = str(workflow_run.get("html_url") or "").strip()
     run_number = workflow_run.get("run_number")
@@ -719,7 +715,7 @@ def build_status_string(
     actor: str,
     event_name: str,
     branch_url: str,
-    workflow_run: Dict[str, Any],
+    workflow_run: dict[str, Any],
 ) -> str:
     """Build the first status line for the Slack notification."""
     default_status = (
@@ -741,7 +737,7 @@ def build_details_text(
     workflow_duration: str,
 ) -> str:
     """Build the workflow details line for the Slack notification."""
-    parts: List[str] = [f"{EMOJI_WORKFLOW} Workflow:"]
+    parts: list[str] = [f"{EMOJI_WORKFLOW} Workflow:"]
 
     if workflow_name:
         parts.append(workflow_name)
@@ -777,7 +773,7 @@ def slack_cosmetic_value(primary_name: str, fallback_name: str) -> str:
     return env_value(primary_name) or env_value(fallback_name)
 
 
-def apply_slack_cosmetics(payload: Dict[str, Any]) -> None:
+def apply_slack_cosmetics(payload: dict[str, Any]) -> None:
     """Apply optional Slack channel, username and icon customisations."""
     channel = slack_cosmetic_value("SEND_TO_SLACK_CHANNEL", "SLACK_CHANNEL")
     if channel:
@@ -796,7 +792,7 @@ def apply_slack_cosmetics(payload: Dict[str, Any]) -> None:
         payload["icon_url"] = icon_url
 
 
-def head_commit_message(workflow_run: Dict[str, Any]) -> str:
+def head_commit_message(workflow_run: dict[str, Any]) -> str:
     """Return the head commit message from the workflow run payload."""
     head_commit = workflow_run.get("head_commit") or {}
     if not isinstance(head_commit, dict):
@@ -806,9 +802,9 @@ def head_commit_message(workflow_run: Dict[str, Any]) -> str:
 
 
 def resolve_workflow_conclusion(
-    workflow_run: Dict[str, Any],
-    completed_jobs: List[Dict[str, Any]],
-    ignored_job_names: Optional[Set[str]] = None,
+    workflow_run: dict[str, Any],
+    completed_jobs: list[dict[str, Any]],
+    ignored_job_names: set[str] | None = None,
 ) -> str:
     """Resolve the workflow conclusion using jobs first, then run metadata."""
     workflow_conclusion_from_jobs = derive_workflow_conclusion_from_jobs(
@@ -823,7 +819,7 @@ def resolve_workflow_conclusion(
 
 
 def build_attachment_text(
-    workflow_run: Dict[str, Any],
+    workflow_run: dict[str, Any],
     workflow_msg: str,
     include_commit_message: bool,
 ) -> str:
@@ -853,12 +849,12 @@ def build_attachment_text(
 
 
 def build_slack_attachment(
-    workflow_run: Dict[str, Any],
-    completed_jobs: List[Dict[str, Any]],
+    workflow_run: dict[str, Any],
+    completed_jobs: list[dict[str, Any]],
     include_jobs_mode: str,
     include_commit_message: bool,
-    ignored_job_names: Optional[Set[str]] = None,
-) -> Dict[str, Any]:
+    ignored_job_names: set[str] | None = None,
+) -> dict[str, Any]:
     """Build the primary Slack attachment."""
     workflow_color, workflow_msg = determine_workflow_color_and_msg(
         completed_jobs,
@@ -886,14 +882,14 @@ def build_slack_attachment(
 
 
 def build_slack_payload(
-    workflow_run: Dict[str, Any],
-    completed_jobs: List[Dict[str, Any]],
+    workflow_run: dict[str, Any],
+    completed_jobs: list[dict[str, Any]],
     include_jobs_mode: str,
     include_commit_message: bool,
-    ignored_job_names: Optional[Set[str]] = None,
-) -> Dict[str, Any]:
+    ignored_job_names: set[str] | None = None,
+) -> dict[str, Any]:
     """Build the complete Slack webhook payload."""
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "text": f"{EMOJI_NOTIFY} GitHub Actions workflow status",
         "attachments": [
             build_slack_attachment(
@@ -911,7 +907,7 @@ def build_slack_payload(
     return payload
 
 
-def serialise_slack_payload(payload: Dict[str, Any]) -> bytes:
+def serialise_slack_payload(payload: dict[str, Any]) -> bytes:
     """Serialise a Slack payload to UTF-8 JSON bytes."""
     try:
         return json.dumps(payload).encode("utf-8")
@@ -919,7 +915,7 @@ def serialise_slack_payload(payload: Dict[str, Any]) -> bytes:
         error(f"Failed to serialise Slack payload as JSON: {exc}")
 
 
-def post_to_slack(webhook_url: str, payload: Dict[str, Any]) -> None:
+def post_to_slack(webhook_url: str, payload: dict[str, Any]) -> None:
     """Post a payload to a Slack incoming webhook."""
     headers = {"Content-Type": "application/json"}
     req = urllib.request.Request(
@@ -940,7 +936,7 @@ def post_to_slack(webhook_url: str, payload: Dict[str, Any]) -> None:
         error(f"Slack webhook returned HTTP {exc.code}: {exc.reason}")
     except URLError as exc:
         error(f"Failed to reach Slack webhook: {exc.reason}")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - last-resort catch for unexpected urllib failures
         error(f"Unexpected error when calling Slack webhook: {exc}")
 
     if not (200 <= status < 300):
@@ -974,7 +970,7 @@ def github_token_from_env() -> str:
     )
 
 
-def required_context_from_env() -> Tuple[str, str, str, str]:
+def required_context_from_env() -> tuple[str, str, str, str]:
     """Read and validate required runtime context from environment variables."""
     webhook_url = env_value("SLACK_WEBHOOK_URL") or env_value("slack_webhook_url")
     if not webhook_url:

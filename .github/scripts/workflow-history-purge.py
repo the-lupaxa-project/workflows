@@ -21,9 +21,8 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, NoReturn, Optional, Tuple
+from typing import Any, NoReturn
 from urllib.error import HTTPError, URLError
-
 
 DEFAULT_PER_PAGE = 100
 DEFAULT_LIMIT = 0
@@ -45,7 +44,7 @@ EMOJI_SLEEP = "⏱️"
 EMOJI_RETRY = "🔁"
 EMOJI_CONFIRM = "☑️"
 
-Run = Dict[str, Any]
+Run = dict[str, Any]
 
 
 @dataclass
@@ -124,7 +123,7 @@ def parse_float(value: str, *, default: float) -> float:
         return default
 
 
-def parse_next_link(link_header: str) -> Optional[str]:
+def parse_next_link(link_header: str) -> str | None:
     """Extract the next-page URL from a GitHub API Link header."""
     if not link_header:
         return None
@@ -144,7 +143,7 @@ def parse_next_link(link_header: str) -> Optional[str]:
     return None
 
 
-def github_headers(token: str) -> Dict[str, str]:
+def github_headers(token: str) -> dict[str, str]:
     """Build headers for GitHub REST API requests."""
     return {
         "Authorization": f"Bearer {token}",
@@ -162,7 +161,7 @@ def decode_http_error(exc: HTTPError) -> str:
     return exc.read().decode("utf-8", errors="replace")
 
 
-def parse_github_json(body: bytes, url: str) -> Dict[str, Any]:
+def parse_github_json(body: bytes, url: str) -> dict[str, Any]:
     """Decode a GitHub API JSON response and require a top-level object."""
     try:
         data = json.loads(body)
@@ -187,7 +186,7 @@ def github_request(
     method: str = "GET",
     retries: int,
     stats: Stats,
-) -> Tuple[Optional[Dict[str, Any]], Optional[str], int]:
+) -> tuple[dict[str, Any] | None, str | None, int]:
     """Send a request to the GitHub REST API with retry handling."""
     transient_http_statuses = {403, 429, 500, 502, 503, 504}
 
@@ -253,7 +252,7 @@ def validate_float_non_negative(name: str, value: float) -> None:
         error(f"{name} must be 0 or greater.", code=2)
 
 
-def required_runtime_context() -> Tuple[str, str, str]:
+def required_runtime_context() -> tuple[str, str, str]:
     """Read and validate required GitHub Actions runtime context."""
     repo = env_value("GITHUB_REPOSITORY").strip()
     token = github_token_from_env()
@@ -268,7 +267,7 @@ def required_runtime_context() -> Tuple[str, str, str]:
     return repo, token, current_run_id
 
 
-def read_config_from_env() -> Dict[str, Any]:
+def read_config_from_env() -> dict[str, Any]:
     """Read, parse and validate purge configuration from environment variables."""
     dry_run = parse_bool(env_value("PURGE_DRY_RUN"), default=True)
     confirm = parse_bool(env_value("PURGE_CONFIRM"), default=False)
@@ -303,7 +302,7 @@ def read_config_from_env() -> Dict[str, Any]:
     }
 
 
-def config_value(config: Dict[str, Any], key_suffix: str) -> Any:
+def config_value(config: dict[str, Any], key_suffix: str) -> Any:
     """Return a config value by matching the end of its display key."""
     for key, value in config.items():
         if key.endswith(key_suffix):
@@ -312,12 +311,12 @@ def config_value(config: Dict[str, Any], key_suffix: str) -> Any:
     error(f"Internal configuration key not found: {key_suffix}")
 
 
-def dry_run_enabled(config: Dict[str, Any]) -> bool:
+def dry_run_enabled(config: dict[str, Any]) -> bool:
     """Return whether purge is running in dry-run mode."""
     return config_value(config, "Mode") == "DRY RUN"
 
 
-def print_config(config: Dict[str, Any]) -> None:
+def print_config(config: dict[str, Any]) -> None:
     """Print the active purge configuration."""
     log(f"{EMOJI_PURGE} Workflow History Purge")
     log("=========================")
@@ -343,7 +342,7 @@ def fetch_workflow_runs_page(
     page: int,
     retries: int,
     stats: Stats,
-) -> List[Run]:
+) -> list[Run]:
     """Fetch one page of workflow runs."""
     url = workflow_runs_page_url(repo, page=page)
     data, _next_url, _status = github_request(url, token, retries=retries, stats=stats)
@@ -358,10 +357,10 @@ def fetch_workflow_runs_page(
     return [run for run in workflow_runs if isinstance(run, dict)]
 
 
-def fetch_all_workflow_runs(repo: str, token: str, *, retries: int, stats: Stats) -> List[Run]:
+def fetch_all_workflow_runs(repo: str, token: str, *, retries: int, stats: Stats) -> list[Run]:
     """Fetch all workflow runs using Link-header pagination."""
-    runs: List[Run] = []
-    next_url: Optional[str] = f"https://api.github.com/repos/{repo}/actions/runs?per_page={DEFAULT_PER_PAGE}"
+    runs: list[Run] = []
+    next_url: str | None = f"https://api.github.com/repos/{repo}/actions/runs?per_page={DEFAULT_PER_PAGE}"
 
     while next_url:
         data, next_url, _status = github_request(next_url, token, retries=retries, stats=stats)
@@ -378,7 +377,7 @@ def fetch_all_workflow_runs(repo: str, token: str, *, retries: int, stats: Stats
     return runs
 
 
-def run_id_as_int(run: Run) -> Optional[int]:
+def run_id_as_int(run: Run) -> int | None:
     """Return the workflow run ID when it is an integer."""
     run_id = run.get("id")
 
@@ -423,7 +422,7 @@ def delete_workflow_run(repo: str, run_id: int, token: str, retries: int, stats:
         error(f"Unexpected HTTP {status} deleting workflow run {run_id}")
 
 
-def should_skip_run(run: Run, current_run_id: str) -> Tuple[bool, str]:
+def should_skip_run(run: Run, current_run_id: str) -> tuple[bool, str]:
     """Return whether a workflow run should be skipped and why."""
     run_id = str(run.get("id") or "")
     status = run_status(run)
@@ -470,7 +469,7 @@ def handle_run(
     repo: str,
     token: str,
     run: Run,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     stats: Stats,
     current_run_id: str,
 ) -> bool:
@@ -528,7 +527,7 @@ def handle_run(
         return False
 
 
-def run_dry_run(repo: str, token: str, current_run_id: str, config: Dict[str, Any], stats: Stats) -> None:
+def run_dry_run(repo: str, token: str, current_run_id: str, config: dict[str, Any], stats: Stats) -> None:
     """Inspect all workflow runs without deleting anything."""
     retries = int(config_value(config, "Retries"))
     runs = fetch_all_workflow_runs(repo, token, retries=retries, stats=stats)
@@ -544,7 +543,7 @@ def run_dry_run(repo: str, token: str, current_run_id: str, config: Dict[str, An
         )
 
 
-def run_delete(repo: str, token: str, current_run_id: str, config: Dict[str, Any], stats: Stats) -> None:
+def run_delete(repo: str, token: str, current_run_id: str, config: dict[str, Any], stats: Stats) -> None:
     """Delete workflow runs by repeatedly processing the first API page."""
     retries = int(config_value(config, "Retries"))
     limit = int(config_value(config, "Limit"))
@@ -596,7 +595,7 @@ def run_delete(repo: str, token: str, current_run_id: str, config: Dict[str, Any
         break
 
 
-def print_summary(repo: str, config: Dict[str, Any], stats: Stats, started: datetime) -> None:
+def print_summary(repo: str, config: dict[str, Any], stats: Stats, started: datetime) -> None:
     """Print the final purge summary."""
     elapsed = datetime.now(timezone.utc) - started
 

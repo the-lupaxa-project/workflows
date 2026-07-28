@@ -17,14 +17,19 @@ import re
 import sys
 import time
 import urllib.request
+from collections.abc import Iterable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, NoReturn, Optional, Set, TextIO, Tuple, cast
+from typing import (
+    Any,
+    NoReturn,
+    TextIO,
+    cast,
+)
 from urllib.error import HTTPError, URLError
 
-
-JobRecord = Tuple[str, str, str, str]
-JobBuckets = Dict[str, List[Tuple[str, str]]]
+JobRecord = tuple[str, str, str, str]
+JobBuckets = dict[str, list[tuple[str, str]]]
 
 DEFAULT_JOBS_PER_PAGE = 100
 MAX_JOBS_PER_PAGE = 100
@@ -215,7 +220,7 @@ def make_link(label: str, url: str) -> str:
     return f"[{md_table_value(label)}]({url})"
 
 
-def parse_next_link(link_header: str) -> Optional[str]:
+def parse_next_link(link_header: str) -> str | None:
     """Extract the next-page URL from a GitHub API Link header."""
     if not link_header:
         return None
@@ -253,7 +258,7 @@ def github_token_from_env() -> str:
     )
 
 
-def get_github_context_from_env() -> Tuple[str, str, str]:
+def get_github_context_from_env() -> tuple[str, str, str]:
     """Read and validate the GitHub API context from environment variables."""
     repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
     run_id = os.environ.get("GITHUB_RUN_ID", "").strip()
@@ -288,7 +293,7 @@ def retry_sleep_seconds(attempt: int) -> int:
     return min(DEFAULT_RETRY_MAX_SECONDS, (2 ** attempt) * DEFAULT_RETRY_BASE_SECONDS)
 
 
-def github_api_headers(token: str) -> Dict[str, str]:
+def github_api_headers(token: str) -> dict[str, str]:
     """Build the HTTP headers required for GitHub API requests."""
     return {
         "Authorization": f"Bearer {token}",
@@ -311,7 +316,7 @@ def github_api_get_json(
     token: str,
     *,
     retries: int = DEFAULT_API_RETRIES,
-) -> Tuple[Dict[str, Any], Optional[str]]:
+) -> tuple[dict[str, Any], str | None]:
     """Fetch JSON from the GitHub API and return the parsed payload and next URL."""
     retries = max(0, retries)
 
@@ -350,7 +355,7 @@ def github_api_get_json(
                 continue
 
             error(f"Failed to reach GitHub API at {url}: {exc.reason}")
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 - last-resort catch for unexpected urllib failures
             error(f"Unexpected error when calling GitHub API at {url}: {exc}")
 
         validate_github_status(status, body_bytes, url)
@@ -374,7 +379,7 @@ def validate_github_status(status: int, body_bytes: bytes, source: str) -> None:
     error(f"GitHub API returned HTTP {status} for {source}.")
 
 
-def parse_github_json(body_bytes: bytes, source: str) -> Dict[str, Any]:
+def parse_github_json(body_bytes: bytes, source: str) -> dict[str, Any]:
     """Decode a GitHub API response body as a JSON object."""
     try:
         data = json.loads(body_bytes)
@@ -392,7 +397,7 @@ def fetch_jobs_page(
     token: str,
     *,
     retries: int = DEFAULT_API_RETRIES,
-) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+) -> tuple[list[dict[str, Any]], str | None]:
     """Fetch one page of workflow jobs from the GitHub Actions API."""
     data, next_url = github_api_get_json(url, token, retries=retries)
     jobs = data.get("jobs")
@@ -410,11 +415,11 @@ def fetch_jobs_json(
     *,
     jobs_per_page: int = DEFAULT_JOBS_PER_PAGE,
     retries: int = DEFAULT_API_RETRIES,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Fetch all jobs for a GitHub Actions workflow run."""
     jobs_per_page = max(1, min(jobs_per_page, MAX_JOBS_PER_PAGE))
-    url: Optional[str] = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page={jobs_per_page}"
-    all_jobs: List[Dict[str, Any]] = []
+    url: str | None = f"https://api.github.com/repos/{repo}/actions/runs/{run_id}/jobs?per_page={jobs_per_page}"
+    all_jobs: list[dict[str, Any]] = []
 
     while url:
         jobs, url = fetch_jobs_page(url, token, retries=retries)
@@ -451,7 +456,7 @@ def maybe_set_commit_message_env(
         os.environ["GITHUB_COMMIT_MESSAGE"] = message
 
 
-def fetch_jobs_json_from_api() -> Dict[str, Any]:
+def fetch_jobs_json_from_api() -> dict[str, Any]:
     """Fetch workflow job data for the current GitHub Actions run."""
     repo, run_id, token = get_github_context_from_env()
     jobs_per_page = env_int("WORKFLOW_SUMMARY_JOBS_TO_FETCH", DEFAULT_JOBS_PER_PAGE)
@@ -469,7 +474,7 @@ def fetch_jobs_json_from_api() -> Dict[str, Any]:
     return jobs_data
 
 
-def load_jobs_json_from_file(path: str) -> Dict[str, Any]:
+def load_jobs_json_from_file(path: str) -> dict[str, Any]:
     """Load workflow job data from a local JSON file."""
     validate_json_file_path(path)
 
@@ -505,9 +510,9 @@ def normalise_job_name(raw: str) -> str:
     return raw.strip()
 
 
-def parse_ignored_jobs(raw: str) -> Set[str]:
+def parse_ignored_jobs(raw: str) -> set[str]:
     """Parse a comma-separated list of ignored job names."""
-    ignored: Set[str] = set()
+    ignored: set[str] = set()
 
     for part in raw.split(","):
         name = normalise_job_name(part)
@@ -522,7 +527,7 @@ def empty_job_buckets() -> JobBuckets:
     return {key: [] for key in JOB_BUCKET_ORDER}
 
 
-def extract_api_job_record(job: Dict[str, Any]) -> JobRecord:
+def extract_api_job_record(job: dict[str, Any]) -> JobRecord:
     """Convert a GitHub API job object into a JobRecord."""
     raw_name = str(job.get("name") or "")
     status = str(job.get("status") or "unknown")
@@ -535,7 +540,7 @@ def extract_api_job_record(job: Dict[str, Any]) -> JobRecord:
     return raw_name, conclusion, status, html_url
 
 
-def extract_api_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
+def extract_api_jobs(data: dict[str, Any]) -> Iterable[JobRecord] | None:
     """Extract job records from a GitHub Actions API jobs response."""
     jobs = data.get("jobs")
     if not isinstance(jobs, list):
@@ -556,7 +561,7 @@ def extract_needs_job_record(key: str, value: Any) -> JobRecord:
     return str(key), str(result), str(status), ""
 
 
-def extract_needs_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
+def extract_needs_jobs(data: dict[str, Any]) -> Iterable[JobRecord] | None:
     """Extract job records from a needs-style JSON object."""
     if not isinstance(data, dict):
         return None
@@ -564,7 +569,7 @@ def extract_needs_jobs(data: Dict[str, Any]) -> Optional[Iterable[JobRecord]]:
     return [extract_needs_job_record(key, value) for key, value in data.items()]
 
 
-def extract_job_records(data: Dict[str, Any]) -> Iterable[JobRecord]:
+def extract_job_records(data: dict[str, Any]) -> Iterable[JobRecord]:
     """Extract job records from a supported job-result JSON structure."""
     job_records = extract_api_jobs(data)
     if job_records is None:
@@ -576,7 +581,7 @@ def extract_job_records(data: Dict[str, Any]) -> Iterable[JobRecord]:
     return job_records
 
 
-def should_ignore_job(job_name: str, ignored_job_names: Optional[Set[str]]) -> bool:
+def should_ignore_job(job_name: str, ignored_job_names: set[str] | None) -> bool:
     """Return whether a job should be excluded from the summary."""
     if not ignored_job_names:
         return False
@@ -603,8 +608,8 @@ def add_job_to_bucket(
 
 
 def bucket_jobs(
-    data: Dict[str, Any],
-    ignored_job_names: Optional[Set[str]] = None,
+    data: dict[str, Any],
+    ignored_job_names: set[str] | None = None,
 ) -> JobBuckets:
     """Group jobs by their normalised result."""
     buckets = empty_job_buckets()
@@ -622,7 +627,7 @@ def bucket_jobs(
     return buckets
 
 
-def maybe_read_pr_metadata() -> Tuple[str, str]:
+def maybe_read_pr_metadata() -> tuple[str, str]:
     """Read pull request number and title from GITHUB_EVENT_PATH when present."""
     payload = read_github_event_payload()
     if not payload:
@@ -641,7 +646,7 @@ def maybe_read_pr_metadata() -> Tuple[str, str]:
     return "", ""
 
 
-def read_github_event_payload() -> Optional[Dict[str, Any]]:
+def read_github_event_payload() -> dict[str, Any] | None:
     """Read and parse the GitHub Actions event payload."""
     event_path = os.environ.get("GITHUB_EVENT_PATH")
     if not event_path or not os.path.isfile(event_path):
@@ -650,7 +655,7 @@ def read_github_event_payload() -> Optional[Dict[str, Any]]:
     try:
         with open(event_path, "r", encoding="utf-8") as f:
             payload = json.load(f)
-    except Exception:
+    except (OSError, UnicodeError, json.JSONDecodeError, TypeError, ValueError):
         return None
 
     if not isinstance(payload, dict):
@@ -697,9 +702,9 @@ def print_count_summary(buckets: JobBuckets, out: TextIO) -> None:
     print(file=out)
 
 
-def unique_items(items: List[Tuple[str, str]]) -> Dict[str, str]:
+def unique_items(items: list[tuple[str, str]]) -> dict[str, str]:
     """Return unique job names while preserving their first URL."""
-    unique: Dict[str, str] = {}
+    unique: dict[str, str] = {}
 
     for name, url in items:
         if name and name not in unique:
@@ -709,7 +714,7 @@ def unique_items(items: List[Tuple[str, str]]) -> Dict[str, str]:
 
 
 def print_sorted_section(
-    items: List[Tuple[str, str]],
+    items: list[tuple[str, str]],
     title: str,
     out: TextIO,
 ) -> None:
@@ -747,7 +752,7 @@ def first_line(value: str) -> str:
     return value.splitlines()[0].strip() if value else ""
 
 
-def workflow_metadata() -> Dict[str, str]:
+def workflow_metadata() -> dict[str, str]:
     """Collect workflow metadata from the GitHub Actions environment."""
     pr_number, pr_title = maybe_read_pr_metadata()
 
@@ -829,7 +834,7 @@ def print_metadata_table(out: TextIO) -> None:
     print(file=out)
 
 
-def print_commit_metadata(metadata: Dict[str, str], out: TextIO) -> None:
+def print_commit_metadata(metadata: dict[str, str], out: TextIO) -> None:
     """Write commit metadata rows when commit details are available."""
     if metadata["sha"]:
         commit_label = f"`{short_sha(metadata['sha'])}`"
@@ -839,7 +844,7 @@ def print_commit_metadata(metadata: Dict[str, str], out: TextIO) -> None:
         print_metadata_row(f"{EMOJI_COMMIT} Commit message", metadata["commit_message"], out)
 
 
-def print_pull_request_metadata(metadata: Dict[str, str], out: TextIO) -> None:
+def print_pull_request_metadata(metadata: dict[str, str], out: TextIO) -> None:
     """Write pull request metadata rows when pull request details are available."""
     if not metadata["pr_number"]:
         return
@@ -868,9 +873,9 @@ def print_job_sections(buckets: JobBuckets, out: TextIO) -> None:
         print_sorted_section(buckets[key], section_title(key), out)
 
 
-def output_paths() -> List[str]:
+def output_paths() -> list[str]:
     """Return all output paths that should receive the Markdown summary."""
-    paths: List[str] = []
+    paths: list[str] = []
 
     summary_path = env_value("GITHUB_STEP_SUMMARY").strip()
     artifact_path = env_value("WORKFLOW_SUMMARY_FILE").strip()
@@ -915,7 +920,7 @@ def write_summaries(buckets: JobBuckets) -> None:
         write_summary_file(path, buckets)
 
 
-def load_jobs_data_from_args(args: List[str]) -> Dict[str, Any]:
+def load_jobs_data_from_args(args: list[str]) -> dict[str, Any]:
     """Load job data from CLI arguments or the GitHub Actions API."""
     if len(args) == 1:
         return load_jobs_json_from_file(args[0])
@@ -926,7 +931,7 @@ def load_jobs_data_from_args(args: List[str]) -> Dict[str, Any]:
     return fetch_jobs_json_from_api()
 
 
-def ignored_job_names_from_env() -> Optional[Set[str]]:
+def ignored_job_names_from_env() -> set[str] | None:
     """Read ignored job names from the WORKFLOW_IGNORE_JOBS environment variable."""
     raw_ignored_jobs = env_value("WORKFLOW_IGNORE_JOBS")
     if raw_ignored_jobs.strip():

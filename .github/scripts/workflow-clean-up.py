@@ -30,7 +30,6 @@ from pathlib import Path
 from typing import Any, NoReturn
 from urllib.error import HTTPError, URLError
 
-
 API_BASE = "https://api.github.com"
 GITHUB_API_VERSION = "2022-11-28"
 DEFAULT_PER_PAGE = 100
