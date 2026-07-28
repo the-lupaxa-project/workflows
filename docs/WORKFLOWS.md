@@ -1371,12 +1371,12 @@ Choose only those workflows that provide value for the technologies used by the 
 
 For example:
 
-| Repository Type | Recommended Workflows                                             |
-| :-------------- | :---------------------------------------------------------------- |
+| Repository Type | Recommended Workflows                                                                    |
+| :-------------- | :--------------------------------------------------------------------------------------- |
 | Documentation   | Markdown Linter, YAML Linter, Link Checker, MkDocs Site Publisher, MkDocs Site Validator |
-| Python Library  | Python CI, Python Linter, Python Security Scanner, Code Analysis  |
-| Puppet Module   | Puppet Linter, Markdown Linter, YAML Linter                       |
-| Shell Utilities | Shell Script Linter, Markdown Linter, Secrets Scanner             |
+| Python Library  | Python CI, Python Linter, Python Security Scanner, Code Analysis                         |
+| Puppet Module   | Puppet Linter, Markdown Linter, YAML Linter                                              |
+| Shell Utilities | Shell Script Linter, Markdown Linter, Secrets Scanner                                    |
 
 ## Prefer Reusable Workflows
 
