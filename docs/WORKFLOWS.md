@@ -62,28 +62,29 @@ The following table provides a quick overview of every reusable workflow availab
 |   9 | [Link Checker](#link-checker)                                               | Repository Quality     | Intermediate | Detect broken or invalid links in documentation.                               |
 |  10 | [Markdown Linter](#markdown-linter)                                         | Repository Quality     | Basic        | Check Markdown documentation for formatting and style issues.                  |
 |  11 | [MkDocs Site Publisher](#mkdocs-site-publisher)                             | Documentation          | Advanced     | Build and publish MkDocs documentation to GitHub Pages.                        |
-|  12 | [Perl Linter](#perl-linter)                                                 | Language Analysis      | Basic        | Analyse Perl source code for syntax and quality issues.                        |
-|  13 | [PHP Linter](#php-linter)                                                   | Language Analysis      | Basic        | Analyse PHP source code for syntax and coding issues.                          |
-|  14 | [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
-|  15 | [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
-|  16 | [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
-|  17 | [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
-|  18 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
-|  19 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
-|  20 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
-|  21 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
-|  22 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
-|  23 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
-|  24 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
-|  25 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
-|  26 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
-|  27 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
-|  28 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
-|  29 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
-|  30 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
-|  31 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
-|  32 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
-|  33 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
+|  12 | [MkDocs Site Validator](#mkdocs-site-validator)                             | Documentation          | Intermediate | Strictly build MkDocs sites and optionally lint Markdown sources.              |
+|  13 | [Perl Linter](#perl-linter)                                                 | Language Analysis      | Basic        | Analyse Perl source code for syntax and quality issues.                        |
+|  14 | [PHP Linter](#php-linter)                                                   | Language Analysis      | Basic        | Analyse PHP source code for syntax and coding issues.                          |
+|  15 | [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
+|  16 | [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
+|  17 | [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
+|  18 | [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
+|  19 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
+|  20 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
+|  21 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
+|  22 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
+|  23 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
+|  24 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
+|  25 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
+|  26 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
+|  27 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
+|  28 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
+|  29 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
+|  30 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
+|  31 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
+|  32 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
+|  33 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
+|  34 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
 
 > [!TIP]
 > **Level Guide**
@@ -754,9 +755,10 @@ The repository is checked out with the complete Git history to allow TruffleHog 
 
 Documentation workflows build and publish project documentation.
 
-| Workflow                                        | Typical Use                                             |
-| :---------------------------------------------- | :------------------------------------------------------ |
-| [MkDocs Site Publisher](#mkdocs-site-publisher) | Build and publish MkDocs documentation to GitHub Pages. |
+| Workflow                                          | Typical Use                                                                |
+| :------------------------------------------------ | :------------------------------------------------------------------------- |
+| [MkDocs Site Publisher](#mkdocs-site-publisher)   | Build and publish MkDocs documentation to GitHub Pages.                    |
+| [MkDocs Site Validator](#mkdocs-site-validator)   | Build MkDocs documentation strictly and optionally lint Markdown sources.  |
 
 ## MkDocs Site Publisher
 
@@ -798,8 +800,43 @@ jobs:
 
 ### Notes
 
-If installation of project development dependencies fails, the workflow automatically installs a minimal MkDocs environment to ensure documentation can still
-be generated and published.
+If a `requirements.txt` is present it is installed; otherwise the workflow falls back to `mkdocs` and `mkdocs-material`.
+
+## MkDocs Site Validator
+
+Validates MkDocs documentation sites without publishing. Performs a strict MkDocs build and optionally runs `markdownlint-cli` against documentation sources.
+
+### Features
+
+- Python environment setup.
+- Dependency installation (`requirements.txt` when present, otherwise MkDocs defaults).
+- Strict MkDocs build (`mkdocs build --strict`).
+- Optional Markdown linting with configurable glob, config path, Node.js version, and CLI version.
+
+### Inputs
+
+| Input                     | Description                                                      |
+| :------------------------ | :--------------------------------------------------------------- |
+| `python-version`          | Python version used during the build.                            |
+| `lint-markdown`           | Run markdownlint after a successful build (default: `true`).     |
+| `markdown-glob`           | Glob passed to markdownlint (default: `mkdocs/**/*.md`).         |
+| `markdownlint-config`     | Path to markdownlint config (default: `.markdownlint.yml`).      |
+| `markdownlint-cli-version`| `markdownlint-cli` version to install.                           |
+| `node-version`            | Node.js version used for markdownlint (default: `24`).           |
+
+### Example
+
+```yaml
+jobs:
+  validate:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-mkdocs-site-validator.yml@master
+    with:
+      python-version: "3.13"
+```
+
+### Notes
+
+When `lint-markdown` is enabled and the configured markdownlint config file is missing, markdownlint runs with its default rules instead of failing solely because the config is absent.
 
 [↑ Back to Contents](#contents)
 
@@ -1336,7 +1373,7 @@ For example:
 
 | Repository Type | Recommended Workflows                                             |
 | :-------------- | :---------------------------------------------------------------- |
-| Documentation   | Markdown Linter, YAML Linter, Link Checker, MkDocs Site Publisher |
+| Documentation   | Markdown Linter, YAML Linter, Link Checker, MkDocs Site Publisher, MkDocs Site Validator |
 | Python Library  | Python CI, Python Linter, Python Security Scanner, Code Analysis  |
 | Puppet Module   | Puppet Linter, Markdown Linter, YAML Linter                       |
 | Shell Utilities | Shell Script Linter, Markdown Linter, Secrets Scanner             |

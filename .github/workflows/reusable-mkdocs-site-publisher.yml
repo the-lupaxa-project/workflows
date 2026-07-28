@@ -38,7 +38,11 @@ jobs:
       - name: Install Documentation Dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install mkdocs mkdocs-material
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          else
+            python -m pip install mkdocs mkdocs-material
+          fi
           python -m mkdocs --version
 
       - name: Build MkDocs Site

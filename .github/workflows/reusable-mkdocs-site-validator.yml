@@ -1,0 +1,94 @@
+name: Reusable MkDocs Site Validator
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version to use"
+        required: false
+        default: "3.13"
+        type: string
+
+      lint-markdown:
+        description: "Run markdownlint after a successful MkDocs build"
+        required: false
+        default: true
+        type: boolean
+
+      markdown-glob:
+        description: "Glob passed to markdownlint (quoted by the workflow)"
+        required: false
+        default: "mkdocs/**/*.md"
+        type: string
+
+      markdownlint-config:
+        description: "Path to markdownlint config file"
+        required: false
+        default: ".markdownlint.yml"
+        type: string
+
+      markdownlint-cli-version:
+        description: "markdownlint-cli package version to install"
+        required: false
+        default: "0.45.0"
+        type: string
+
+      node-version:
+        description: "Node.js version used for markdownlint"
+        required: false
+        default: "24"
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate-documentation:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Set Up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install Documentation Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            python -m pip install -r requirements.txt
+          else
+            python -m pip install mkdocs mkdocs-material
+          fi
+          python -m mkdocs --version
+
+      - name: Build MkDocs Site
+        run: python -m mkdocs build --strict
+
+      - name: Set Up Node.js
+        if: ${{ inputs.lint-markdown }}
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020  # v7.0.0
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Lint Markdown
+        if: ${{ inputs.lint-markdown }}
+        env:
+          MARKDOWN_GLOB: ${{ inputs.markdown-glob }}
+          MARKDOWNLINT_CONFIG: ${{ inputs.markdownlint-config }}
+          MARKDOWNLINT_CLI_VERSION: ${{ inputs.markdownlint-cli-version }}
+        run: |
+          set -euo pipefail
+
+          npm install --global "markdownlint-cli@${MARKDOWNLINT_CLI_VERSION}"
+
+          if [ -f "${MARKDOWNLINT_CONFIG}" ]; then
+            markdownlint "${MARKDOWN_GLOB}" --config "${MARKDOWNLINT_CONFIG}"
+          else
+            echo "No ${MARKDOWNLINT_CONFIG} found; running markdownlint with default rules."
+            markdownlint "${MARKDOWN_GLOB}"
+          fi
