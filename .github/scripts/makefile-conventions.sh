@@ -210,8 +210,9 @@ makefile_conventions_main() {
   [ "$failures" -eq 0 ]
 }
 
+# When sourced with LIBRARY_MODE=1 (unit tests), expose helpers only.
 if [ "${LIBRARY_MODE:-}" = "1" ] && [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-  return 0 2>/dev/null || exit 0
+  :
+else
+  makefile_conventions_main "$@"
 fi
-
-makefile_conventions_main "$@"

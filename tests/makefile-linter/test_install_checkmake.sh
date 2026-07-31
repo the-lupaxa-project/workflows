@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-source "$(dirname "$0")/harness.sh"
+TEST_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${TEST_DIR}/../.." && pwd)"
+# shellcheck source=harness.sh
+source "${TEST_DIR}/harness.sh"
 export LIBRARY_MODE=1
+# shellcheck source=../../.github/scripts/install-checkmake.sh
 source "$ROOT/.github/scripts/install-checkmake.sh"
 
 good="$(mktemp)"

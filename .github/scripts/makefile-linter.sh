@@ -153,17 +153,17 @@ makefile_linter_run_checkmake() {
   local bin="$2"
   local config="${3:-}"
   local output rc=0
-  local -a args=()
+  local -a checkmake_cli_args=()
 
-  [ -n "$config" ] && args+=(--config "$config")
+  [ -n "$config" ] && checkmake_cli_args+=(--config "$config")
 
   if makefile_linter_show_errors; then
-    output="$("$bin" "${args[@]}" "$file" 2>&1)" || rc=$?
+    output="$("$bin" "${checkmake_cli_args[@]}" "$file" 2>&1)" || rc=$?
     [ "$rc" -ne 0 ] && printf '%s\n' "$output"
     return "$rc"
   fi
 
-  "$bin" "${args[@]}" "$file" >/dev/null 2>&1
+  "$bin" "${checkmake_cli_args[@]}" "$file" >/dev/null 2>&1
 }
 
 makefile_linter_run_conventions() {
@@ -260,8 +260,9 @@ makefile_linter_main() {
   exit 0
 }
 
+# When sourced with LIBRARY_MODE=1 (unit tests), expose helpers only.
 if [ "${LIBRARY_MODE:-}" = "1" ] && [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
-  return 0 2>/dev/null || exit 0
+  :
+else
+  makefile_linter_main "$@"
 fi
-
-makefile_linter_main "$@"

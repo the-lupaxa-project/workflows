@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+TEST_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "${TEST_DIR}/../.." && pwd)"
 # shellcheck source=harness.sh
-source "$(dirname "$0")/harness.sh"
+source "${TEST_DIR}/harness.sh"
 SCRIPT="$ROOT/.github/scripts/makefile-linter.sh"
 
 # Source discover helpers if the script supports LIBRARY_MODE=1
 export LIBRARY_MODE=1
-# shellcheck disable=SC1090
+# shellcheck source=../../.github/scripts/makefile-linter.sh
 source "$SCRIPT"
 
 FIXTURE="$ROOT/tests/makefile-linter/fixtures/generic"
@@ -143,9 +144,9 @@ printf 'all:\n\t@true\n' > "$CONFIG_ROOT/Makefile"
 printf '[minphony]\nrequired=\n' > "$CONFIG_ROOT/checkmake.ini"
 ARG_LOG="$STUB_DIR/checkmake-args" ROOT_DIR="$CONFIG_ROOT" CHECK_CONVENTIONS=false \
   CHECKMAKE_BIN="$STUB_DIR/args-checkmake.sh" bash "$SCRIPT"
-args="$(cat "$STUB_DIR/checkmake-args")"
-assert_contains "$args" "--config" "root checkmake.ini enables explicit config flag"
-assert_contains "$args" "$CONFIG_ROOT/checkmake.ini" "root checkmake.ini path is passed to checkmake"
+checkmake_arg_log="$(cat "$STUB_DIR/checkmake-args")"
+assert_contains "$checkmake_arg_log" "--config" "root checkmake.ini enables explicit config flag"
+assert_contains "$checkmake_arg_log" "$CONFIG_ROOT/checkmake.ini" "root checkmake.ini path is passed to checkmake"
 
 rm -f "$STUB_DIR/conventions-ran"
 set +e
