@@ -31,6 +31,14 @@ assert_eq "generic" "$profile" "detects generic"
 profile="$(makefile_conventions_profile "$ROOT/tests/makefile-linter/fixtures/library/Makefile")"
 assert_eq "library" "$profile" "detects library before skill heuristics"
 
+profile="$(makefile_conventions_profile "$ROOT/tests/makefile-linter/fixtures/skill-library-mode/skills/demo.mk")"
+assert_eq "skill" "$profile" "skills path wins over MAKEFILES_MODE=library"
+
+pushd "$ROOT/tests/makefile-linter/fixtures/skill-library-mode" >/dev/null
+profile="$(makefile_conventions_profile "skills/demo.mk")"
+assert_eq "skill" "$profile" "relative skills path wins over MAKEFILES_MODE=library"
+popd >/dev/null
+
 set +e
 out="$(makefile_conventions_check "$ROOT/tests/makefile-linter/fixtures/wrapper/Makefile" 2>&1)"
 rc=$?
