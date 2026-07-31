@@ -138,13 +138,19 @@ makefile_linter_run_conventions() {
 
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   conventions_script="${script_dir}/makefile-conventions.sh"
-  if [ -f "$conventions_script" ]; then
+  if [ ! -f "$conventions_script" ]; then
+    echo "Convention checker not found: ${conventions_script}" >&2
+    return 1
+  fi
+
+  if [ "${LIBRARY_MODE:-}" = "1" ]; then
     # shellcheck disable=SC1090
     source "$conventions_script"
     makefile_conventions_check "$file"
     return $?
   fi
-  return 0
+
+  bash "$conventions_script" "$file"
 }
 
 makefile_linter_conventions_enabled() {
