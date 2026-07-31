@@ -5,8 +5,17 @@ set -euo pipefail
 #   INCLUDE_FILES, EXCLUDE_FILES, REPORT_ONLY, SHOW_ERRORS, SHOW_SKIPPED,
 #   NO_COLOR, CHECK_CONVENTIONS, CHECKMAKE_BIN, ROOT_DIR
 
-makefile_linter_validate_root() {
+makefile_linter_normalize_root() {
   local root="$1"
+  while [ "$root" != "/" ] && [ "${root: -1}" = "/" ]; do
+    root="${root%/}"
+  done
+  printf '%s' "$root"
+}
+
+makefile_linter_validate_root() {
+  local root
+  root="$(makefile_linter_normalize_root "$1")"
 
   if [ ! -d "$root" ]; then
     echo "ROOT_DIR is not a directory: ${root}" >&2
@@ -24,13 +33,26 @@ makefile_linter_validate_root() {
 }
 
 makefile_linter_discover() {
-  local root="${ROOT_DIR:-$PWD}"
+  local root
+  root="$(makefile_linter_normalize_root "${ROOT_DIR:-$PWD}")"
   local include="${INCLUDE_FILES:-}"
   local exclude="${EXCLUDE_FILES:-}"
   local -a discovered=()
-  local path rel base
+  local path rel base tmp find_rc=0
 
   if ! makefile_linter_validate_root "$root"; then
+    return 1
+  fi
+
+  tmp="$(mktemp)"
+  find "$root" -type f \( \
+    -name 'Makefile' -o -name 'makefile' -o -name 'GNUmakefile' -o \
+    -name '*.mk' -o -name '*.make' \
+  \) ! -path '*/.makefiles/*' ! -path '*/lupaxa-dotgithub/*' ! -path '*/.git/*' \
+    -print0 >"$tmp" || find_rc=$?
+  if [ "$find_rc" -ne 0 ]; then
+    rm -f "$tmp"
+    echo "Failed to scan ROOT_DIR: ${root}" >&2
     return 1
   fi
 
@@ -49,12 +71,8 @@ makefile_linter_discover() {
       */.makefiles/*|*/lupaxa-dotgithub/*|*/.git/*) continue ;;
     esac
     discovered+=("$rel")
-  done < <(
-    find "$root" -type f \( \
-      -name 'Makefile' -o -name 'makefile' -o -name 'GNUmakefile' -o \
-      -name '*.mk' -o -name '*.make' \
-    \) ! -path '*/.makefiles/*' ! -path '*/lupaxa-dotgithub/*' ! -path '*/.git/*' -print0
-  )
+  done <"$tmp"
+  rm -f "$tmp"
 
   local -a filtered=()
   local pattern keep
@@ -121,7 +139,7 @@ makefile_linter_run_conventions() {
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   conventions_script="${script_dir}/makefile-conventions.sh"
   if [ -f "$conventions_script" ]; then
-    # shellcheck disable=SC1091
+    # shellcheck disable=SC1090
     source "$conventions_script"
     makefile_conventions_check "$file"
     return $?
@@ -137,7 +155,8 @@ makefile_linter_conventions_enabled() {
 }
 
 makefile_linter_main() {
-  local root="${ROOT_DIR:-$PWD}"
+  local root
+  root="$(makefile_linter_normalize_root "${ROOT_DIR:-$PWD}")"
   local include="${INCLUDE_FILES:-}"
   local -a files=()
   local file failures=0

@@ -55,6 +55,30 @@ rc=$?
 set -e
 assert_eq "1" "$rc" "invalid ROOT_DIR fails discovery instead of empty success"
 
+FIXTURE="$ROOT/tests/makefile-linter/fixtures/generic"
+out="$(ROOT_DIR="$FIXTURE/" makefile_linter_discover)"
+assert_contains "$out" "Makefile" "trailing-slash ROOT_DIR yields relative Makefile path"
+
+PERM_FIXTURE="$(mktemp -d)"
+trap 'chmod -R u+rwx "$PERM_FIXTURE" 2>/dev/null; rm -rf "$PERM_FIXTURE"' EXIT
+printf 'all:\n' >"$PERM_FIXTURE/Makefile"
+mkdir -p "$PERM_FIXTURE/blocked/nested"
+printf 'all:\n' >"$PERM_FIXTURE/blocked/nested/hidden.mk"
+chmod 000 "$PERM_FIXTURE/blocked"
+
+set +e
+out="$(ROOT_DIR="$PERM_FIXTURE" makefile_linter_discover 2>/dev/null)"
+discover_perm_rc=$?
+set -e
+assert_eq "1" "$discover_perm_rc" "find permission error fails discovery instead of empty success"
+assert_eq "" "$out" "find permission error does not report partial success as empty ok"
+
+set +e
+ROOT_DIR="$PERM_FIXTURE" CHECK_CONVENTIONS=false CHECKMAKE_BIN=true bash "$SCRIPT" 2>/dev/null
+main_perm_rc=$?
+set -e
+assert_eq "1" "$main_perm_rc" "find permission error fails main instead of empty success"
+
 set +e
 ROOT_DIR="$ROOT/tests/makefile-linter/fixtures/generic" INCLUDE_FILES='.*\.mk$' CHECK_CONVENTIONS=false CHECKMAKE_BIN=true \
   bash "$SCRIPT"
