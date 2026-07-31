@@ -919,8 +919,8 @@ When `lint-markdown` is enabled and the configured markdownlint config file is m
 
 Release Management workflows automate project releases and dependency maintenance.
 
-| Workflow                                                | Typical Use                                              |
-| :------------------------------------------------------ | :------------------------------------------------------- |
+| Workflow                                                | Typical Use                                                     |
+| :------------------------------------------------------ | :-------------------------------------------------------------- |
 | [GitHub Release Generator](#github-release-generator)   | Create draft, pre-release, or stable GitHub Releases from tags. |
 | [Python Dependency Updater](#python-dependency-updater) | Check Python dependencies for available updates.                |
 
@@ -949,11 +949,11 @@ release mode through the `draft` and `prerelease` inputs.
 
 ### Release Modes
 
-| Mode        | `draft` | `prerelease` | Typical tag pattern   | Purpose                                      |
-| :---------- | :-----: | :----------: | :-------------------- | :------------------------------------------- |
-| Draft       | `true`  | `false`      | `v1.2.3-draft1`       | Review notes/assets before publishing.       |
+| Mode        | `draft` | `prerelease` | Typical tag pattern   | Purpose                                       |
+| :---------- | :-----: | :----------: | :-------------------- | :-------------------------------------------- |
+| Draft       | `true`  | `false`      | `v1.2.3-draft1`       | Review notes/assets before publishing.        |
 | Test / RC   | `false` | `true`       | `v1.2.3-rc1`          | Published pre-release for integration checks. |
-| Stable      | `false` | `false`      | `v1.2.3`              | Final published release.                     |
+| Stable      | `false` | `false`      | `v1.2.3`              | Final published release.                      |
 
 In this repository the local callers are:
 
@@ -1012,7 +1012,9 @@ jobs:
 ### Notes
 
 - If no tag is supplied, the workflow automatically determines the version from the triggering Git reference.
-- Draft releases remain editable until published. Prefer draft or `-rc` tags before a stable release when [immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases) are enabled: publishing locks the release, and deleting it permanently prevents reusing that tag name.
+- Draft releases remain editable until published. Prefer draft or `-rc` tags before a stable release when
+  [immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
+  are enabled: publishing locks the release, and deleting it permanently prevents reusing that tag name.
 - Recommended sequence: push `vX.Y.Z-rc1` (test), then either create a draft for `vX.Y.Z` and publish it, or push the stable `vX.Y.Z` tag when ready.
 
 ## Python Dependency Updater
