@@ -5,12 +5,34 @@ set -euo pipefail
 #   INCLUDE_FILES, EXCLUDE_FILES, REPORT_ONLY, SHOW_ERRORS, SHOW_SKIPPED,
 #   NO_COLOR, CHECK_CONVENTIONS, CHECKMAKE_BIN, ROOT_DIR
 
+makefile_linter_validate_root() {
+  local root="$1"
+
+  if [ ! -d "$root" ]; then
+    echo "ROOT_DIR is not a directory: ${root}" >&2
+    return 1
+  fi
+  if [ ! -r "$root" ] || [ ! -x "$root" ]; then
+    echo "ROOT_DIR is not accessible: ${root}" >&2
+    return 1
+  fi
+  if ! find "$root" -mindepth 0 -maxdepth 0 >/dev/null 2>&1; then
+    echo "Failed to scan ROOT_DIR: ${root}" >&2
+    return 1
+  fi
+  return 0
+}
+
 makefile_linter_discover() {
   local root="${ROOT_DIR:-$PWD}"
   local include="${INCLUDE_FILES:-}"
   local exclude="${EXCLUDE_FILES:-}"
   local -a discovered=()
   local path rel base
+
+  if ! makefile_linter_validate_root "$root"; then
+    return 1
+  fi
 
   while IFS= read -r -d '' path; do
     rel="${path#"${root}/"}"
@@ -35,7 +57,7 @@ makefile_linter_discover() {
   )
 
   local -a filtered=()
-  local pattern item keep
+  local pattern keep
   local IFS=','
 
   for rel in "${discovered[@]}"; do
@@ -87,11 +109,20 @@ makefile_linter_run_checkmake() {
 
 makefile_linter_run_conventions() {
   local file="$1"
-  local script_dir
+  local script_dir conventions_script
+
+  if [ -n "${CONVENTIONS_SCRIPT:-}" ]; then
+    # shellcheck disable=SC1090
+    source "$CONVENTIONS_SCRIPT"
+    makefile_conventions_check "$file"
+    return $?
+  fi
+
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  if [ -f "${script_dir}/makefile-conventions.sh" ]; then
+  conventions_script="${script_dir}/makefile-conventions.sh"
+  if [ -f "$conventions_script" ]; then
     # shellcheck disable=SC1091
-    source "${script_dir}/makefile-conventions.sh"
+    source "$conventions_script"
     makefile_conventions_check "$file"
     return $?
   fi
@@ -99,9 +130,9 @@ makefile_linter_run_conventions() {
 }
 
 makefile_linter_conventions_enabled() {
-  case "${CHECK_CONVENTIONS:-}" in
-    true|True|1) return 0 ;;
-    *) return 1 ;;
+  case "${CHECK_CONVENTIONS:-true}" in
+    false|False|0) return 1 ;;
+    *) return 0 ;;
   esac
 }
 
@@ -111,9 +142,20 @@ makefile_linter_main() {
   local -a files=()
   local file failures=0
 
+  local discover_out discover_rc=0
+
+  if ! makefile_linter_validate_root "$root"; then
+    exit 1
+  fi
+
+  discover_out="$(makefile_linter_discover)" || discover_rc=$?
+  if [ "$discover_rc" -ne 0 ]; then
+    exit 1
+  fi
+
   while IFS= read -r file; do
     [ -n "$file" ] && files+=("$file")
-  done < <(makefile_linter_discover)
+  done <<< "$discover_out"
 
   if [ "${#files[@]}" -eq 0 ]; then
     if [ -n "$include" ]; then
