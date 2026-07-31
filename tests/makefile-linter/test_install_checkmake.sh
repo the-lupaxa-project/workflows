@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 TEST_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "${TEST_DIR}/../.." && pwd)"
-# shellcheck source=harness.sh
+# CI shellcheck runs one file at a time without -x; do not require following.
+# shellcheck source=/dev/null
 source "${TEST_DIR}/harness.sh"
 export LIBRARY_MODE=1
-# shellcheck source=../../.github/scripts/install-checkmake.sh
+# shellcheck source=/dev/null
 source "$ROOT/.github/scripts/install-checkmake.sh"
 
 good="$(mktemp)"

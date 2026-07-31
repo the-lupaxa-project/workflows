@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 TEST_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "${TEST_DIR}/../.." && pwd)"
-# shellcheck source=harness.sh
+# CI shellcheck runs one file at a time without -x; do not require following.
+# shellcheck source=/dev/null
 source "${TEST_DIR}/harness.sh"
 SCRIPT="$ROOT/.github/scripts/makefile-linter.sh"
 
 # Source discover helpers if the script supports LIBRARY_MODE=1
 export LIBRARY_MODE=1
-# shellcheck source=../../.github/scripts/makefile-linter.sh
+# shellcheck source=/dev/null
 source "$SCRIPT"
 
 FIXTURE="$ROOT/tests/makefile-linter/fixtures/generic"
