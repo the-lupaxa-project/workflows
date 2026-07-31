@@ -1,2 +1,8 @@
 # Ignore all macOS metadata files everywhere
 **/.DS_Store
+
+# Local agent docs (specs, plans) — do not commit
+cursor-docs/
+
+# Git worktrees (local isolation)
+.worktrees/
