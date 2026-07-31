@@ -118,9 +118,18 @@ jobs:
 
       - name: Run pytest
         run: |
-          if [ -d "tests" ]; then
-            echo "Running pytest..."
-            pytest -v
-          else
+          if [ ! -d "tests" ]; then
             echo "No tests directory found — skipping pytest."
+            exit 0
           fi
+
+          # Only run pytest when Python test modules exist. A tests/ tree may
+          # contain non-Python suites (for example shell harnesses) that would
+          # otherwise make pytest exit 5 with "no tests collected".
+          if [ -z "$(find tests -type f \( -name 'test_*.py' -o -name '*_test.py' \) -print -quit)" ]; then
+            echo "No Python tests found under tests/ — skipping pytest."
+            exit 0
+          fi
+
+          echo "Running pytest..."
+          pytest -v
