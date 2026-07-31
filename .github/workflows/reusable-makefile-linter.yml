@@ -1,0 +1,84 @@
+name: Reusable Makefile Linter
+
+on:
+  workflow_call:
+    inputs:
+      include_files:
+        description: "Comma-separated list of files or regex patterns to include"
+        required: false
+        type: string
+
+      exclude_files:
+        description: "Comma-separated list of files or regex patterns to exclude"
+        required: false
+        type: string
+
+      report_only:
+        description: "Generate a report but do not fail the build"
+        required: false
+        type: boolean
+        default: false
+
+      show_errors:
+        description: "Show detailed errors"
+        required: false
+        type: boolean
+        default: true
+
+      show_skipped:
+        description: "Show skipped files"
+        required: false
+        type: boolean
+        default: false
+
+      no_color:
+        description: "Disable coloured output"
+        required: false
+        type: boolean
+        default: false
+
+      check_conventions:
+        description: "Run makefile-skills convention checks"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  reusable-makefile-linter:
+    name: Reusable Makefile Linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Caller Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+
+      - name: Checkout Workflows Repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+        with:
+          repository: the-lupaxa-project/workflows
+          path: lupaxa-dotgithub
+
+      - name: Install checkmake
+        id: checkmake
+        run: |
+          bin="$(bash lupaxa-dotgithub/.github/scripts/install-checkmake.sh "${RUNNER_TEMP}/checkmake-bin")"
+          echo "bin=${bin}" >> "$GITHUB_OUTPUT"
+          echo "${RUNNER_TEMP}/checkmake-bin" >> "$GITHUB_PATH"
+
+      - name: Run Makefile Linter
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+          SHOW_SKIPPED: ${{ inputs.show_skipped }}
+          NO_COLOR: ${{ inputs.no_color }}
+          CHECK_CONVENTIONS: ${{ inputs.check_conventions }}
+          CHECKMAKE_BIN: ${{ steps.checkmake.outputs.bin }}
+          ROOT_DIR: ${{ github.workspace }}
+          EXCLUDE_FILES_EXTRA: "lupaxa-dotgithub/"
+        run: |
+          bash lupaxa-dotgithub/.github/scripts/makefile-linter.sh

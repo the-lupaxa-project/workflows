@@ -2,8 +2,8 @@
 set -euo pipefail
 
 # Environment (consumed; some wired in later tasks):
-#   INCLUDE_FILES, EXCLUDE_FILES, REPORT_ONLY, SHOW_ERRORS, SHOW_SKIPPED,
-#   NO_COLOR, CHECK_CONVENTIONS, CHECKMAKE_BIN, ROOT_DIR
+#   INCLUDE_FILES, EXCLUDE_FILES, EXCLUDE_FILES_EXTRA, REPORT_ONLY, SHOW_ERRORS,
+#   SHOW_SKIPPED, NO_COLOR, CHECK_CONVENTIONS, CHECKMAKE_BIN, ROOT_DIR
 
 makefile_linter_normalize_root() {
   local root="$1"
@@ -37,6 +37,16 @@ makefile_linter_discover() {
   root="$(makefile_linter_normalize_root "${ROOT_DIR:-$PWD}")"
   local include="${INCLUDE_FILES:-}"
   local exclude="${EXCLUDE_FILES:-}"
+  local extra_exclude="${EXCLUDE_FILES_EXTRA:-}"
+
+  if [ -n "$extra_exclude" ]; then
+    if [ -n "$exclude" ]; then
+      exclude="${exclude},${extra_exclude}"
+    else
+      exclude="$extra_exclude"
+    fi
+  fi
+
   local -a discovered=()
   local path rel base tmp find_rc=0
 
