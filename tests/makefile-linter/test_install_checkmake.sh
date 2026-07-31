@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 set -euo pipefail
 TEST_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "${TEST_DIR}/../.." && pwd)"
