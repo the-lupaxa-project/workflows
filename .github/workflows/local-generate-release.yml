@@ -5,7 +5,7 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
       - '!v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
-      - '!v[0-9]+.[0-9]+.[0-9]+-dev[0-9]+'
+      - '!v[0-9]+.[0-9]+.[0-9]+-draft[0-9]+'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,6 +19,9 @@ jobs:
   generate-release-notes:
     name: Generate Release Notes
     uses: ./.github/workflows/reusable-github-release-generator.yml
+    with:
+      draft: false
+      prerelease: false
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
 

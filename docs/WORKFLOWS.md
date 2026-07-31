@@ -57,7 +57,7 @@ The following table provides a quick overview of every reusable workflow availab
 |   4 | [Dockerfile Linter](#dockerfile-linter)                                     | Language Analysis      | Basic        | Check Dockerfiles for best practices and common issues.                        |
 |   5 | [First-Time Contributor Greetings](#first-time-contributor-greetings)       | Repository Automation  | Basic        | Welcome new contributors with automated messages.                              |
 |   6 | [GitHub Actions Security](#github-actions-security)                         | Security               | Intermediate | Verify GitHub Actions workflows follow security best practices.                |
-|   7 | [GitHub Release Generator](#github-release-generator)                       | Release Management     | Advanced     | Create and publish GitHub Releases from repository tags.                       |
+|   7 | [GitHub Release Generator](#github-release-generator)                       | Release Management     | Advanced     | Create draft, pre-release, or stable GitHub Releases from tags.                |
 |   8 | [JSON Validator](#json-validator)                                           | Repository Quality     | Basic        | Validate JSON configuration and data files.                                    |
 |   9 | [Link Checker](#link-checker)                                               | Repository Quality     | Intermediate | Detect broken or invalid links in documentation.                               |
 |  10 | [Makefile Linter](#makefile-linter)                                         | Repository Quality     | Basic        | Validate Makefiles and `.mk` files with checkmake and conventions.             |
@@ -921,18 +921,19 @@ Release Management workflows automate project releases and dependency maintenanc
 
 | Workflow                                                | Typical Use                                              |
 | :------------------------------------------------------ | :------------------------------------------------------- |
-| [GitHub Release Generator](#github-release-generator)   | Create and publish GitHub Releases from repository tags. |
-| [Python Dependency Updater](#python-dependency-updater) | Check Python dependencies for available updates.         |
+| [GitHub Release Generator](#github-release-generator)   | Create draft, pre-release, or stable GitHub Releases from tags. |
+| [Python Dependency Updater](#python-dependency-updater) | Check Python dependencies for available updates.                |
 
 ## GitHub Release Generator
 
-Automatically creates GitHub Releases by generating release notes, resolving version information and publishing releases from repository tags.
+Automatically creates GitHub Releases by generating release notes, resolving version information and publishing releases from repository tags. Callers choose the
+release mode through the `draft` and `prerelease` inputs.
 
 ### Features
 
 - Automatic version detection.
 - Automatic release note generation.
-- Draft releases.
+- Draft releases (mutable until published — recommended with immutable releases).
 - Pre-release support.
 - Custom release names.
 - Optional GitHub token.
@@ -946,6 +947,22 @@ Automatically creates GitHub Releases by generating release notes, resolving ver
 | `draft`        | Create a draft release.               |
 | `prerelease`   | Publish as a pre-release.             |
 
+### Release Modes
+
+| Mode        | `draft` | `prerelease` | Typical tag pattern   | Purpose                                      |
+| :---------- | :-----: | :----------: | :-------------------- | :------------------------------------------- |
+| Draft       | `true`  | `false`      | `v1.2.3-draft1`       | Review notes/assets before publishing.       |
+| Test / RC   | `false` | `true`       | `v1.2.3-rc1`          | Published pre-release for integration checks. |
+| Stable      | `false` | `false`      | `v1.2.3`              | Final published release.                     |
+
+In this repository the local callers are:
+
+| Local workflow                     | Mode   | Trigger                                                                 |
+| :--------------------------------- | :----- | :---------------------------------------------------------------------- |
+| `local-generate-draft-release.yml` | Draft  | Tag `vX.Y.Z-draftN`, or manual `workflow_dispatch` with an existing tag |
+| `local-generate-test-release.yml`  | Test   | Tag `vX.Y.Z-rcN`                                                        |
+| `local-generate-release.yml`       | Stable | Tag `vX.Y.Z` (excludes `-rc` and `-draft` suffixes)                     |
+
 ### Additional Permissions
 
 ```yaml
@@ -958,17 +975,45 @@ contents: write
 github_token
 ```
 
-### Example
+### Example — Stable Release
 
 ```yaml
 jobs:
   release:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-github-release-generator.yml@master
+    with:
+      draft: false
+      prerelease: false
+```
+
+### Example — Test / Pre-release
+
+```yaml
+jobs:
+  release:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-github-release-generator.yml@master
+    with:
+      draft: false
+      prerelease: true
+```
+
+### Example — Draft Release
+
+```yaml
+jobs:
+  release:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-github-release-generator.yml@master
+    with:
+      tag: v1.2.3
+      draft: true
+      prerelease: false
 ```
 
 ### Notes
 
-If no tag is supplied, the workflow automatically determines the version from the triggering Git reference.
+- If no tag is supplied, the workflow automatically determines the version from the triggering Git reference.
+- Draft releases remain editable until published. Prefer draft or `-rc` tags before a stable release when [immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases) are enabled: publishing locks the release, and deleting it permanently prevents reusing that tag name.
+- Recommended sequence: push `vX.Y.Z-rc1` (test), then either create a draft for `vX.Y.Z` and publish it, or push the stable `vX.Y.Z` tag when ready.
 
 ## Python Dependency Updater
 

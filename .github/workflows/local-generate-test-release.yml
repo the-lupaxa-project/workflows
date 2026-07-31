@@ -17,6 +17,9 @@ jobs:
   generate-release-notes:
     name: Generate Release Notes
     uses: ./.github/workflows/reusable-github-release-generator.yml
+    with:
+      draft: false
+      prerelease: true
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
 
