@@ -13,14 +13,24 @@ makefile_conventions_profile() {
       ;;
   esac
 
-  if [[ "$file" == */skills/* ]] ||
-    grep -Eq 'STATUS_FRAGMENTS|^[[:space:]]*help-[[:alnum:]_.-]+[[:space:]]*:' "$file"; then
+  if grep -Eq '^[[:space:]]*MAKEFILES_MODE[[:space:]]*[?:+]?=[[:space:]]*library([[:space:]]|$)' "$file"; then
+    printf '%s\n' "library"
+    return 0
+  fi
+
+  if [[ "$file" == */skills/* ]]; then
     printf '%s\n' "skill"
     return 0
   fi
 
   if grep -Eq 'MAKEFILES_DIR|MAKEFILES_REPO|^[[:space:]]*SKILLS([[:space:]]|[?:+]?=)|^[[:space:]]*-include[[:space:]].*/skills/' "$file"; then
     printf '%s\n' "wrapper"
+    return 0
+  fi
+
+  if [[ "$base" == *.mk ]] &&
+    grep -Eq 'STATUS_FRAGMENTS|^[[:space:]]*help-[[:alnum:]_.-]+[[:space:]]*:' "$file"; then
+    printf '%s\n' "skill"
     return 0
   fi
 
@@ -36,9 +46,19 @@ makefile_conventions_finding() {
 
 makefile_conventions_phony_targets() {
   awk '
-    /^[[:space:]]*\.PHONY[[:space:]]*:/ {
-      sub(/^[[:space:]]*\.PHONY[[:space:]]*:[[:space:]]*/, "")
-      print
+    {
+      logical = $0
+      while (logical ~ /\\[[:space:]]*$/) {
+        sub(/\\[[:space:]]*$/, "", logical)
+        if ((getline continued) <= 0) {
+          break
+        }
+        logical = logical " " continued
+      }
+      if (logical ~ /^[[:space:]]*\.PHONY[[:space:]]*:/) {
+        sub(/^[[:space:]]*\.PHONY[[:space:]]*:[[:space:]]*/, "", logical)
+        print logical
+      }
     }
   ' "$1"
 }
@@ -109,7 +129,7 @@ makefile_conventions_skill_id() {
 makefile_conventions_check_skill() {
   local file="$1"
   local findings=0
-  local id phony fragments target
+  local id phony fragments target doctor_pattern
   id="$(makefile_conventions_skill_id "$file")"
 
   if [ -z "$id" ]; then
@@ -121,8 +141,10 @@ makefile_conventions_check_skill() {
     makefile_conventions_finding "$file" "SKILL_TARGET" "missing help-${id} target"
     findings=$((findings + 1))
   fi
-  if ! grep -Eq "^[[:space:]]*${id}-doctor[[:space:]]*:" "$file"; then
-    makefile_conventions_finding "$file" "SKILL_TARGET" "missing ${id}-doctor target"
+  doctor_pattern="${id}-doctor|doctor-${id}"
+  [ "$id" = "versioning" ] && doctor_pattern="${doctor_pattern}|doctor"
+  if ! grep -Eq "^[[:space:]]*(${doctor_pattern})[[:space:]]*:" "$file"; then
+    makefile_conventions_finding "$file" "SKILL_TARGET" "missing ${id}-doctor or doctor-${id} target"
     findings=$((findings + 1))
   fi
   if grep -Eq '^[[:space:]]*-?include[[:space:]].*\.mk([[:space:]]|$)' "$file"; then
@@ -141,8 +163,13 @@ makefile_conventions_check_skill() {
   for target in $phony; do
     case "$target" in
       \#*) break ;;
-      "help-${id}"|"status-${id}"|"${id}-"*) continue ;;
+      "help-${id}"|"status-${id}"|"doctor-${id}"|"${id}-"*) continue ;;
     esac
+    if [ "$id" = "versioning" ]; then
+      case "$target" in
+        bump-*|release|doctor|status|version|show-version-flow) continue ;;
+      esac
+    fi
     if makefile_conventions_phony_has "$fragments" "$target"; then
       continue
     fi
@@ -161,7 +188,7 @@ makefile_conventions_check() {
   case "$profile" in
     wrapper) makefile_conventions_check_wrapper "$file" ;;
     skill) makefile_conventions_check_skill "$file" ;;
-    template|generic) return 0 ;;
+    library|template|generic) return 0 ;;
   esac
 }
 

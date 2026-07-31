@@ -128,26 +128,42 @@ makefile_linter_show_errors() {
   esac
 }
 
-makefile_linter_run_checkmake() {
-  local file="$1"
-  local bin output rc=0
+makefile_linter_resolve_checkmake() {
+  local candidate
 
-  if [ -n "${CHECKMAKE_BIN:-}" ] && [ -x "$CHECKMAKE_BIN" ]; then
-    bin="$CHECKMAKE_BIN"
-  elif command -v checkmake >/dev/null 2>&1; then
-    bin="checkmake"
-  else
+  if [ -n "${CHECKMAKE_BIN:-}" ]; then
+    candidate="$CHECKMAKE_BIN"
+    if ! command -v "$candidate" >/dev/null 2>&1; then
+      echo "CHECKMAKE_BIN is not executable or cannot be resolved: ${candidate}" >&2
+      return 1
+    fi
+    command -v "$candidate"
+    return 0
+  fi
+
+  if ! command -v checkmake >/dev/null 2>&1; then
     echo "checkmake not found (set CHECKMAKE_BIN or install checkmake)" >&2
     return 1
   fi
+  command -v checkmake
+}
+
+makefile_linter_run_checkmake() {
+  local file="$1"
+  local bin="$2"
+  local config="${3:-}"
+  local output rc=0
+  local -a args=()
+
+  [ -n "$config" ] && args+=(--config "$config")
 
   if makefile_linter_show_errors; then
-    output="$("$bin" "$file" 2>&1)" || rc=$?
+    output="$("$bin" "${args[@]}" "$file" 2>&1)" || rc=$?
     [ "$rc" -ne 0 ] && printf '%s\n' "$output"
     return "$rc"
   fi
 
-  "$bin" "$file" >/dev/null 2>&1
+  "$bin" "${args[@]}" "$file" >/dev/null 2>&1
 }
 
 makefile_linter_run_conventions() {
@@ -190,7 +206,7 @@ makefile_linter_main() {
   root="$(makefile_linter_normalize_root "${ROOT_DIR:-$PWD}")"
   local include="${INCLUDE_FILES:-}"
   local -a files=()
-  local file failures=0
+  local file failures=0 checkmake_bin checkmake_config=""
 
   local discover_out discover_rc=0
 
@@ -216,9 +232,16 @@ makefile_linter_main() {
     exit 0
   fi
 
+  if ! checkmake_bin="$(makefile_linter_resolve_checkmake)"; then
+    exit 1
+  fi
+  if [ -f "${root}/checkmake.ini" ]; then
+    checkmake_config="${root}/checkmake.ini"
+  fi
+
   for file in "${files[@]}"; do
     local fpath="${root}/${file}"
-    if ! makefile_linter_run_checkmake "$fpath"; then
+    if ! makefile_linter_run_checkmake "$fpath" "$checkmake_bin" "$checkmake_config"; then
       failures=$((failures + 1))
     fi
     if makefile_linter_conventions_enabled; then

@@ -17,6 +17,9 @@ assert_eq "template" "$profile" "detects template"
 profile="$(makefile_conventions_profile "$ROOT/tests/makefile-linter/fixtures/generic/Makefile")"
 assert_eq "generic" "$profile" "detects generic"
 
+profile="$(makefile_conventions_profile "$ROOT/tests/makefile-linter/fixtures/library/Makefile")"
+assert_eq "library" "$profile" "detects library before skill heuristics"
+
 set +e
 out="$(makefile_conventions_check "$ROOT/tests/makefile-linter/fixtures/wrapper/Makefile" 2>&1)"
 rc=$?
@@ -36,6 +39,30 @@ out="$(makefile_conventions_check "$ROOT/tests/makefile-linter/fixtures/skill/sk
 rc=$?
 set -e
 assert_eq "0" "$rc" "good skill passes"
+
+set +e
+out="$(makefile_conventions_check "$ROOT/tests/makefile-linter/fixtures/skill-continuation/skills/demo.mk" 2>&1)"
+rc=$?
+set -e
+assert_eq "0" "$rc" "continued PHONY declaration passes without backslash target"
+if printf '%s' "$out" | grep -Fq "public target '\\'"; then
+  FAIL=$((FAIL+1))
+  echo "FAIL: continued PHONY emitted a backslash target"
+else
+  PASS=$((PASS+1))
+fi
+
+set +e
+out="$(makefile_conventions_check "$ROOT/tests/makefile-linter/fixtures/library/Makefile" 2>&1)"
+rc=$?
+set -e
+assert_eq "0" "$rc" "library wrapper delegates lifecycle through included template"
+
+set +e
+out="$(makefile_conventions_check "$ROOT/tests/makefile-linter/fixtures/versioning/skills/versioning.mk" 2>&1)"
+rc=$?
+set -e
+assert_eq "0" "$rc" "versioning accepts doctor-id and unprefixed lifecycle targets"
 
 set +e
 out="$(makefile_conventions_check "$ROOT/tests/makefile-linter/fixtures/skill-bad/skills/demo.mk" 2>&1)"
