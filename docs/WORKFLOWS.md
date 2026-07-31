@@ -272,7 +272,6 @@ jobs:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-link-checker.yml@master
 ```
 
-
 ## Makefile Linter
 
 Validates Makefiles and `.mk` files with `checkmake` before changes are merged. It can also enforce makefile-skills conventions for library skill files and
