@@ -13,13 +13,13 @@ makefile_conventions_profile() {
       ;;
   esac
 
-  if grep -Eq '^[[:space:]]*MAKEFILES_MODE[[:space:]]*[?:+]?=[[:space:]]*library([[:space:]]|$)' "$file"; then
-    printf '%s\n' "library"
+  if [[ "$file" == */skills/* || "$file" == skills/* ]]; then
+    printf '%s\n' "skill"
     return 0
   fi
 
-  if [[ "$file" == */skills/* ]]; then
-    printf '%s\n' "skill"
+  if grep -Eq '^[[:space:]]*MAKEFILES_MODE[[:space:]]*[?:+]?=[[:space:]]*library([[:space:]]|$)' "$file"; then
+    printf '%s\n' "library"
     return 0
   fi
 

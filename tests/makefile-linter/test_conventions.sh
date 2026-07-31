@@ -11,6 +11,17 @@ assert_eq "wrapper" "$profile" "detects wrapper"
 profile="$(makefile_conventions_profile "$ROOT/tests/makefile-linter/fixtures/skill/skills/demo.mk")"
 assert_eq "skill" "$profile" "detects skill"
 
+pushd "$ROOT/tests/makefile-linter/fixtures/skill" >/dev/null
+profile="$(makefile_conventions_profile "skills/demo.mk")"
+assert_eq "skill" "$profile" "detects skill via relative path"
+
+set +e
+out="$(makefile_conventions_check "skills/demo.mk" 2>&1)"
+rc=$?
+set -e
+assert_eq "0" "$rc" "good skill passes via relative path"
+popd >/dev/null
+
 profile="$(makefile_conventions_profile "$ROOT/tests/makefile-linter/fixtures/template/skills/_template.language.mk")"
 assert_eq "template" "$profile" "detects template"
 
