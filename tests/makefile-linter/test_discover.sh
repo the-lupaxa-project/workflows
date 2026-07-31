@@ -43,6 +43,10 @@ assert_contains "$out" "makefile" "discovers lowercase makefile"
 assert_contains "$out" "GNUmakefile" "discovers GNUmakefile"
 assert_contains "$out" "build.make" "discovers *.make files"
 
+FIXTURE="$ROOT/tests/makefile-linter/fixtures/makefile-dot"
+out="$(ROOT_DIR="$FIXTURE" makefile_linter_discover)"
+assert_contains "$out" "examples/Makefile.python" "discovers Makefile.* profiles"
+
 unset CHECK_CONVENTIONS
 if makefile_linter_conventions_enabled; then
   PASS=$((PASS + 1))

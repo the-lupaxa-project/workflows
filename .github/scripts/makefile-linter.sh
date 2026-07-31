@@ -57,6 +57,7 @@ makefile_linter_discover() {
   tmp="$(mktemp)"
   find "$root" -type f \( \
     -name 'Makefile' -o -name 'makefile' -o -name 'GNUmakefile' -o \
+    -name 'Makefile.*' -o -name 'makefile.*' -o \
     -name '*.mk' -o -name '*.make' \
   \) ! -path '*/.makefiles/*' ! -path '*/lupaxa-dotgithub/*' ! -path '*/.git/*' \
     -print0 >"$tmp" || find_rc=$?
@@ -74,6 +75,7 @@ makefile_linter_discover() {
     base="$(basename "$path")"
     case "$base" in
       Makefile|makefile|GNUmakefile) ;;
+      Makefile.*|makefile.*) ;;
       *.mk|*.make) ;;
       *) continue ;;
     esac
