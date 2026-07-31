@@ -60,7 +60,6 @@ out="$(ROOT_DIR="$FIXTURE/" makefile_linter_discover)"
 assert_contains "$out" "Makefile" "trailing-slash ROOT_DIR yields relative Makefile path"
 
 PERM_FIXTURE="$(mktemp -d)"
-trap 'chmod -R u+rwx "$PERM_FIXTURE" 2>/dev/null; rm -rf "$PERM_FIXTURE"' EXIT
 printf 'all:\n' >"$PERM_FIXTURE/Makefile"
 mkdir -p "$PERM_FIXTURE/blocked/nested"
 printf 'all:\n' >"$PERM_FIXTURE/blocked/nested/hidden.mk"
@@ -73,27 +72,31 @@ set -e
 assert_eq "1" "$discover_perm_rc" "find permission error fails discovery instead of empty success"
 assert_eq "" "$out" "find permission error does not report partial success as empty ok"
 
+NOOP_STUB="$(mktemp)"
+printf '#!/bin/sh\nexit 0\n' >"$NOOP_STUB"
+chmod +x "$NOOP_STUB"
+trap 'chmod -R u+rwx "$PERM_FIXTURE" 2>/dev/null; rm -rf "$PERM_FIXTURE" "$NOOP_STUB" "$STUB_DIR" 2>/dev/null' EXIT
+
 set +e
-ROOT_DIR="$PERM_FIXTURE" CHECK_CONVENTIONS=false CHECKMAKE_BIN=true bash "$SCRIPT" 2>/dev/null
+ROOT_DIR="$PERM_FIXTURE" CHECK_CONVENTIONS=false CHECKMAKE_BIN="$NOOP_STUB" bash "$SCRIPT" 2>/dev/null
 main_perm_rc=$?
 set -e
 assert_eq "1" "$main_perm_rc" "find permission error fails main instead of empty success"
 
 set +e
-ROOT_DIR="$ROOT/tests/makefile-linter/fixtures/generic" INCLUDE_FILES='.*\.mk$' CHECK_CONVENTIONS=false CHECKMAKE_BIN=true \
+ROOT_DIR="$ROOT/tests/makefile-linter/fixtures/generic" INCLUDE_FILES='.*\.mk$' CHECK_CONVENTIONS=false CHECKMAKE_BIN="$NOOP_STUB" \
   bash "$SCRIPT"
 rc=$?
 set -e
 assert_eq "2" "$rc" "explicit include with zero matches exits 2"
 
 set +e
-ROOT_DIR="$(mktemp -d)" CHECK_CONVENTIONS=false CHECKMAKE_BIN=true bash "$SCRIPT"
+ROOT_DIR="$(mktemp -d)" CHECK_CONVENTIONS=false CHECKMAKE_BIN="$NOOP_STUB" bash "$SCRIPT"
 rc=$?
 set -e
 assert_eq "0" "$rc" "empty discovery succeeds"
 
 STUB_DIR="$(mktemp -d)"
-trap 'rm -rf "$STUB_DIR"' EXIT
 cat > "$STUB_DIR/fail-checkmake.sh" <<'EOF'
 #!/usr/bin/env bash
 exit 1
@@ -123,7 +126,7 @@ assert_eq "0" "$rc" "REPORT_ONLY=true exits 0 despite failing checkmake"
 
 rm -f "$STUB_DIR/conventions-ran"
 set +e
-ROOT_DIR="$ROOT/tests/makefile-linter/fixtures/generic" CHECKMAKE_BIN=true \
+ROOT_DIR="$ROOT/tests/makefile-linter/fixtures/generic" CHECKMAKE_BIN="$NOOP_STUB" \
   CONVENTIONS_SCRIPT="$STUB_DIR/conventions-stub.sh" bash "$SCRIPT"
 rc=$?
 set -e

@@ -111,18 +111,33 @@ makefile_linter_discover() {
   printf '%s\n' "${filtered[@]}" | sort -u
 }
 
+makefile_linter_show_errors() {
+  case "${SHOW_ERRORS:-true}" in
+    false|False|0) return 1 ;;
+    *) return 0 ;;
+  esac
+}
+
 makefile_linter_run_checkmake() {
   local file="$1"
-  local bin="${CHECKMAKE_BIN:-checkmake}"
+  local bin output rc=0
 
-  if [ "$bin" = "true" ]; then
-    return 0
+  if [ -n "${CHECKMAKE_BIN:-}" ] && [ -x "$CHECKMAKE_BIN" ]; then
+    bin="$CHECKMAKE_BIN"
+  elif command -v checkmake >/dev/null 2>&1; then
+    bin="checkmake"
+  else
+    echo "checkmake not found (set CHECKMAKE_BIN or install checkmake)" >&2
+    return 1
   fi
-  if [ -z "$bin" ] || [ "$bin" = "checkmake" ]; then
-    checkmake "$file"
-    return $?
+
+  if makefile_linter_show_errors; then
+    output="$("$bin" "$file" 2>&1)" || rc=$?
+    [ "$rc" -ne 0 ] && printf '%s\n' "$output"
+    return "$rc"
   fi
-  "$bin" "$file"
+
+  "$bin" "$file" >/dev/null 2>&1
 }
 
 makefile_linter_run_conventions() {
