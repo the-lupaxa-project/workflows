@@ -17,8 +17,6 @@ on:
       - "**/*.bash"
       - "**/*.bats"
 
-  workflow_dispatch:
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
