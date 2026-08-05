@@ -2,8 +2,6 @@ name: Local Shell Scripts Linter
 
 on:
   push:
-    branches:
-      - "master"
     paths:
       - ".github/workflows/local-shell-script-linter.yml"
       - "**/*.sh"

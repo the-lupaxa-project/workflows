@@ -2,8 +2,6 @@ name: Local Code Analysis
 
 on:
   push:
-    branches:
-      - "master"
     paths:
       - ".github/workflows/local-code-analysis.yml"
       - "**/*.py"

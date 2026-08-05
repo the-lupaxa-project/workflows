@@ -2,8 +2,6 @@ name: Local Workflow Notifier CI - workflow-notifier.py
 
 on:
   push:
-    branches:
-      - "master"
     paths:
       - ".github/scripts/workflow-notifier.py"
       - ".github/workflows/local-workflow-notifier-ci.yml"

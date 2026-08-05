@@ -2,8 +2,6 @@ name: Local Link Checker
 
 on:
   push:
-    branches:
-      - "master"
     paths:
       - ".github/workflows/local-link-checker.yml"
       - "**/*.md"

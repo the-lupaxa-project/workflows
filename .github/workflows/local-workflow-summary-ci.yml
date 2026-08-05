@@ -2,8 +2,6 @@ name: Local Workflow Summary CI - workflow-summary.py
 
 on:
   push:
-    branches:
-      - "master"
     paths:
       - ".github/scripts/workflow-summary.py"
       - ".github/workflows/local-workflow-summary-ci.yml"
