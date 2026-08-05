@@ -167,7 +167,7 @@ makefile_conventions_check_skill() {
     esac
     if [ "$id" = "versioning" ]; then
       case "$target" in
-        bump-*|release|doctor|status|version|show-version-flow) continue ;;
+        bump-*|release|doctor|status|version|show-version-flow|draft-tag) continue ;;
       esac
     fi
     if makefile_conventions_phony_has "$fragments" "$target"; then

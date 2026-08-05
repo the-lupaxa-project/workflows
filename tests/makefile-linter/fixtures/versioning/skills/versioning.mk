@@ -4,6 +4,7 @@ STATUS_FRAGMENTS ?=
 	bump-dev \
 	doctor \
 	doctor-versioning \
+	draft-tag \
 	help-versioning \
 	release \
 	status
