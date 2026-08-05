@@ -1,8 +1,8 @@
 # Ignore all macOS metadata files everywhere
 **/.DS_Store
 
-# Local agent docs (specs, plans) — do not commit
-cursor-docs/
+# Private Superpowers specs/plans (symlink into Lupaxa cursor-docs vault)
+cursor-docs
 
 # Git worktrees (local isolation)
 .worktrees/

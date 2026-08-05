@@ -1,19 +1,23 @@
-name: Local Documentation Lint
+name: Local YAML Linter
 
 on:
   push:
     branches:
-      - "**"
+      - "master"
     paths:
-      - "**/*.md"
+      - ".github/workflows/local-yaml-linter.yml"
       - "**/*.yml"
       - "**/*.yaml"
+      - ".yamllint.yml"
 
   pull_request:
+    branches:
+      - "master"
     paths:
-      - "**/*.md"
+      - ".github/workflows/local-yaml-linter.yml"
       - "**/*.yml"
       - "**/*.yaml"
+      - ".yamllint.yml"
 
   workflow_dispatch:
 
@@ -26,16 +30,6 @@ permissions:
   contents: read
 
 jobs:
-  link-checker:
-    name: Link Checker
-    uses: ./.github/workflows/reusable-link-checker.yml
-    secrets: inherit
-
-  markdown-linter:
-    name: Markdown Linter
-    uses: ./.github/workflows/reusable-markdown-linter.yml
-    secrets: inherit
-
   yaml-linter:
     name: YAML Linter
     uses: ./.github/workflows/reusable-yaml-linter.yml
@@ -44,8 +38,6 @@ jobs:
   generate-workflow-summary:
     name: Generate Workflow Summary
     needs:
-      - link-checker
-      - markdown-linter
       - yaml-linter
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml

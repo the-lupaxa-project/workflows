@@ -1,13 +1,27 @@
-name: Local First-Time Contributor Greetings
+name: Local Markdown Linter
 
 on:
-  pull_request:
-    types: [opened]
-    branches-ignore:
-      - 'dependabot/**'
+  push:
+    branches:
+      - "master"
+    paths:
+      - ".github/workflows/local-markdown-linter.yml"
+      - "**/*.md"
+      - ".markdownlint.yml"
+      - ".markdownlintignore"
+      - ".markdownlint-cli2.jsonc"
 
-  issues:
-    types: [opened]
+  pull_request:
+    branches:
+      - "master"
+    paths:
+      - ".github/workflows/local-markdown-linter.yml"
+      - "**/*.md"
+      - ".markdownlint.yml"
+      - ".markdownlintignore"
+      - ".markdownlint-cli2.jsonc"
+
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,20 +30,17 @@ concurrency:
 permissions:
   actions: read
   contents: read
-  issues: write
-  pull-requests: write
 
 jobs:
-  first-time-contributor-greetings:
-    name: First-Time Contributor Greetings
-    uses: ./.github/workflows/reusable-first-time-contributor-greetings.yml
-    secrets:
-      repo-token: ${{ secrets.GITHUB_TOKEN }}
+  markdown-linter:
+    name: Markdown Linter
+    uses: ./.github/workflows/reusable-markdown-linter.yml
+    secrets: inherit
 
   generate-workflow-summary:
     name: Generate Workflow Summary
     needs:
-      - first-time-contributor-greetings
+      - markdown-linter
     if: always()
     uses: ./.github/workflows/reusable-workflow-summary.yml
 

@@ -15,6 +15,7 @@ permissions:
 jobs:
   dependabot-manager:
     name: Dependabot Manager
+    if: ${{ github.actor == 'dependabot[bot]' }}
     uses: ./.github/workflows/reusable-dependabot-manager.yml
     secrets: inherit
 
@@ -22,14 +23,14 @@ jobs:
     name: Generate Workflow Summary
     needs:
       - dependabot-manager
-    if: always()
+    if: ${{ always() && github.actor == 'dependabot[bot]' }}
     uses: ./.github/workflows/reusable-workflow-summary.yml
 
   generate-workflow-notifications:
     name: Generate Workflow Notifications
     needs:
       - generate-workflow-summary
-    if: always()
+    if: ${{ always() && github.actor == 'dependabot[bot]' }}
     uses: ./.github/workflows/reusable-workflow-notifier.yml
     with:
       notify_on_results: "failure,timed_out"

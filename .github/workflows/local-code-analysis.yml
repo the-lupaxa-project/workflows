@@ -2,16 +2,36 @@ name: Local Code Analysis
 
 on:
   push:
-    branches-ignore:
-      - "dependabot/"
-    paths-ignore:
-      - "**/*.md"
+    branches:
+      - "master"
+    paths:
+      - ".github/workflows/local-code-analysis.yml"
+      - "**/*.py"
+      - "pyproject.toml"
+      - "setup.cfg"
+      - "setup.py"
+      - "requirements*.txt"
+      - "poetry.lock"
+      - "Pipfile"
+      - "Pipfile.lock"
+      - "src/**"
+      - ".github/scripts/**/*.py"
 
   pull_request:
     branches:
-      - "**"
-    paths-ignore:
-      - "**/*.md"
+      - "master"
+    paths:
+      - ".github/workflows/local-code-analysis.yml"
+      - "**/*.py"
+      - "pyproject.toml"
+      - "setup.cfg"
+      - "setup.py"
+      - "requirements*.txt"
+      - "poetry.lock"
+      - "Pipfile"
+      - "Pipfile.lock"
+      - "src/**"
+      - ".github/scripts/**/*.py"
 
   schedule:
     - cron: "4 3 * * 1"
