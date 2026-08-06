@@ -1011,11 +1011,11 @@ jobs:
 
 ### Notes
 
-- If no tag is supplied, the workflow automatically determines the version from the triggering Git reference.
-- Draft releases remain editable until published. Prefer draft or `-rc` tags before a stable release when
-  [immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
-  are enabled: publishing locks the release, and deleting it permanently prevents reusing that tag name.
-- Recommended sequence: push `vX.Y.Z-rc1` (test), then either create a draft for `vX.Y.Z` and publish it, or push the stable `vX.Y.Z` tag when ready.
+-   If no tag is supplied, the workflow automatically determines the version from the triggering Git reference.
+-   Draft releases remain editable until published. Prefer draft or `-rc` tags before a stable release when
+    [immutable releases](https://docs.github.com/en/code-security/concepts/supply-chain-security/immutable-releases)
+    are enabled: publishing locks the release, and deleting it permanently prevents reusing that tag name.
+-   Recommended sequence: push `vX.Y.Z-rc1` (test), then either create a draft for `vX.Y.Z` and publish it, or push the stable `vX.Y.Z` tag when ready.
 
 ## Python Dependency Updater
 
@@ -1625,7 +1625,7 @@ Repositories are free to adopt only those workflows that are appropriate for the
 For additional information about The Lupaxa Project, refer to:
 
 - `README.md`
-- `LICENSE`
+- `LICENCE`
 - The organisation-wide documentation maintained in the `.github` repository.
 
 Further information about GitHub Actions is available from the official GitHub documentation.

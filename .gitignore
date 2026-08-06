@@ -3,6 +3,17 @@
 
 # Private Superpowers specs/plans (symlink into Lupaxa cursor-docs vault)
 cursor-docs
+.makefiles/
+.superpowers/
+site/
+.venv/
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+dist/
+build/
+*.egg-info/
 
 # Git worktrees (local isolation)
 .worktrees/
