@@ -39,7 +39,8 @@ jobs:
     uses: ./.github/workflows/reusable-makefile-linter.yml
     with:
       check_conventions: true
-      exclude_files: "^site/|^mkdocs/|^\\.makefiles/"
+      # tests/ holds intentional bad fixtures for the makefile-linter suite
+      exclude_files: "^site/|^mkdocs/|^\\.makefiles/|^tests/"
 
   generate-workflow-summary:
     name: Generate Workflow Summary

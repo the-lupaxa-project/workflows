@@ -1354,14 +1354,14 @@ publication.
 
 ### Inputs
 
-| Input | Description |
-| :---- | :---------- |
-| `dry_run` | Report what would be deleted without deleting workflow runs. |
-| `limit` | Maximum number of completed workflow runs to delete. Use `0` for unlimited. |
-| `delay_seconds` | Delay between delete requests in seconds. |
-| `verbosity` | Output verbosity (`0` = summary, `1` = progress, `2` = detailed). |
-| `retries` | Number of retries for transient GitHub API failures. |
-| `confirm` | Confirms destructive deletion when `dry_run` is disabled. |
+| Input           | Description                                                                 |
+| :-------------- | :-------------------------------------------------------------------------- |
+| `dry_run`       | Report what would be deleted without deleting workflow runs.                |
+| `limit`         | Maximum number of completed workflow runs to delete. Use `0` for unlimited. |
+| `delay_seconds` | Delay between delete requests in seconds.                                   |
+| `verbosity`     | Output verbosity (`0` = summary, `1` = progress, `2` = detailed).           |
+| `retries`       | Number of retries for transient GitHub API failures.                        |
+| `confirm`       | Confirms destructive deletion when `dry_run` is disabled.                   |
 
 ### Default Permissions
 
