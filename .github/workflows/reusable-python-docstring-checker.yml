@@ -26,7 +26,7 @@ on:
         default: true
 
       show_skipped:
-        description: "Show skipped files"
+        description: "Show skipped files (mapped to SHOW_FILTERED for the CICD pipeline)"
         required: false
         type: boolean
         default: false
@@ -55,6 +55,6 @@ jobs:
           EXCLUDE_FILES: ${{ inputs.exclude_files }}
           REPORT_ONLY: ${{ inputs.report_only }}
           SHOW_ERRORS: ${{ inputs.show_errors }}
-          SHOW_SKIPPED: ${{ inputs.show_skipped }}
+          SHOW_FILTERED: ${{ inputs.show_skipped }}
           NO_COLOR: ${{ inputs.no_color }}
-        run: bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/pydocstyle/master/pipeline.sh)
+        run: bash <(curl -s https://raw.githubusercontent.com/lupaxa-cicd-toolbox/pydocstyle/master/src/pipeline.sh)

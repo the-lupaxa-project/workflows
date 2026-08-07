@@ -46,4 +46,4 @@ jobs:
           REPORT_ONLY: ${{ inputs.report_only }}
           SHOW_ERRORS: ${{ inputs.show_errors }}
         run: |
-          bash <(curl -s https://raw.githubusercontent.com/CICDToolbox/shellcheck/master/pipeline.sh)
+          bash <(curl -s https://raw.githubusercontent.com/lupaxa-cicd-toolbox/shellcheck/master/src/pipeline.sh)

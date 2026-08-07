@@ -169,7 +169,7 @@ Third-party GitHub Actions are pinned to immutable commit SHAs to reduce supply-
 
 ## Shared Tooling
 
-Many validation workflows delegate execution to shared tooling maintained within the **CICDToolbox** project.
+Many validation workflows delegate execution to shared tooling maintained within the **[lupaxa-cicd-toolbox](https://github.com/lupaxa-cicd-toolbox)** organisation.
 
 This allows improvements to validation logic to be shared automatically across all repositories that consume these workflows.
 
@@ -200,7 +200,7 @@ Unless documented otherwise, validation workflows:
 
 - require only `contents: read` permission;
 - require no secrets;
-- execute a shared **CICDToolbox** validation pipeline.
+- execute a shared **lupaxa-cicd-toolbox** validation pipeline (`src/pipeline.sh`).
 
 [↑ Back to Contents](#contents)
 
@@ -499,7 +499,7 @@ All of the above workflows:
 - use the Standard Validation Interface;
 - require only `contents: read`;
 - require no secrets;
-- execute a shared CICDToolbox validation pipeline.
+- execute a shared **lupaxa-cicd-toolbox** validation pipeline (`src/pipeline.sh`).
 
 ## Dockerfile Linter
 
@@ -1532,7 +1532,7 @@ as independent jobs within the same workflow.
 
 ## Why do so many workflows look similar?
 
-Many workflows share the **Standard Validation Interface** and delegate execution to shared CICD Toolbox pipelines (legacy **CICDToolbox** and Lupaxa **lupaxa-cicd-toolbox**).
+Many workflows share the **Standard Validation Interface** and delegate execution to shared **[lupaxa-cicd-toolbox](https://github.com/lupaxa-cicd-toolbox)** pipelines (`src/pipeline.sh`).
 
 This consistency reduces the learning curve and simplifies adoption across multiple repositories.
 
