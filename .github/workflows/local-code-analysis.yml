@@ -52,7 +52,8 @@ jobs:
     with:
       languages: "python"
       slack_notifications: true
-    secrets: inherit
+    secrets:
+      SLACK_CODEQL_WEBHOOK_URL: ${{ secrets.SLACK_CODEQL_WEBHOOK_URL }}
 
   generate-workflow-summary:
     name: Generate Workflow Summary

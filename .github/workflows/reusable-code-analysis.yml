@@ -25,8 +25,8 @@ on:
 
       slack_webhook_url:
         description: >
-          Optional alias for callers that pass the webhook under this name.
-          Prefer SLACK_CODEQL_WEBHOOK_URL with secrets: inherit.
+          Optional alias. Prefer passing SLACK_CODEQL_WEBHOOK_URL explicitly
+          (required for cross-organisation callers; secrets: inherit will not work).
         required: false
 
 permissions:
@@ -83,7 +83,9 @@ jobs:
             exit 0
           fi
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
-            echo "Slack webhook not configured; skipping pre-analysis alert capture"
+            echo "SLACK_CODEQL_WEBHOOK_URL not available to this reusable workflow; skipping pre-analysis alert capture"
+            echo "Callers must pass secrets.SLACK_CODEQL_WEBHOOK_URL explicitly"
+            echo "(secrets: inherit does not work across organisations)."
             exit 0
           fi
           if [ "${GITHUB_REF_NAME}" != "${DEFAULT_BRANCH}" ]; then
@@ -114,10 +116,12 @@ jobs:
             exit 0
           fi
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
-            echo "Slack webhook not configured; skipping Slack notification"
+            echo "SLACK_CODEQL_WEBHOOK_URL not available to this reusable workflow; skipping Slack notification"
+            echo "Callers must pass secrets.SLACK_CODEQL_WEBHOOK_URL explicitly"
+            echo "(secrets: inherit does not work across organisations)."
             {
               echo "## CodeQL Alert Changes"
-              echo "- Slack notification: not configured"
+              echo "- Slack notification: SLACK_CODEQL_WEBHOOK_URL not available"
             } >> "${GITHUB_STEP_SUMMARY}"
             exit 0
           fi
@@ -170,7 +174,7 @@ jobs:
             exit 0
           fi
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
-            echo "Slack webhook not configured; skipping failure notification"
+            echo "SLACK_CODEQL_WEBHOOK_URL not available to this reusable workflow; skipping failure notification"
             exit 0
           fi
           python3 "${HELPER}" failure

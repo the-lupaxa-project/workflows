@@ -767,14 +767,18 @@ Unlike the validation workflows, Code Analysis uses GitHub's native Code Scannin
 
 ### Secrets
 
-| Secret              | Description                                                                 | Required |
-| :------------------ | :-------------------------------------------------------------------------- | :------- |
-| `slack_webhook_url` | Slack Incoming Webhook URL for CodeQL alert lifecycle notifications.        | No       |
+| Secret                     | Description                                                          | Required |
+| :------------------------- | :------------------------------------------------------------------- | :------- |
+| `SLACK_CODEQL_WEBHOOK_URL` | Slack Incoming Webhook URL for CodeQL alert lifecycle notifications. | No       |
 
 Notifications are sent only when `slack_notifications` is `true`, the webhook
 secret is present, and the workflow is analysing the repository default branch.
 Unchanged open alerts are not re-notified. Slack delivery failures never fail
 CodeQL.
+
+Callers **must pass `SLACK_CODEQL_WEBHOOK_URL` explicitly**. `secrets: inherit`
+does not work across organisations, and most Lupaxa repos call this reusable
+workflow from a different org than `the-lupaxa-project`.
 
 ### Additional Permissions
 
@@ -792,11 +796,9 @@ jobs:
     with:
       languages: python
       slack_notifications: true
-    secrets: inherit
+    secrets:
+      SLACK_CODEQL_WEBHOOK_URL: ${{ secrets.SLACK_CODEQL_WEBHOOK_URL }}
 ```
-
-Callers should use `secrets: inherit` so the reusable workflow can read the
-organisation/repository secret `SLACK_CODEQL_WEBHOOK_URL`.
 
 ### Notes
 
