@@ -792,12 +792,11 @@ jobs:
     with:
       languages: python
       slack_notifications: true
-    secrets:
-      slack_webhook_url: ${{ secrets.SLACK_CODEQL_WEBHOOK_URL }}
+    secrets: inherit
 ```
 
-Organisation-level secrets with `secrets: inherit` are also supported where the
-caller repository security model allows it.
+Callers should use `secrets: inherit` so the reusable workflow can read the
+organisation/repository secret `SLACK_CODEQL_WEBHOOK_URL`.
 
 ### Notes
 

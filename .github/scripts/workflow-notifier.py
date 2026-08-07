@@ -974,7 +974,16 @@ def required_context_from_env() -> tuple[str, str, str, str]:
     """Read and validate required runtime context from environment variables."""
     webhook_url = env_value("SLACK_WEBHOOK_URL") or env_value("slack_webhook_url")
     if not webhook_url:
-        error("SLACK_WEBHOOK_URL environment variable is required.")
+        print(
+            "::error::Missing Slack webhook secret 'slack_webhook_url' "
+            "(SLACK_WEBHOOK_URL is empty).",
+            file=sys.stderr,
+            flush=True,
+        )
+        error(
+            "SLACK_WEBHOOK_URL is required. Pass secrets.slack_webhook_url from the "
+            "caller, or use secrets: inherit when the repository/org secret exists."
+        )
 
     repo = env_value("GITHUB_REPOSITORY")
     run_id = env_value("GITHUB_RUN_ID")

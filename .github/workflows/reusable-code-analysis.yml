@@ -17,8 +17,16 @@ on:
         default: true
 
     secrets:
+      SLACK_CODEQL_WEBHOOK_URL:
+        description: >
+          Preferred Slack Incoming Webhook URL for CodeQL notifications
+          (organisation/repository secret name).
+        required: false
+
       slack_webhook_url:
-        description: Slack Incoming Webhook URL for CodeQL notifications
+        description: >
+          Optional alias for callers that pass the webhook under this name.
+          Prefer SLACK_CODEQL_WEBHOOK_URL with secrets: inherit.
         required: false
 
 permissions:
@@ -66,7 +74,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
-          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CODEQL_WEBHOOK_URL || secrets.slack_webhook_url }}
         run: |
           set -eu
           HELPER="${RUNNER_TEMP}/codeql-slack-notify.py"
@@ -97,7 +105,7 @@ jobs:
           GITHUB_REF_NAME: ${{ github.ref_name }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CODEQL_WEBHOOK_URL || secrets.slack_webhook_url }}
         run: |
           set -eu
           HELPER="${RUNNER_TEMP}/codeql-slack-notify.py"
@@ -153,7 +161,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_WORKFLOW: ${{ github.workflow }}
           GITHUB_RUN_ID: ${{ github.run_id }}
-          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_CODEQL_WEBHOOK_URL || secrets.slack_webhook_url }}
         run: |
           set -eu
           HELPER="${RUNNER_TEMP}/codeql-slack-notify.py"

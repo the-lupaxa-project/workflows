@@ -61,6 +61,17 @@ jobs:
       )
 
     steps:
+      - name: Require Slack Webhook Secret
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL}" ]; then
+            echo "::error::Missing Slack webhook secret 'slack_webhook_url'."
+            echo "::error::Map it from the caller (secrets.slack_webhook_url -> repository/org SLACK_WEBHOOK_URL),"
+            echo "::error::or use 'secrets: inherit' when that secret already exists."
+            exit 1
+          fi
+
       - name: Checkout Workflows Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
