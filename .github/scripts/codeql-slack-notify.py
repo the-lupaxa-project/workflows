@@ -79,7 +79,7 @@ def get_code_scanning_alerts(repository: str) -> list[Alert]:
                 return []
             raise
         if not isinstance(batch, list):
-            raise RuntimeError("Unexpected Code Scanning alerts API response")
+            raise TypeError("Unexpected Code Scanning alerts API response")
         if not batch:
             break
         alerts.extend(batch)
@@ -90,13 +90,16 @@ def get_code_scanning_alerts(repository: str) -> list[Alert]:
 
 
 def save_snapshot(path: str, alerts: list[Alert]) -> None:
-    Path(path).write_text(json.dumps(alerts, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    Path(path).write_text(
+        json.dumps(alerts, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
 
 def load_snapshot(path: str) -> list[Alert]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(data, list):
-        raise ValueError(f"Snapshot {path} must contain a JSON list")
+        raise TypeError(f"Snapshot {path} must contain a JSON list")
     return data
 
 
@@ -141,11 +144,11 @@ def compare_alerts(before: list[Alert], after: list[Alert]) -> Changes:
     for number, before_alert in before_idx.items():
         if _state(before_alert) != "open":
             continue
-        after_alert = after_idx.get(number)
-        if after_alert is None:
+        maybe_after = after_idx.get(number)
+        if maybe_after is None:
             continue
-        if _state(after_alert) == "fixed":
-            fixed.append(after_alert)
+        if _state(maybe_after) == "fixed":
+            fixed.append(maybe_after)
 
     new.sort(key=lambda alert: int(alert.get("number") or 0))
     fixed.sort(key=lambda alert: int(alert.get("number") or 0))

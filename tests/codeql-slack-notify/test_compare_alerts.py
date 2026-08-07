@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Unit tests for CodeQL alert comparison used by Slack notifications."""
 
 from __future__ import annotations
@@ -7,13 +6,14 @@ import importlib.util
 import sys
 import unittest
 from pathlib import Path
-
+from types import ModuleType
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / ".github" / "scripts" / "codeql-slack-notify.py"
 
 
-def _load_module():
+def _load_module() -> ModuleType:
     spec = importlib.util.spec_from_file_location("codeql_slack_notify", SCRIPT)
     if spec is None or spec.loader is None:
         raise RuntimeError(f"Unable to load module from {SCRIPT}")
@@ -35,7 +35,7 @@ def _alert(
     html_url: str | None = None,
     fixed_at: str | None = None,
     dismissed_at: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     return {
         "number": number,
         "state": state,
@@ -52,7 +52,8 @@ def _alert(
                 "start_line": start_line,
             },
         },
-        "html_url": html_url or f"https://github.com/example/repo/security/code-scanning/{number}",
+        "html_url": html_url
+        or f"https://github.com/example/repo/security/code-scanning/{number}",
         "created_at": "2026-01-01T00:00:00Z",
         "updated_at": "2026-01-02T00:00:00Z",
         "fixed_at": fixed_at,
@@ -61,6 +62,8 @@ def _alert(
 
 
 class CompareAlertsTests(unittest.TestCase):
+    mod: ModuleType
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.mod = _load_module()
@@ -74,7 +77,7 @@ class CompareAlertsTests(unittest.TestCase):
         self.assertEqual(changes["reappeared"], [])
 
     def test_new_alert(self) -> None:
-        before: list[dict] = []
+        before: list[dict[str, Any]] = []
         after = [_alert(1, "open")]
         changes = self.mod.compare_alerts(before, after)
         self.assertEqual([a["number"] for a in changes["new"]], [1])
@@ -115,18 +118,17 @@ class CompareAlertsTests(unittest.TestCase):
         self.assertEqual([a["number"] for a in changes["new"]], [4])
 
     def test_missing_optional_fields_do_not_raise(self) -> None:
-        sparse = {
+        sparse: dict[str, Any] = {
             "number": 9,
             "state": "open",
             "rule": {},
             "most_recent_instance": {},
             "html_url": "https://github.com/example/repo/security/code-scanning/9",
         }
-        before: list[dict] = []
+        before: list[dict[str, Any]] = []
         after = [sparse]
         changes = self.mod.compare_alerts(before, after)
         self.assertEqual([a["number"] for a in changes["new"]], [9])
-        # Formatting helpers must tolerate sparse alerts
         severity = self.mod.format_severity(sparse)
         self.assertEqual(severity, "UNKNOWN")
         location = self.mod.format_location(sparse)

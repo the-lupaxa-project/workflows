@@ -1,19 +1,21 @@
-name: Local Workflow Summary CI - workflow-summary.py
+name: Local Python Scripts CI
 
 on:
   push:
     paths:
-      - ".github/scripts/workflow-summary.py"
-      - ".github/workflows/local-workflow-summary-ci.yml"
-      - ".github/workflows/reusable-workflow-summary.yml"
+      - ".github/scripts/**"
+      - ".github/workflows/local-python-scripts-ci.yml"
+      - ".github/workflows/reusable-python-ci.yml"
+      - "tests/**/*.py"
 
   pull_request:
     branches:
       - "master"
     paths:
-      - ".github/scripts/workflow-summary.py"
-      - ".github/workflows/local-workflow-summary-ci.yml"
-      - ".github/workflows/reusable-workflow-summary.yml"
+      - ".github/scripts/**"
+      - ".github/workflows/local-python-scripts-ci.yml"
+      - ".github/workflows/reusable-python-ci.yml"
+      - "tests/**/*.py"
 
   workflow_dispatch:
 
@@ -26,7 +28,7 @@ jobs:
     name: Python CI
     uses: ./.github/workflows/reusable-python-ci.yml
     with:
-      paths: ".github/scripts/workflow-summary.py"
+      paths: ".github/scripts,tests"
 
   generate-workflow-summary:
     name: Generate Workflow Summary
