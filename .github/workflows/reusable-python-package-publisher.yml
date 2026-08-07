@@ -1,0 +1,59 @@
+name: Reusable Python Package Publisher
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: "Python version used to build the package"
+        required: false
+        type: string
+        default: "3.13"
+
+      repository-url:
+        description: >
+          Package index upload URL.
+          Defaults to production PyPI. Use https://test.pypi.org/legacy/ for TestPyPI.
+        required: false
+        type: string
+        default: "https://upload.pypi.org/legacy/"
+
+      verbose:
+        description: "Enable verbose output from the PyPI publish action"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  python-package-publisher:
+    name: Python Package Publisher
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set Up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install Build Backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install hatch
+
+      - name: Build Distribution
+        run: |
+          hatch build
+
+      # Trusted publishing (OIDC). The calling repository must be configured as a
+      # Trusted Publisher on the target PyPI / TestPyPI project.
+      - name: Publish Package via Trusted Publisher
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b  # v1.14.0
+        with:
+          repository-url: ${{ inputs.repository-url }}
+          verbose: ${{ inputs.verbose }}

@@ -73,19 +73,20 @@ The following table provides a quick overview of every reusable workflow availab
 |  20 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
 |  21 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
 |  22 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
-|  23 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
-|  24 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
-|  25 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
-|  26 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
-|  27 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
-|  28 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
-|  29 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
-|  30 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
-|  31 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
-|  32 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
-|  33 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
-|  34 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
-|  35 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
+|  23 | [Python Package Publisher](#python-package-publisher)                       | Release Management     | Intermediate | Build a Python package with hatch and publish it to PyPI or TestPyPI.          |
+|  24 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
+|  25 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
+|  26 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
+|  27 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
+|  28 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
+|  29 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
+|  30 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
+|  31 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
+|  32 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
+|  33 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
+|  34 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
+|  35 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
+|  36 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
 
 > [!TIP]
 > **Level Guide**
@@ -919,10 +920,11 @@ When `lint-markdown` is enabled and the configured markdownlint config file is m
 
 Release Management workflows automate project releases and dependency maintenance.
 
-| Workflow                                                | Typical Use                                                     |
-| :------------------------------------------------------ | :-------------------------------------------------------------- |
-| [GitHub Release Generator](#github-release-generator)   | Create draft, pre-release, or stable GitHub Releases from tags. |
-| [Python Dependency Updater](#python-dependency-updater) | Check Python dependencies for available updates.                |
+| Workflow                                                | Typical Use                                                              |
+| :------------------------------------------------------ | :----------------------------------------------------------------------- |
+| [GitHub Release Generator](#github-release-generator)   | Create draft, pre-release, or stable GitHub Releases from tags.          |
+| [Python Dependency Updater](#python-dependency-updater) | Check Python dependencies for available updates.                         |
+| [Python Package Publisher](#python-package-publisher)   | Build a Python package with hatch and publish it to PyPI or TestPyPI.    |
 
 ## GitHub Release Generator
 
@@ -1032,6 +1034,60 @@ jobs:
   dependencies:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-dependency-updater.yml@master
 ```
+
+## Python Package Publisher
+
+Builds a Python distribution with [hatch](https://hatch.pypa.io/) (sdist and wheel) and publishes it to PyPI or TestPyPI using
+[trusted publishing](https://docs.pypi.org/trusted-publishers/) (OIDC). Intended for release callers such as stable and test-release workflows that previously
+inlined identical build-and-publish jobs.
+
+### Features
+
+- Python environment setup.
+- Hatch-based sdist and wheel build.
+- Trusted publisher upload via `pypa/gh-action-pypi-publish`.
+- Configurable target index (production PyPI or TestPyPI).
+
+### Inputs
+
+| Input            | Description                                               | Default                           |
+| :--------------- | :-------------------------------------------------------- | :-------------------------------- |
+| `python-version` | Python version used during the build.                     | `3.13`                            |
+| `repository-url` | Package index upload URL.                                 | `https://upload.pypi.org/legacy/` |
+| `verbose`        | Enable verbose output from the PyPI publish action.       | `true`                            |
+
+### Additional Permissions
+
+```yaml
+contents: read
+id-token: write
+```
+
+### Example — Production PyPI
+
+```yaml
+jobs:
+  build-and-publish:
+    name: Build and upload to PyPI
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-package-publisher.yml@master
+```
+
+### Example — TestPyPI
+
+```yaml
+jobs:
+  build-and-publish:
+    name: Build and upload to TestPyPI
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-package-publisher.yml@master
+    with:
+      repository-url: https://test.pypi.org/legacy/
+```
+
+### Notes
+
+- The calling repository must be registered as a Trusted Publisher on the target PyPI or TestPyPI project.
+- Calling workflows must grant `id-token: write` (and typically keep `contents: write` if they also create GitHub Releases).
+- Pair with [GitHub Release Generator](#github-release-generator) for tag-driven stable (`vX.Y.Z`) and test (`vX.Y.Z-rcN`) releases.
 
 [↑ Back to Contents](#contents)
 
@@ -1496,7 +1552,7 @@ For example:
 | Repository Type | Recommended Workflows                                                                    |
 | :-------------- | :--------------------------------------------------------------------------------------- |
 | Documentation   | Markdown Linter, YAML Linter, Link Checker, MkDocs Site Publisher, MkDocs Site Validator |
-| Python Library  | Python CI, Python Linter, Python Security Scanner, Code Analysis                         |
+| Python Library  | Python CI, Python Linter, Python Security Scanner, Code Analysis, Python Package Publisher |
 | Puppet Module   | Puppet Linter, Markdown Linter, YAML Linter                                              |
 | Shell Utilities | Shell Script Linter, Markdown Linter, Secrets Scanner                                    |
 
@@ -1603,7 +1659,8 @@ Repository
 │
 ├── Release Management
 │   ├── GitHub Release Generator
-│   └── Python Dependency Updater
+│   ├── Python Dependency Updater
+│   └── Python Package Publisher
 │
 └── Repository Automation
     ├── Dependabot Manager
