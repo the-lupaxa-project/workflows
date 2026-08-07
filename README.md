@@ -76,9 +76,9 @@ Improvements, bug fixes, and new reusable workflows are welcome.
 
 Please read the organisation-wide documentation before contributing:
 
-- [Code of Conduct](https://github.com/the-lupaxa-project/.github/blob/master/CODE_OF_CONDUCT.md)
-- [Contributing Guide](https://github.com/the-lupaxa-project/.github/blob/master/CONTRIBUTING.md)
-- [Security Policy](https://github.com/the-lupaxa-project/.github/blob/master/SECURITY.md)
+- [Code of Conduct](https://github.com/the-lupaxa-project/.github/blob/master/docs/CODE_OF_CONDUCT.md)
+- [Contributing Guide](https://github.com/the-lupaxa-project/.github/blob/master/docs/CONTRIBUTING.md)
+- [Security Policy](https://github.com/the-lupaxa-project/.github/blob/master/docs/SECURITY.md)
 
 These documents are maintained in the central `.github` repository.
 

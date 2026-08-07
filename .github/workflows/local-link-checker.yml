@@ -27,6 +27,8 @@ jobs:
   link-checker:
     name: Link Checker
     uses: ./.github/workflows/reusable-link-checker.yml
+    with:
+      exclude_files: "^tests/"
     secrets: inherit
 
   generate-workflow-summary:
