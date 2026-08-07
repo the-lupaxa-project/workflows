@@ -26,7 +26,7 @@ on:
         default: true
 
       show_skipped:
-        description: "Show skipped files"
+        description: "Show skipped files (mapped to SHOW_FILTERED for the CICD pipeline)"
         required: false
         type: boolean
         default: false
@@ -38,7 +38,7 @@ on:
         default: false
 
       check_conventions:
-        description: "Run makefile-skills convention checks"
+        description: "Run makefile-skills convention checks after checkmake"
         required: false
         type: boolean
         default: true
@@ -55,20 +55,31 @@ jobs:
       - name: Checkout Caller Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
+      - name: Set Up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version: "stable"
+
+      - name: Run Makefile Lint (CICD Toolbox)
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+          SHOW_FILTERED: ${{ inputs.show_skipped }}
+          NO_COLOR: ${{ inputs.no_color }}
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/lupaxa-cicd-toolbox/makefile-lint/master/src/pipeline.sh)
+
       - name: Checkout Workflows Repository
+        if: ${{ inputs.check_conventions }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           repository: the-lupaxa-project/workflows
           path: lupaxa-dotgithub
 
-      - name: Install checkmake
-        id: checkmake
-        run: |
-          bin="$(bash lupaxa-dotgithub/.github/scripts/install-checkmake.sh "${RUNNER_TEMP}/checkmake-bin")"
-          echo "bin=${bin}" >> "$GITHUB_OUTPUT"
-          echo "${RUNNER_TEMP}/checkmake-bin" >> "$GITHUB_PATH"
-
-      - name: Run Makefile Linter
+      - name: Run Makefile Convention Checks
+        if: ${{ inputs.check_conventions }}
         env:
           INCLUDE_FILES: ${{ inputs.include_files }}
           EXCLUDE_FILES: ${{ inputs.exclude_files }}
@@ -76,8 +87,8 @@ jobs:
           SHOW_ERRORS: ${{ inputs.show_errors }}
           SHOW_SKIPPED: ${{ inputs.show_skipped }}
           NO_COLOR: ${{ inputs.no_color }}
-          CHECK_CONVENTIONS: ${{ inputs.check_conventions }}
-          CHECKMAKE_BIN: ${{ steps.checkmake.outputs.bin }}
+          CHECK_CONVENTIONS: "true"
+          SKIP_CHECKMAKE: "true"
           ROOT_DIR: ${{ github.workspace }}
           EXCLUDE_FILES_EXTRA: "lupaxa-dotgithub/"
         run: |

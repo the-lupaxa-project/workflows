@@ -1,0 +1,66 @@
+name: Reusable Mypy
+
+on:
+  workflow_call:
+    inputs:
+      include_files:
+        description: "Comma-separated list of files or regex patterns to include"
+        required: false
+        type: string
+
+      exclude_files:
+        description: "Comma-separated list of files or regex patterns to exclude"
+        required: false
+        type: string
+
+      report_only:
+        description: "Generate a report but do not fail the build"
+        required: false
+        type: boolean
+        default: false
+
+      show_errors:
+        description: "Show detailed errors"
+        required: false
+        type: boolean
+        default: true
+
+      show_skipped:
+        description: "Show skipped files (mapped to SHOW_FILTERED for the CICD pipeline)"
+        required: false
+        type: boolean
+        default: false
+
+      no_color:
+        description: "Disable coloured output"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  mypy:
+    name: Mypy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set Up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.x"
+
+      - name: Run Mypy
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+          SHOW_FILTERED: ${{ inputs.show_skipped }}
+          NO_COLOR: ${{ inputs.no_color }}
+        run: |
+          bash <(curl -s https://raw.githubusercontent.com/lupaxa-cicd-toolbox/mypy/master/src/pipeline.sh)

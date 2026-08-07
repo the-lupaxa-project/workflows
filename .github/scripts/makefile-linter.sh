@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Environment (consumed; some wired in later tasks):
 #   INCLUDE_FILES, EXCLUDE_FILES, EXCLUDE_FILES_EXTRA, REPORT_ONLY, SHOW_ERRORS,
-#   SHOW_SKIPPED, NO_COLOR, CHECK_CONVENTIONS, CHECKMAKE_BIN, ROOT_DIR
+#   SHOW_SKIPPED, NO_COLOR, CHECK_CONVENTIONS, CHECKMAKE_BIN, ROOT_DIR,
+#   SKIP_CHECKMAKE (true => conventions-only; checkmake handled by CICD toolbox)
 
 makefile_linter_normalize_root() {
   local root="$1"
@@ -196,6 +197,14 @@ makefile_linter_run_conventions() {
   bash "$conventions_script" "$file"
 }
 
+
+makefile_linter_skip_checkmake() {
+  case "${SKIP_CHECKMAKE:-false}" in
+    true|True|1) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 makefile_linter_conventions_enabled() {
   case "${CHECK_CONVENTIONS:-true}" in
     false|False|0) return 1 ;;
@@ -234,17 +243,22 @@ makefile_linter_main() {
     exit 0
   fi
 
-  if ! checkmake_bin="$(makefile_linter_resolve_checkmake)"; then
-    exit 1
-  fi
-  if [ -f "${root}/checkmake.ini" ]; then
-    checkmake_config="${root}/checkmake.ini"
+  checkmake_bin=""
+  if ! makefile_linter_skip_checkmake; then
+    if ! checkmake_bin="$(makefile_linter_resolve_checkmake)"; then
+      exit 1
+    fi
+    if [ -f "${root}/checkmake.ini" ]; then
+      checkmake_config="${root}/checkmake.ini"
+    fi
   fi
 
   for file in "${files[@]}"; do
     local fpath="${root}/${file}"
-    if ! makefile_linter_run_checkmake "$fpath" "$checkmake_bin" "$checkmake_config"; then
-      failures=$((failures + 1))
+    if ! makefile_linter_skip_checkmake; then
+      if ! makefile_linter_run_checkmake "$fpath" "$checkmake_bin" "$checkmake_config"; then
+        failures=$((failures + 1))
+      fi
     fi
     if makefile_linter_conventions_enabled; then
       if ! makefile_linter_run_conventions "$fpath"; then
