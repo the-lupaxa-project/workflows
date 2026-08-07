@@ -66,11 +66,21 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
         run: |
           if [ -z "${SLACK_WEBHOOK_URL}" ]; then
-            echo "::error::Missing Slack webhook secret 'slack_webhook_url'."
-            echo "::error::Map it from the caller (secrets.slack_webhook_url -> repository/org SLACK_WEBHOOK_URL),"
-            echo "::error::or use 'secrets: inherit' when that secret already exists."
+            echo "::error::Missing required secret 'slack_webhook_url'."
+            echo "::error::Pass it explicitly from the caller:"
+            echo "::error::  secrets.slack_webhook_url <- repository/org SLACK_WEBHOOK_URL"
+            echo "::error::(secrets: inherit does not work across organisations.)"
+            {
+              echo "## Configuration"
+              echo "- slack_webhook_url: missing"
+            } >> "${GITHUB_STEP_SUMMARY}"
             exit 1
           fi
+          {
+            echo "## Configuration"
+            echo "- slack_webhook_url: provided"
+            echo "- notify_on_results: \`${{ inputs.notify_on_results }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Checkout Workflows Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -89,3 +99,7 @@ jobs:
           SEND_TO_SLACK_API_RETRIES: ${{ inputs.api_retries }}
         run: |
           python -u lupaxa-workflows/.github/scripts/workflow-notifier.py
+          {
+            echo "## Notification"
+            echo "- Slack delivery attempted (see job logs for sent/skipped detail)"
+          } >> "${GITHUB_STEP_SUMMARY}"

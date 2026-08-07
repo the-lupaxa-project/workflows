@@ -31,6 +31,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Require Repository Token
+        env:
+          REPO_TOKEN: ${{ secrets.repo-token }}
+        run: |
+          if [ -z "${REPO_TOKEN}" ]; then
+            echo "::error::Missing required secret 'repo-token'."
+            echo "::error::Pass it explicitly from the caller, for example:"
+            echo "::error::  secrets.repo-token <- github.token / GITHUB_TOKEN"
+            echo "::error::(secrets: inherit does not work across organisations.)"
+            {
+              echo "## Configuration"
+              echo "- repo-token: missing"
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+          {
+            echo "## Configuration"
+            echo "- repo-token: provided"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Welcome First-Time Contributors
         uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d  # v3.1.0
         with:

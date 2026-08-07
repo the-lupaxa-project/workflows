@@ -56,6 +56,15 @@ jobs:
           REF="${{ inputs.tag || github.ref }}"
           TAG="${REF#refs/*/}"
 
+          if [ -z "${TAG}" ]; then
+            echo "::error::Release tag is empty. Pass inputs.tag or run from a tag ref."
+            {
+              echo "## Configuration"
+              echo "- tag: missing"
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+
           echo "tag-to-release=${TAG}" >> "${GITHUB_OUTPUT}"
 
           # If release_name input is provided, use it, otherwise use TAG
@@ -66,6 +75,14 @@ jobs:
 
           echo "release-version=${NAME}" >> "${GITHUB_OUTPUT}"
 
+          {
+            echo "## Configuration"
+            echo "- tag: \`${TAG}\`"
+            echo "- release name: \`${NAME}\`"
+            echo "- draft: \`${{ inputs.draft }}\`"
+            echo "- prerelease: \`${{ inputs.prerelease }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
   github-release-generator:
     name: GitHub Release Generator
     runs-on: ubuntu-latest
@@ -73,6 +90,20 @@ jobs:
       - get-release-version
 
     steps:
+      - name: Check Release Token Configuration
+        env:
+          CUSTOM_GITHUB_TOKEN: ${{ secrets.github-token }}
+        run: |
+          if [ -n "${CUSTOM_GITHUB_TOKEN}" ]; then
+            TOKEN_SOURCE="caller github-token secret"
+          else
+            TOKEN_SOURCE="github.token (default)"
+          fi
+          {
+            echo "## Authentication"
+            echo "- token: ${TOKEN_SOURCE}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
