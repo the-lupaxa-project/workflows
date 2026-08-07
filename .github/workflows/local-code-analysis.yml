@@ -51,6 +51,9 @@ jobs:
     uses: ./.github/workflows/reusable-code-analysis.yml
     with:
       languages: "python"
+      slack_notifications: true
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_CODEQL_WEBHOOK_URL }}
 
   generate-workflow-summary:
     name: Generate Workflow Summary

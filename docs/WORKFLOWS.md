@@ -756,12 +756,25 @@ Unlike the validation workflows, Code Analysis uses GitHub's native Code Scannin
 - Security & Quality query suite.
 - Automatic project build.
 - Native GitHub Code Scanning integration.
+- Optional Slack notifications for new, fixed, and reappeared Code Scanning alerts.
 
 ### Inputs
 
-| Input       | Description                                          |
-| :---------- | :--------------------------------------------------- |
-| `languages` | Comma-separated list of CodeQL languages to analyse. |
+| Input                 | Description                                                                 | Default |
+| :-------------------- | :-------------------------------------------------------------------------- | :------ |
+| `languages`           | Comma-separated list of CodeQL languages to analyse.                        | —       |
+| `slack_notifications` | Enable Slack notifications for CodeQL alert changes when a webhook is set.  | `true`  |
+
+### Secrets
+
+| Secret              | Description                                                                 | Required |
+| :------------------ | :-------------------------------------------------------------------------- | :------- |
+| `slack_webhook_url` | Slack Incoming Webhook URL for CodeQL alert lifecycle notifications.        | No       |
+
+Notifications are sent only when `slack_notifications` is `true`, the webhook
+secret is present, and the workflow is analysing the repository default branch.
+Unchanged open alerts are not re-notified. Slack delivery failures never fail
+CodeQL.
 
 ### Additional Permissions
 
@@ -778,7 +791,13 @@ jobs:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-code-analysis.yml@master
     with:
       languages: python
+      slack_notifications: true
+    secrets:
+      slack_webhook_url: ${{ secrets.SLACK_CODEQL_WEBHOOK_URL }}
 ```
+
+Organisation-level secrets with `secrets: inherit` are also supported where the
+caller repository security model allows it.
 
 ### Notes
 

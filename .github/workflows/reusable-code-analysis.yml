@@ -10,6 +10,17 @@ on:
         required: true
         type: string
 
+      slack_notifications:
+        description: Enable Slack notifications for CodeQL alert changes
+        required: false
+        type: boolean
+        default: true
+
+    secrets:
+      slack_webhook_url:
+        description: Slack Incoming Webhook URL for CodeQL notifications
+        required: false
+
 permissions:
   actions: read
   contents: read
@@ -24,6 +35,21 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
 
+      - name: Prepare CodeQL Slack Helper
+        if: ${{ inputs.slack_notifications }}
+        continue-on-error: true
+        run: |
+          set -eu
+          HELPER="${RUNNER_TEMP}/codeql-slack-notify.py"
+          if [ -f "${GITHUB_WORKSPACE}/.github/scripts/codeql-slack-notify.py" ]; then
+            cp "${GITHUB_WORKSPACE}/.github/scripts/codeql-slack-notify.py" "${HELPER}"
+          else
+            curl -fsSL \
+              "https://raw.githubusercontent.com/the-lupaxa-project/workflows/master/.github/scripts/codeql-slack-notify.py" \
+              -o "${HELPER}"
+          fi
+          chmod +x "${HELPER}"
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
         with:
@@ -33,5 +59,110 @@ jobs:
       - name: Autobuild Project
         uses: github/codeql-action/autobuild@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
 
+      - name: Capture Existing CodeQL Alerts
+        if: ${{ inputs.slack_notifications }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        run: |
+          set -eu
+          HELPER="${RUNNER_TEMP}/codeql-slack-notify.py"
+          if [ ! -f "${HELPER}" ]; then
+            echo "::warning::CodeQL Slack helper not available; skipping pre-analysis alert capture"
+            exit 0
+          fi
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "Slack webhook not configured; skipping pre-analysis alert capture"
+            exit 0
+          fi
+          if [ "${GITHUB_REF_NAME}" != "${DEFAULT_BRANCH}" ]; then
+            echo "Not analysing the default branch; skipping pre-analysis alert capture"
+            exit 0
+          fi
+          python3 "${HELPER}" capture --output "${RUNNER_TEMP}/codeql-alerts-before.json"
+
       - name: Run CodeQL Analysis
+        id: codeql-analyze
         uses: github/codeql-action/analyze@17783bfb99b07f70fae080b654aed0c514057477  # v2.23.3
+
+      - name: Notify Slack of CodeQL Alert Changes
+        if: ${{ inputs.slack_notifications && success() }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        run: |
+          set -eu
+          HELPER="${RUNNER_TEMP}/codeql-slack-notify.py"
+          if [ ! -f "${HELPER}" ]; then
+            echo "::warning::CodeQL Slack helper not available; skipping Slack notification"
+            exit 0
+          fi
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "Slack webhook not configured; skipping Slack notification"
+            {
+              echo "## CodeQL Alert Changes"
+              echo "- Slack notification: not configured"
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          if [ "${GITHUB_REF_NAME}" != "${DEFAULT_BRANCH}" ]; then
+            echo "Not analysing the default branch; skipping lifecycle Slack notifications"
+            {
+              echo "## CodeQL Alert Changes"
+              echo "- Slack notification: skipped (non-default branch)"
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+          if [ ! -f "${RUNNER_TEMP}/codeql-alerts-before.json" ]; then
+            echo "::warning::Pre-analysis alert snapshot missing; skipping Slack change notifications"
+            exit 0
+          fi
+
+          set +e
+          python3 "${HELPER}" wait --attempts 12 --interval 5
+          wait_rc=$?
+          set -e
+          if [ "${wait_rc}" -eq 2 ]; then
+            exit 0
+          fi
+          if [ "${wait_rc}" -ne 0 ]; then
+            echo "::warning::Code Scanning wait step returned ${wait_rc}; skipping Slack change notifications"
+            exit 0
+          fi
+
+          python3 "${HELPER}" capture --output "${RUNNER_TEMP}/codeql-alerts-after.json"
+          python3 "${HELPER}" notify \
+            --before "${RUNNER_TEMP}/codeql-alerts-before.json" \
+            --after "${RUNNER_TEMP}/codeql-alerts-after.json"
+
+      - name: Notify Slack of CodeQL Failure
+        if: ${{ inputs.slack_notifications && failure() }}
+        continue-on-error: true
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          SLACK_WEBHOOK_URL: ${{ secrets.slack_webhook_url }}
+        run: |
+          set -eu
+          HELPER="${RUNNER_TEMP}/codeql-slack-notify.py"
+          if [ ! -f "${HELPER}" ]; then
+            echo "::warning::CodeQL Slack helper not available; skipping failure notification"
+            exit 0
+          fi
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "Slack webhook not configured; skipping failure notification"
+            exit 0
+          fi
+          python3 "${HELPER}" failure
