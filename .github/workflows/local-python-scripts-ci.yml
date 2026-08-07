@@ -3,7 +3,7 @@ name: Local Python Scripts CI
 on:
   push:
     paths:
-      - ".github/scripts/**"
+      - ".github/scripts/**/*.py"
       - ".github/workflows/local-python-scripts-ci.yml"
       - ".github/workflows/reusable-python-ci.yml"
       - "tests/**/*.py"
@@ -12,7 +12,7 @@ on:
     branches:
       - "master"
     paths:
-      - ".github/scripts/**"
+      - ".github/scripts/**/*.py"
       - ".github/workflows/local-python-scripts-ci.yml"
       - ".github/workflows/reusable-python-ci.yml"
       - "tests/**/*.py"
