@@ -198,9 +198,12 @@ Unless stated otherwise, these are the common inputs supported by validation wor
 
 Unless documented otherwise, validation workflows:
 
-- require only `contents: read` permission;
-- require no secrets;
-- execute a shared **lupaxa-cicd-toolbox** validation pipeline (`src/pipeline.sh`).
+-   require only `contents: read` permission;
+-   require no secrets;
+-   execute a shared **lupaxa-cicd-toolbox** validation pipeline (`src/pipeline.sh`);
+-   fail with a GitHub annotation if that pipeline cannot be downloaded (HTTP 429,
+  HTML error page, or empty body) instead of executing the error page as a
+  script.
 
 [↑ Back to Contents](#contents)
 
@@ -496,10 +499,12 @@ the same way.
 
 All of the above workflows:
 
-- use the Standard Validation Interface;
-- require only `contents: read`;
-- require no secrets;
-- execute a shared **lupaxa-cicd-toolbox** validation pipeline (`src/pipeline.sh`).
+-   use the Standard Validation Interface;
+-   require only `contents: read`;
+-   require no secrets;
+-   execute a shared **lupaxa-cicd-toolbox** validation pipeline (`src/pipeline.sh`);
+-   fail with a GitHub annotation if that pipeline cannot be downloaded, rather
+  than treating a GitHub error page as the script.
 
 ## Dockerfile Linter
 
