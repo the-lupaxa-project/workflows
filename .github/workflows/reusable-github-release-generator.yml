@@ -35,6 +35,12 @@ on:
           Optional GitHub token to use for creating the release.
           If not provided, github.token is used.
         required: false
+      portal-app-id:
+        description: GitHub App id that can dispatch the portal catalogue sync.
+        required: false
+      portal-app-private-key:
+        description: GitHub App private key for the portal catalogue sync.
+        required: false
 
 permissions:
   contents: write
@@ -125,3 +131,62 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
+
+  notify-portal-catalogue:
+    name: Notify Portal Catalogue
+    runs-on: ubuntu-latest
+    needs:
+      - get-release-version
+      - github-release-generator
+    if: ${{ !cancelled() && needs.github-release-generator.result == 'success' }}
+    continue-on-error: true
+    steps:
+      - name: Skip when App secrets are missing
+        id: gate
+        env:
+          APP_ID: ${{ secrets.portal-app-id }}
+          APP_KEY: ${{ secrets.portal-app-private-key }}
+        run: |
+          if [ -z "${APP_ID}" ] || [ -z "${APP_KEY}" ]; then
+            echo "Portal App secrets not provided; skipping catalogue sync"
+            echo "skip=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "skip=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Check catalogue membership
+        if: steps.gate.outputs.skip != 'true'
+        id: listed
+        env:
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          URL="https://raw.githubusercontent.com/the-lupaxa-project/the-lupaxa-project.org/master/data/projects.yml"
+          BODY="$(curl -fsSL "${URL}")"
+          KEY="$(printf '%s' "${REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          if printf '%s' "${BODY}" | tr '[:upper:]' '[:lower:]' | grep -Fq "github.com/${KEY}"; then
+            echo "listed=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "Repository ${REPOSITORY} is not on the portal catalogue; skipping"
+            echo "listed=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Create GitHub App token
+        if: steps.gate.outputs.skip != 'true' && steps.listed.outputs.listed == 'true'
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.portal-app-id }}
+          private-key: ${{ secrets.portal-app-private-key }}
+          owner: the-lupaxa-project
+          repositories: the-lupaxa-project.org
+
+      - name: Dispatch portal sync
+        if: steps.gate.outputs.skip != 'true' && steps.listed.outputs.listed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh workflow run sync-catalogue-release.yml \
+            --repo the-lupaxa-project/the-lupaxa-project.org \
+            -f repository="${{ github.repository }}" \
+            -f tag="${{ needs.get-release-version.outputs.tag-to-release }}"
