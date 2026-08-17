@@ -23,6 +23,7 @@ on:
         description: "Comma-separated list of files or regex patterns to exclude"
         required: false
         type: string
+        default: "^\\.venv/,^venv/,^site/,^\\.makefiles/,^cursor-docs/,\\.egg-info/,^\\.superpowers/,^\\.cursor/"
 
       report_only:
         description: "Generate a report but do not fail the build"
