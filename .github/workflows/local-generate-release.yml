@@ -24,6 +24,8 @@ jobs:
       prerelease: false
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
+      portal-app-id: ${{ secrets.LUPAXA_PORTAL_APP_ID }}
+      portal-app-private-key: ${{ secrets.LUPAXA_PORTAL_APP_PRIVATE_KEY }}
 
   generate-workflow-summary:
     name: Generate Workflow Summary
