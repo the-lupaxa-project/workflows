@@ -193,23 +193,23 @@ help:
 	@echo
 	$(call mf_help_header,Lifecycle:)
 ifeq ($(MAKEFILES_MODE),library)
-	@echo "  init / install      (library mode — skills/ is this repository)"
-	@echo "  update              (library mode — use git in this repository)"
+	$(call mf_help_line,init / install,(library mode — skills/ is this repository))
+	$(call mf_help_line,update,(library mode — use git in this repository))
 else
-	@echo "  init / install      Clone skills/ + templates/ into $(MAKEFILES_DIR) (sparse)"
-	@echo "  update              Refresh skills to MAKEFILES_REF ($(MAKEFILES_REF));"
-	@echo "                      also refreshes ./Makefile unless update_wrapper=no"
-	@echo "  config              $(MAKEFILES_CONFIG) (init creates; update never overwrites)"
+	$(call mf_help_line,init / install,Clone skills/ + templates/ into $(MAKEFILES_DIR) (sparse))
+	$(call mf_help_line,update,Refresh skills to MAKEFILES_REF ($(MAKEFILES_REF));)
+	$(call mf_help_cont,also refreshes ./Makefile unless update_wrapper=no)
+	$(call mf_help_line,config,$(MAKEFILES_CONFIG) (init creates; update never overwrites))
 endif
-	@echo "  completion          Print bash completion script (eval \"\$$(make -s completion)\")"
-	@echo "  transport           $(MAKEFILES_TRANSPORT) -> $(MAKEFILES_REPO)"
+	$(call mf_help_line,completion,Print bash completion script)
+	$(call mf_help_line,transport,$(MAKEFILES_TRANSPORT) -> $(MAKEFILES_REPO))
 	@echo
 	@if [ ! -f "$(MAKEFILES_DIR)/skills/versioning.mk" ]; then \
 		$(mf_color_prelude) \
 		mf_color_init; \
 		mf_title "Status:"; \
-		echo "  status              Show project, version, Git, and enabled-skill status"; \
-		echo "  doctor              Run all doctors (lifecycle + versioning + enabled skills)"; \
+		printf '  %s%-*s%s %s\n' "$$MF_GREEN" $(MF_HELP_CMD_WIDTH) "status" "$$MF_RESET" "Show project, version, Git, and enabled-skill status"; \
+		printf '  %s%-*s%s %s\n' "$$MF_GREEN" $(MF_HELP_CMD_WIDTH) "doctor" "$$MF_RESET" "Run all doctors (lifecycle + versioning + enabled skills)"; \
 		echo; \
 		echo "Skills not installed. Run: make init"; \
 		echo; \
@@ -267,12 +267,38 @@ $(foreach s,$(SKILLS),$(eval -include $(MAKEFILES_DIR)/skills/$(s).mk))
 # Plain-text stubs so `make help` works before skills are installed (no versioning.mk yet).
 ifeq ($(origin mf_color_prelude),undefined)
 define mf_color_prelude
-mf_color_init() { MF_CYAN=; MF_RESET=; }; \
-mf_title() { printf '%s\n' "$$1"; };
+mf_color_init() { \
+	if [ -n "$${NO_COLOR:-}" ]; then \
+		MF_C=0; \
+	else \
+		case "$${FORCE_COLOR:-}" in \
+			""|0|[Ff][Aa][Ll][Ss][Ee]|[Nn][Oo]) \
+				if [ -t 1 ]; then MF_C=1; else MF_C=0; fi ;; \
+			*) MF_C=1 ;; \
+		esac; \
+	fi; \
+	if [ "$$MF_C" -eq 1 ]; then \
+		MF_GREEN=$$(printf '\033[32m'); \
+		MF_CYAN=$$(printf '\033[96m'); \
+		MF_RESET=$$(printf '\033[0m'); \
+	else \
+		MF_GREEN=; MF_CYAN=; MF_RESET=; \
+	fi; \
+}; \
+mf_title() { printf '%s%s%s\n' "$$MF_CYAN" "$$1" "$$MF_RESET"; };
 endef
 define mf_help_header
 @$(mf_color_prelude) \
 mf_color_init; \
 mf_title "$(1)"
+endef
+MF_HELP_CMD_WIDTH ?= 22
+define mf_help_line
+@$(mf_color_prelude) \
+mf_color_init; \
+printf '  %s%-*s%s %s\n' "$$MF_GREEN" $(MF_HELP_CMD_WIDTH) "$(1)" "$$MF_RESET" "$(2)"
+endef
+define mf_help_cont
+@printf '  %-*s %s\n' $(MF_HELP_CMD_WIDTH) "" "$(1)"
 endef
 endif
