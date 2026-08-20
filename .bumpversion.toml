@@ -5,7 +5,7 @@
 # (e.g. pyproject.toml, src/.../version.py).
 
 [tool.bumpversion]
-current_version = "0.0.0"
+current_version = "0.1.12"
 
 # Treat the entire version as a single opaque string part: "version"
 parse = "(?P<version>.*)"
@@ -25,13 +25,11 @@ ignore_missing_files = false
 #   1. Set allow_dirty / commit / tag as below (or uncomment the release block)
 #   2. Uncomment post_commit_hooks to push after bump
 allow_dirty = false
-commit = false
-# commit = true
+commit = true
 message = "Release {new_version}"
 commit_args = ""
 
-tag = false
-# tag = true
+tag = true
 # Signing: Lupaxa git config usually has commit.gpgsign + tag.gpgSign, so
 # commits/tags are signed by git itself. Leave sign_tags = false unless you
 # need bump-my-version to pass -s explicitly (no global tag.gpgSign).
@@ -43,9 +41,8 @@ tag_message = "Release {new_version}"
 setup_hooks = []
 pre_commit_hooks = []
 post_commit_hooks = [
-  # Uncomment when commit = true and tag = true and you want auto-push:
-  # "git push",
-  # "git push --tags",
+  "git push",
+  "git push --tags",
 ]
 
 # Files where versions are updated — add entries once sources exist, e.g.:

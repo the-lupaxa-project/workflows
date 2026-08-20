@@ -436,27 +436,29 @@ executed automatically.
 
 ## Python Continuous Integration (Make)
 
-Executes Continuous Integration using the repository's existing Makefile targets, allowing projects to retain custom build logic while using a shared reusable
-workflow.
+Executes Continuous Integration using the repository's Makefile, intended for
+projects that use [makefile-skills](https://github.com/lupaxa-developers-toolbox/makefile-skills)
+Python targets.
 
-This workflow is intended for repositories that standardise their development lifecycle through Make targets. Rather than embedding the CI implementation within
-the reusable workflow, it delegates execution to the project's existing Makefile.
+The workflow ensures makefile-skills are present (`make init` when `.makefiles/`
+is missing), then runs the install and CI Make targets with
+`PYTHON=python` so Actions' interpreter is used.
 
 ### Features
 
 - Matrix testing across multiple Python versions.
-- Configurable Make targets.
-- Minimal repository configuration.
-- Supports custom project layouts.
-- Reuses existing repository automation.
+- Clones makefile-skills into `.makefiles/` when needed.
+- Defaults to skill targets `python-install-dev` and `python-check`.
+- Configurable Make targets for non-default layouts.
+- Reuses existing repository Makefile automation.
 
 ### Inputs
 
-| Input             | Description                                             |
-| :---------------- | :------------------------------------------------------ |
-| `ci_target`       | Make target executed to perform Continuous Integration. |
-| `install_target`  | Make target used to install project dependencies.       |
-| `python_versions` | Comma-separated list of Python versions to test.        |
+| Input              | Description                                                                 | Default               |
+| :----------------- | :-------------------------------------------------------------------------- | :-------------------- |
+| `python-versions`  | JSON array of Python versions to test.                                      | `["3.10", …, "3.14"]` |
+| `install-target`   | Make target that installs development dependencies.                         | `python-install-dev`  |
+| `ci-target`        | Make target that runs lint, type checks, and tests.                         | `python-check`        |
 
 ### Example
 
@@ -466,10 +468,25 @@ jobs:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-makefile-ci.yml@master
 ```
 
+Override targets only when needed:
+
+```yaml
+jobs:
+  python-ci:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-makefile-ci.yml@master
+    with:
+      install-target: python-install-dev
+      ci-target: python-check-all
+```
+
 ### Notes
 
-This workflow provides a lightweight wrapper around a repository's existing Makefile-based automation. It allows each project to define its own build and
-quality process while providing a consistent reusable workflow interface across The Lupaxa Project.
+-   Callers need a root `Makefile` that supports `make init` and the chosen
+    `python-*` targets (standard makefile-skills consumer wrapper).
+-   Root aliases such as `install-dev` / `check` are optional for humans; this
+    workflow talks to the skill targets directly.
+-   `PYTHON=python` overrides the skill default (`python3`) so the matrix
+    interpreter from `actions/setup-python` is used.
 
 [↑ Back to Contents](#contents)
 

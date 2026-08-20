@@ -10,16 +10,16 @@ on:
         default: '["3.10","3.11","3.12","3.13","3.14"]'
 
       install-target:
-        description: "Make target for installing development dependencies"
+        description: "Make target for installing development dependencies (makefile-skills)"
         required: false
         type: string
-        default: "install-dev"
+        default: "python-install-dev"
 
       ci-target:
-        description: "Make target that runs lint, type checks, and tests"
+        description: "Make target that runs lint, type checks, and tests (makefile-skills)"
         required: false
         type: string
-        default: "check"
+        default: "python-check"
 
 permissions:
   contents: read
@@ -46,6 +46,22 @@ jobs:
         run: |
           python --version
           which python
+
+      # .makefiles/ is gitignored; clone makefile-skills before python-* targets exist.
+      # make init errors if the directory already exists, so mirror ensure-skills.
+      - name: Ensure Makefile Skills
+        run: |
+          set -euo pipefail
+          MAKEFILES_DIR="${MAKEFILES_DIR:-.makefiles}"
+          if [ ! -f "${MAKEFILES_DIR}/skills/versioning.mk" ]; then
+            if [ -e "${MAKEFILES_DIR}" ]; then
+              echo "==> Removing incomplete ${MAKEFILES_DIR} before init"
+              rm -rf "${MAKEFILES_DIR}"
+            fi
+            make init
+          else
+            echo "==> Makefile skills already present at ${MAKEFILES_DIR}"
+          fi
 
       - name: Install Development Dependencies
         run: |
