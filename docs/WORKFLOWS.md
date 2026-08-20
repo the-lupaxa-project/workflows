@@ -74,7 +74,7 @@ The following table provides a quick overview of every reusable workflow availab
 |  21 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
 |  22 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
 |  23 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
-|  24 | [Python Package Publisher](#python-package-publisher)                       | Release Management     | Intermediate | Build a Python package with hatch and publish it to PyPI or TestPyPI.          |
+|  24 | [Python Package Publisher](#python-package-publisher)                       | Release Management     | Intermediate | Deprecated for Trusted Publishing — inline hatch + pypi-publish instead.       |
 |  25 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
 |  26 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
 |  27 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
@@ -1004,7 +1004,7 @@ Release Management workflows automate project releases and dependency maintenanc
 | :------------------------------------------------------ | :----------------------------------------------------------------------- |
 | [GitHub Release Generator](#github-release-generator)   | Create draft, pre-release, or stable GitHub Releases from tags.          |
 | [Python Dependency Updater](#python-dependency-updater) | Check Python dependencies for available updates.                         |
-| [Python Package Publisher](#python-package-publisher)   | Build a Python package with hatch and publish it to PyPI or TestPyPI.    |
+| [Python Package Publisher](#python-package-publisher)   | Deprecated for Trusted Publishing — inline hatch + pypi-publish instead. |
 
 ## GitHub Release Generator
 
@@ -1117,15 +1117,24 @@ jobs:
 
 ## Python Package Publisher
 
-Builds a Python distribution with [hatch](https://hatch.pypa.io/) (sdist and wheel) and publishes it to PyPI or TestPyPI using
-[trusted publishing](https://docs.pypi.org/trusted-publishers/) (OIDC). Intended for release callers such as stable and test-release workflows that previously
-inlined identical build-and-publish jobs.
+> [!WARNING]
+> **Do not use this reusable workflow for PyPI or TestPyPI Trusted Publishing.**
+> GitHub OIDC sets `job_workflow_ref` to the reusable workflow, and PyPI does not
+> accept reusable workflows as Trusted Publishers. Inline the hatch build and
+> `pypa/gh-action-pypi-publish` steps in the consumer release workflow
+> (for example `generate-release.yml` / `generate-test-release.yml`).
+> See [PyPI troubleshooting](https://docs.pypi.org/trusted-publishers/troubleshooting/#reusable-workflows-on-github)
+> and [pypa/gh-action-pypi-publish#166](https://github.com/pypa/gh-action-pypi-publish/issues/166).
+
+Historical helper that builds a Python distribution with [hatch](https://hatch.pypa.io/)
+(sdist and wheel) and uploads via `pypa/gh-action-pypi-publish`. Kept only for
+non–Trusted-Publishing experiments; Lupaxa release workflows must inline publish.
 
 ### Features
 
 - Python environment setup.
 - Hatch-based sdist and wheel build.
-- Trusted publisher upload via `pypa/gh-action-pypi-publish`.
+- Upload via `pypa/gh-action-pypi-publish`.
 - Configurable target index (production PyPI or TestPyPI).
 
 ### Inputs
@@ -1143,29 +1152,32 @@ contents: read
 id-token: write
 ```
 
-### Example — Production PyPI
+### Required pattern — inline Trusted Publishing (Production PyPI)
 
 ```yaml
 jobs:
   build-and-publish:
     name: Build and upload to PyPI
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-package-publisher.yml@master
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@…  # pin
+      - uses: actions/setup-python@…  # pin
+        with:
+          python-version: "3.13"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install hatch
+          hatch build
+      - uses: pypa/gh-action-pypi-publish@…  # pin
+        with:
+          verbose: true
 ```
 
-### Example — TestPyPI
-
-```yaml
-jobs:
-  build-and-publish:
-    name: Build and upload to TestPyPI
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-python-package-publisher.yml@master
-    with:
-      repository-url: https://test.pypi.org/legacy/
-```
+Register the **consumer** workflow filename (for example `generate-release.yml`) as the
+Trusted Publisher on PyPI — not a reusable under `the-lupaxa-project/workflows`.
 
 ### Notes
 
-- The calling repository must be registered as a Trusted Publisher on the target PyPI or TestPyPI project.
 - Calling workflows must grant `id-token: write` (and typically keep `contents: write` if they also create GitHub Releases).
 - Pair with [GitHub Release Generator](#github-release-generator) for tag-driven stable (`vX.Y.Z`) and test (`vX.Y.Z-rcN`) releases.
 

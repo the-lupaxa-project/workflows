@@ -1,5 +1,16 @@
 name: Reusable Python Package Publisher
 
+# DEPRECATED for PyPI / TestPyPI Trusted Publishing.
+#
+# GitHub OIDC sets job_workflow_ref to this reusable workflow, and PyPI Trusted
+# Publishing does not support reusable workflows as the publisher workflow.
+# Inline hatch build + pypa/gh-action-pypi-publish in the consumer release
+# workflow instead (e.g. generate-release.yml / generate-test-release.yml).
+#
+# See:
+#   https://docs.pypi.org/trusted-publishers/troubleshooting/#reusable-workflows-on-github
+#   https://github.com/pypa/gh-action-pypi-publish/issues/166
+
 on:
   workflow_call:
     inputs:
