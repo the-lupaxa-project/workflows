@@ -70,6 +70,27 @@ Many workflows are generic and may also be suitable for use in other GitHub orga
 
 The [`WORKFLOWS.md`](docs/WORKFLOWS.md) document provides a complete catalogue of available workflows together with links to the detailed documentation for each one.
 
+### GitHub Release Generator
+
+[`reusable-github-release-generator.yml`](.github/workflows/reusable-github-release-generator.yml)
+creates GitHub Releases from tags. The release **body is short fixed text** (not
+a commit changelog). Use GitHub’s compare control on the releases page for
+diffs. Bodies end with a period:
+
+| Tag pattern                    | Body                              |
+| :----------------------------- | :-------------------------------- |
+| `0.1.0`                        | `Initial Release.`                |
+| `1.0.0`                        | `Initial Production Release.`     |
+| stable `> 0.1.0` and `< 1.0.0` | `Incremental Release.`            |
+| stable `> 1.0.0`               | `Incremental Production Release.` |
+| `*-rcN`                        | `Release Candidate N.`            |
+| `*-draftN`                     | `Draft Release N.`                |
+| `*-devN`                       | `Development Release N.`          |
+| otherwise                      | empty                             |
+
+Suffix tags (`-rc` / `-draft` / `-dev`) take precedence. Full details:
+[WORKFLOWS.md — GitHub Release Generator](docs/WORKFLOWS.md#github-release-generator).
+
 ## Contributing
 
 Improvements, bug fixes, and new reusable workflows are welcome.

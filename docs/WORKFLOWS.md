@@ -57,7 +57,7 @@ The following table provides a quick overview of every reusable workflow availab
 |   4 | [Dockerfile Linter](#dockerfile-linter)                                     | Language Analysis      | Basic        | Check Dockerfiles for best practices and common issues.                        |
 |   5 | [First-Time Contributor Greetings](#first-time-contributor-greetings)       | Repository Automation  | Basic        | Welcome new contributors with automated messages.                              |
 |   6 | [GitHub Actions Security](#github-actions-security)                         | Security               | Intermediate | Verify GitHub Actions workflows follow security best practices.                |
-|   7 | [GitHub Release Generator](#github-release-generator)                       | Release Management     | Advanced     | Create draft, pre-release, or stable GitHub Releases from tags.                |
+|   7 | [GitHub Release Generator](#github-release-generator)                       | Release Management     | Advanced     | Create releases from tags with short fixed bodies (no commit dump).            |
 |   8 | [JSON Validator](#json-validator)                                           | Repository Quality     | Basic        | Validate JSON configuration and data files.                                    |
 |   9 | [Link Checker](#link-checker)                                               | Repository Quality     | Intermediate | Detect broken or invalid links in documentation.                               |
 |  10 | [Makefile Linter](#makefile-linter)                                         | Repository Quality     | Basic        | Validate Makefiles and `.mk` files with checkmake and conventions.             |
@@ -1002,19 +1002,33 @@ Release Management workflows automate project releases and dependency maintenanc
 
 | Workflow                                                | Typical Use                                                              |
 | :------------------------------------------------------ | :----------------------------------------------------------------------- |
-| [GitHub Release Generator](#github-release-generator)   | Create draft, pre-release, or stable GitHub Releases from tags.          |
+| [GitHub Release Generator](#github-release-generator)   | Create releases from tags with short fixed bodies (no commit dump).      |
 | [Python Dependency Updater](#python-dependency-updater) | Check Python dependencies for available updates.                         |
 | [Python Package Publisher](#python-package-publisher)   | Deprecated for Trusted Publishing — inline hatch + pypi-publish instead. |
 
 ## GitHub Release Generator
 
-Automatically creates GitHub Releases by generating release notes, resolving version information and publishing releases from repository tags. Callers choose the
-release mode through the `draft` and `prerelease` inputs.
+Automatically creates GitHub Releases from repository tags, resolving the
+version/title. The release body uses short fixed text (no commit dump). Use
+GitHub's built-in compare control for diffs. Bodies:
+
+- `v0.1.0` / `0.1.0` → `Initial Release.`
+- `v1.0.0` / `1.0.0` → `Initial Production Release.`
+- stable `> 0.1.0` and `< 1.0.0` → `Incremental Release.`
+- stable `> 1.0.0` → `Incremental Production Release.`
+- `vX.Y.Z-rcN` → `Release Candidate N.` (e.g. `v1.2.3-rc2` → `Release Candidate 2.`)
+- `vX.Y.Z-draftN` → `Draft Release N.`
+- `vX.Y.Z-devN` → `Development Release N.`
+- otherwise empty (e.g. below `0.1.0`)
+
+Suffix tags (`-rc` / `-draft` / `-dev`) take precedence over the stable
+milestone / incremental rules. Callers choose the release mode through the
+`draft` and `prerelease` inputs.
 
 ### Features
 
 - Automatic version detection.
-- Automatic release note generation.
+- Fixed milestone / incremental / suffix release bodies (no commit dump).
 - Draft releases (mutable until published — recommended with immutable releases).
 - Pre-release support.
 - Custom release names.

@@ -106,14 +106,57 @@ jobs:
 
       - name: Checkout Repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-        with:
-          fetch-depth: 0
 
-      - name: Generate Changelog
-        id: changelog
-        uses: Bullrich/generate-release-changelog@6b60f004b4bf12ff271603dc32dbd261965ad2f2  # v2.0.2
+      # Default empty body (GitHub UI has compare). Special cases (always end with .):
+      # 0.1.0 → Initial Release.; 1.0.0 → Initial Production Release.;
+      # (0.1.0, 1.0.0) → Incremental Release.; >1.0.0 → Incremental Production Release.;
+      # *-rcN → Release Candidate N.; *-draftN → Draft Release N.;
+      # *-devN → Development Release N.
+      - name: Determine Release Body
+        id: release-body
         env:
-          REPO: ${{ github.repository }}
+          TAG: ${{ needs.get-release-version.outputs.tag-to-release }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          BODY=""
+
+          # True if $1 > $2 using version sort.
+          version_gt() {
+            local left="$1" right="$2"
+            [ "${left}" != "${right}" ] && \
+              [ "$(printf '%s\n%s\n' "${left}" "${right}" | sort -V | tail -n1)" = "${left}" ]
+          }
+
+          if [[ "${VERSION}" =~ -rc([0-9]+)$ ]]; then
+            BODY="Release Candidate ${BASH_REMATCH[1]}."
+          elif [[ "${VERSION}" =~ -draft([0-9]+)$ ]]; then
+            BODY="Draft Release ${BASH_REMATCH[1]}."
+          elif [[ "${VERSION}" =~ -dev([0-9]+)$ ]]; then
+            BODY="Development Release ${BASH_REMATCH[1]}."
+          elif [ "${VERSION}" = "0.1.0" ]; then
+            BODY="Initial Release."
+          elif [ "${VERSION}" = "1.0.0" ]; then
+            BODY="Initial Production Release."
+          elif version_gt "${VERSION}" "1.0.0"; then
+            BODY="Incremental Production Release."
+          elif version_gt "${VERSION}" "0.1.0"; then
+            # 0.1.0 < version < 1.0.0 (1.0.0 already handled above)
+            BODY="Incremental Release."
+          fi
+          {
+            echo "body<<EOF"
+            printf '%s\n' "${BODY}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          {
+            echo "## Release body"
+            if [ -n "${BODY}" ]; then
+              echo "- ${BODY}"
+            else
+              echo "- _(empty)_"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Create GitHub Release
         id: create-release
@@ -122,6 +165,6 @@ jobs:
           token: ${{ secrets.github-token || github.token }}
           tag_name: ${{ needs.get-release-version.outputs.tag-to-release }}
           name: ${{ needs.get-release-version.outputs.release-version }}
-          body: ${{ steps.changelog.outputs.changelog }}
+          body: ${{ steps.release-body.outputs.body }}
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
