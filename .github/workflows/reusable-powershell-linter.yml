@@ -1,0 +1,103 @@
+name: Reusable PowerShell Linter
+
+on:
+  workflow_call:
+    inputs:
+      include_files:
+        description: "Comma-separated list of files or regex patterns to include"
+        required: false
+        type: string
+
+      exclude_files:
+        description: "Comma-separated list of files or regex patterns to exclude"
+        required: false
+        type: string
+
+      report_only:
+        description: "Generate a report but do not fail the build"
+        required: false
+        type: boolean
+        default: false
+
+      show_errors:
+        description: "Show detailed errors"
+        required: false
+        type: boolean
+        default: true
+
+      show_skipped:
+        description: "Show skipped files (mapped to SHOW_FILTERED for the CICD pipeline)"
+        required: false
+        type: boolean
+        default: false
+
+      no_color:
+        description: "Disable coloured output"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  powershell-linter:
+    name: PowerShell Linter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Run PowerShell Linter
+        env:
+          INCLUDE_FILES: ${{ inputs.include_files }}
+          EXCLUDE_FILES: ${{ inputs.exclude_files }}
+          REPORT_ONLY: ${{ inputs.report_only }}
+          SHOW_ERRORS: ${{ inputs.show_errors }}
+          SHOW_FILTERED: ${{ inputs.show_skipped }}
+          NO_COLOR: ${{ inputs.no_color }}
+        run: |
+          bash -s -- "https://raw.githubusercontent.com/lupaxa-cicd-toolbox/psscriptanalyzer/master/src/pipeline.sh" <<'RUN_REMOTE_PIPELINE'
+            # Download a CICD Toolbox pipeline.sh and run it.
+            # Fail with a GitHub Actions annotation when GitHub returns HTML / 429 / empty.
+            set -euo pipefail
+
+            usage() {
+              echo "Usage: $0 <pipeline-url>" >&2
+              exit 2
+            }
+
+            [ "$#" -eq 1 ] || usage
+            url="$1"
+
+            tmp="$(mktemp)"
+            trap 'rm -f "$tmp"' EXIT
+
+            curl_cmd="${CURL_CMD:-curl}"
+            http_code=""
+            fail_download() {
+              local annotation="$1"
+              echo "::error::${annotation}"
+              echo "Pipeline URL: ${url}" >&2
+              exit 1
+            }
+
+            if ! http_code="$("${curl_cmd}" -sS -L --retry 2 --retry-delay 3 --max-time 30 -o "$tmp" -w '%{http_code}' "$url")"; then
+              fail_download "Could not reach GitHub to download the CICD pipeline. This is not a lint failure; retry later."
+            fi
+
+            if [ "$http_code" != "200" ]; then
+              fail_download "CICD pipeline download failed (HTTP ${http_code}). GitHub is rate-limited or down. This is not a lint failure; retry later."
+            fi
+
+            if [ ! -s "$tmp" ]; then
+              fail_download "CICD pipeline download was empty. GitHub is unavailable. This is not a lint failure; retry later."
+            fi
+
+            if head -n 8 "$tmp" | grep -qiE '<!DOCTYPE|<html'; then
+              fail_download "GitHub returned HTML instead of pipeline.sh. Likely rate limiting. This is not a lint failure; retry later."
+            fi
+
+            bash "$tmp"
+          RUN_REMOTE_PIPELINE

@@ -67,28 +67,29 @@ The following table provides a quick overview of every reusable workflow availab
 |  14 | [Mypy](#mypy)                                                               | Language Analysis      | Basic        | Type-check Python code with mypy.                                              |
 |  15 | [Perl Linter](#perl-linter)                                                 | Language Analysis      | Basic        | Analyse Perl source code for syntax and quality issues.                        |
 |  16 | [PHP Linter](#php-linter)                                                   | Language Analysis      | Basic        | Analyse PHP source code for syntax and coding issues.                          |
-|  17 | [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
-|  18 | [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
-|  19 | [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
-|  20 | [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
-|  21 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
-|  22 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
-|  23 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
-|  24 | [Python Package Publisher](#python-package-publisher)                       | Release Management     | Intermediate | Deprecated for Trusted Publishing — inline hatch + pypi-publish instead.       |
-|  25 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
-|  26 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
-|  27 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
-|  28 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
-|  29 | [Ruff Linter](#ruff-linter)                                                 | Language Analysis      | Basic        | Lint Python code with Ruff (`ruff check`).                                     |
-|  30 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
-|  31 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
-|  32 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
-|  33 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
-|  34 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
-|  35 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
-|  36 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
-|  37 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
-|  38 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
+|  17 | [PowerShell Linter](#powershell-linter)                                     | Language Analysis      | Basic        | Lint PowerShell scripts, modules, and manifests with PSScriptAnalyzer.         |
+|  18 | [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
+|  19 | [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
+|  20 | [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
+|  21 | [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
+|  22 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
+|  23 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
+|  24 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
+|  25 | [Python Package Publisher](#python-package-publisher)                       | Release Management     | Intermediate | Deprecated for Trusted Publishing — inline hatch + pypi-publish instead.       |
+|  26 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
+|  27 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
+|  28 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
+|  29 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
+|  30 | [Ruff Linter](#ruff-linter)                                                 | Language Analysis      | Basic        | Lint Python code with Ruff (`ruff check`).                                     |
+|  31 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
+|  32 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
+|  33 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
+|  34 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
+|  35 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
+|  36 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
+|  37 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
+|  38 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
+|  39 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
 
 > [!TIP]
 > **Level Guide**
@@ -503,6 +504,7 @@ the same way.
 | [Mypy](#mypy)                                             | Type-check Python code with mypy.                           |
 | [Perl Linter](#perl-linter)                               | Analyse Perl source code for syntax and quality issues.     |
 | [PHP Linter](#php-linter)                                 | Analyse PHP source code for syntax and coding issues.       |
+| [PowerShell Linter](#powershell-linter)                   | Lint PowerShell with PSScriptAnalyzer.                      |
 | [Puppet Linter](#puppet-linter)                           | Validate Puppet manifests against best practices.           |
 | [Python Code Auditor](#python-code-auditor)               | Perform comprehensive static analysis of Python projects.   |
 | [Python DocString Checker](#python-docstring-checker)     | Validate Python documentation strings.                      |
@@ -587,6 +589,30 @@ Validates PHP source code for syntax errors and common coding issues, helping ma
 jobs:
   php:
     uses: the-lupaxa-project/workflows/.github/workflows/reusable-php-linter.yml@master
+```
+
+## PowerShell Linter
+
+Lints PowerShell scripts (`.ps1`), modules (`.psm1`), and manifests (`.psd1`) with
+[PSScriptAnalyzer](https://github.com/PowerShell/PSScriptAnalyzer) via the Lupaxa
+[psscriptanalyzer](https://github.com/lupaxa-cicd-toolbox/psscriptanalyzer) CICD Toolbox
+pipeline (`src/pipeline.sh`).
+
+The job fails a file on a syntax error, or on **Error** or **Warning** from PSScriptAnalyzer.
+**Information** does not fail the file. A `PSScriptAnalyzerSettings.psd1` in the scanned tree
+replaces the default rule set. That settings file is parsed, then skipped by the rule run.
+PowerShell 7 is already on GitHub-hosted `ubuntu-latest` runners.
+
+### Inputs
+
+[↑ Common Inputs](#common-inputs)
+
+### Example
+
+```yaml
+jobs:
+  powershell:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-powershell-linter.yml@master
 ```
 
 ## Puppet Linter
