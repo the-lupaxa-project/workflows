@@ -58,7 +58,7 @@ jobs:
           SHOW_FILTERED: ${{ inputs.show_skipped }}
           NO_COLOR: ${{ inputs.no_color }}
         run: |
-          bash -s -- "https://raw.githubusercontent.com/lupaxa-cicd-toolbox/psscriptanalyzer/master/src/pipeline.sh" <<'RUN_REMOTE_PIPELINE'
+          bash -s -- "https://raw.githubusercontent.com/lupaxa-cicd-toolbox/powershell-linter/master/src/pipeline.sh" <<'RUN_REMOTE_PIPELINE'
             # Download a CICD Toolbox pipeline.sh and run it.
             # Fail with a GitHub Actions annotation when GitHub returns HTML / 429 / empty.
             set -euo pipefail

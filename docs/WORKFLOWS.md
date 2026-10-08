@@ -595,7 +595,7 @@ jobs:
 
 Lints PowerShell scripts (`.ps1`), modules (`.psm1`), and manifests (`.psd1`) with
 [PSScriptAnalyzer](https://github.com/PowerShell/PSScriptAnalyzer) via the Lupaxa
-[psscriptanalyzer](https://github.com/lupaxa-cicd-toolbox/psscriptanalyzer) CICD Toolbox
+[powershell-linter](https://github.com/lupaxa-cicd-toolbox/powershell-linter) CICD Toolbox
 pipeline (`src/pipeline.sh`).
 
 The job fails a file on a syntax error, or on **Error** or **Warning** from PSScriptAnalyzer.
