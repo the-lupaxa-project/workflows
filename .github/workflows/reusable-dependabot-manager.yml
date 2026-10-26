@@ -57,14 +57,38 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Approve Patch/Minor Updates
+      - name: Rebase When Behind
+        id: rebase
         if: >
-          inputs.auto-approve == true &&
+          inputs.auto-merge == true &&
           (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
           steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
-          gh pr review "${PR_URL}" --approve --body "Automatically approving this Dependabot pull request (patch/minor update)."
-          gh pr edit "${PR_URL}" --add-label "${LABEL_AUTO_APPROVE}"
+          behind="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${BASE_REF}...${HEAD_REF}" --jq '.behind_by')"
+          if [ -n "${behind}" ] && [ "${behind}" != "0" ]; then
+            gh pr comment "${PR_URL}" --body "@dependabot rebase"
+            echo "behind=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "behind=false" >> "${GITHUB_OUTPUT}"
+          fi
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Approve Patch/Minor Updates
+        if: >
+          inputs.auto-approve == true &&
+          steps.rebase.outputs.behind != 'true' &&
+          (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
+          steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
+        run: |
+          if gh pr review "${PR_URL}" --approve --body "Automatically approving this Dependabot pull request (patch/minor update)."; then
+            gh pr edit "${PR_URL}" --add-label "${LABEL_AUTO_APPROVE}"
+          else
+            echo "Approval was not applied. Continuing with merge."
+          fi
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           LABEL_AUTO_APPROVE: ${{ inputs.label-auto-approve }}
@@ -73,6 +97,7 @@ jobs:
       - name: Auto-Merge Patch/Minor Updates
         if: >
           inputs.auto-merge == true &&
+          steps.rebase.outputs.behind != 'true' &&
           (steps.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
           steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
