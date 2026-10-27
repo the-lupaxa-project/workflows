@@ -39,6 +39,11 @@ on:
         type: string
         default: "dependabot: manual merge"
 
+    secrets:
+      DEPENDABOT_REBASE_TOKEN:
+        description: "User token with push access. Used only to ask Dependabot to rebase."
+        required: true
+
 permissions:
   contents: write
   pull-requests: write
@@ -66,15 +71,22 @@ jobs:
         run: |
           behind="$(gh api "repos/${GITHUB_REPOSITORY}/compare/${BASE_REF}...${HEAD_REF}" --jq '.behind_by')"
           if [ -n "${behind}" ] && [ "${behind}" != "0" ]; then
-            gh pr comment "${PR_URL}" --body "@dependabot rebase"
+            if [ -z "${REBASE_TOKEN}" ]; then
+              echo "DEPENDABOT_REBASE_TOKEN is empty, so Dependabot would reject the rebase comment."
+              exit 1
+            fi
+            GH_TOKEN="${REBASE_TOKEN}" gh api --method POST \
+              "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" \
+              -f body="@dependabot rebase"
             echo "behind=true" >> "${GITHUB_OUTPUT}"
           else
             echo "behind=false" >> "${GITHUB_OUTPUT}"
           fi
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE_REF: ${{ github.event.pull_request.base.ref }}
           HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          REBASE_TOKEN: ${{ secrets.DEPENDABOT_REBASE_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Approve Patch/Minor Updates
