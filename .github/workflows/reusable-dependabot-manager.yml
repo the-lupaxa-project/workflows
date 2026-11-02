@@ -41,8 +41,8 @@ on:
 
     secrets:
       DEPENDABOT_REBASE_TOKEN:
-        description: "User token with push access. Used only to ask Dependabot to rebase."
-        required: true
+        description: "User token with push access. Used only to ask Dependabot to rebase. Callers pass it with secrets: inherit."
+        required: false
 
 permissions:
   contents: write
