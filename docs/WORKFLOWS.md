@@ -223,29 +223,6 @@ Repository Quality workflows validate repository metadata, documentation and con
 | [Markdown Linter](#markdown-linter)       | Check Markdown documentation for formatting and style issues. |
 | [YAML Linter](#yaml-linter)               | Validate YAML configuration files.                            |
 
-## C Linter
-
-Syntax-checks C sources (`.c`) and headers (`.h`) with gcc, then runs
-[cppcheck](https://cppcheck.sourceforge.io/) on each file, via the Lupaxa
-[c-lint](https://github.com/lupaxa-cicd-toolbox/c-lint) CICD Toolbox
-pipeline (`src/pipeline.sh`).
-
-Header files are parsed with `-x c-header`. cppcheck uses
-`--error-exitcode=1`, so a finding fails that file. Both commands run
-even when the other fails.
-
-### Inputs
-
-[↑ Common Inputs](#common-inputs)
-
-### Example
-
-```yaml
-jobs:
-  c:
-    uses: the-lupaxa-project/workflows/.github/workflows/reusable-c-linter.yml@master
-```
-
 ## Citation Validator
 
 Validates CITATION.cff and related citation metadata to ensure it conforms to the Citation File Format specification. This workflow helps repositories maintain
@@ -551,6 +528,29 @@ All of the above workflows:
 -   execute a shared **lupaxa-cicd-toolbox** validation pipeline (`src/pipeline.sh`);
 -   fail with a GitHub annotation if that pipeline cannot be downloaded, rather
   than treating a GitHub error page as the script.
+
+## C Linter
+
+Syntax-checks C sources (`.c`) and headers (`.h`) with gcc, then runs
+[cppcheck](https://cppcheck.sourceforge.io/) on each file, via the Lupaxa
+[c-lint](https://github.com/lupaxa-cicd-toolbox/c-lint) CICD Toolbox
+pipeline (`src/pipeline.sh`).
+
+Header files are parsed with `-x c-header`. cppcheck uses
+`--error-exitcode=1`, so a finding fails that file. Both commands run
+even when the other fails.
+
+### Inputs
+
+[↑ Common Inputs](#common-inputs)
+
+### Example
+
+```yaml
+jobs:
+  c:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-c-linter.yml@master
+```
 
 ## Dockerfile Linter
 
