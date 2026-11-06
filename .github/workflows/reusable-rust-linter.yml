@@ -1,0 +1,51 @@
+name: Reusable Rust Linter
+
+on:
+  workflow_call:
+    inputs:
+      toolchain:
+        description: "Rust toolchain to install (for example stable)."
+        required: false
+        type: string
+        default: "stable"
+
+      working-directory:
+        description: "Directory that contains Cargo.toml. Use . for the repository root."
+        required: false
+        type: string
+        default: "."
+
+      clippy-args:
+        description: "Arguments after cargo clippy. Default denies warnings on all targets and features."
+        required: false
+        type: string
+        default: "--all-targets --all-features -- -D warnings"
+
+permissions:
+  contents: read
+
+jobs:
+  rust-linter:
+    name: Rust Linter
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@a188e68d0fd2bd36ad51dccb2b07ba6e75105f30  # v2.0.1
+        with:
+          toolchain: ${{ inputs.toolchain }}
+          components: rustfmt,clippy
+          rust-src-dir: ${{ inputs.working-directory }}
+          build-warnings: warn
+
+      - name: Check Rust Formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run Clippy
+        run: cargo clippy ${{ inputs.clippy-args }}

@@ -1,0 +1,52 @@
+name: Reusable Go Linter
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: "Go version for actions/setup-go. Use stable for the current release."
+        required: false
+        type: string
+        default: "stable"
+
+      working-directory:
+        description: "Directory that contains go.mod. Use . for the repository root."
+        required: false
+        type: string
+        default: "."
+
+      args:
+        description: "Extra arguments for golangci-lint run. Empty uses the module default, ./..."
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  go-linter:
+    name: Go Linter
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.working-directory }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e  # v7.0.0
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache-dependency-path: ${{ inputs.working-directory }}/go.sum
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+
+      - name: Check Go Formatting
+        run: golangci-lint fmt --diff --color never
+
+      - name: Lint Go
+        run: golangci-lint run --color never ${{ inputs.args }}
