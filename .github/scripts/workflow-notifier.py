@@ -448,7 +448,13 @@ def derive_workflow_conclusion_from_jobs(
     completed_jobs: list[dict[str, Any]],
     ignored_job_names: set[str] | None = None,
 ) -> str:
-    """Derive the overall workflow conclusion from completed job conclusions."""
+    """
+    Derive the overall workflow conclusion from completed job conclusions.
+
+    A failed or timed-out job wins over siblings that were cancelled. Matrix
+    fail-fast cancels the remaining jobs after one failure, and that run is
+    still a failure.
+    """
     selected_jobs = filtered_jobs(completed_jobs, ignored_job_names)
 
     if not selected_jobs:
@@ -456,17 +462,20 @@ def derive_workflow_conclusion_from_jobs(
 
     conclusions = job_conclusions(selected_jobs)
 
-    if all(conclusion in ("success", "skipped", "neutral") for conclusion in conclusions):
-        return "success"
-
-    if any(conclusion == "cancelled" for conclusion in conclusions):
-        return "cancelled"
+    if any(conclusion == "failure" for conclusion in conclusions):
+        return "failure"
 
     if any(conclusion == "timed_out" for conclusion in conclusions):
         return "timed_out"
 
     if any(conclusion == "action_required" for conclusion in conclusions):
         return "action_required"
+
+    if any(conclusion == "cancelled" for conclusion in conclusions):
+        return "cancelled"
+
+    if all(conclusion in ("success", "skipped", "neutral") for conclusion in conclusions):
+        return "success"
 
     return "failure"
 

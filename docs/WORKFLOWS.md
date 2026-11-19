@@ -1559,6 +1559,8 @@ jobs:
 Notifications are automatically suppressed for unsupported events, including external fork Pull Requests and Dependabot Pull Requests, preventing unnecessary
 notifications while maintaining repository security.
 
+A failed or timed-out job is the workflow result even when fail-fast cancels the other matrix jobs. A run that is only cancelled stays cancelled.
+
 ## Workflow Clean Up
 
 Maintains GitHub Actions workflow runs and artifacts using a simple retention-based cleanup policy.
