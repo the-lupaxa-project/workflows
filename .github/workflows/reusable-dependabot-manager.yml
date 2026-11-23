@@ -114,7 +114,28 @@ jobs:
           steps.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
         run: |
           gh pr comment "${PR_URL}" --body "Automatically merging this Dependabot pull request (patch/minor update)."
-          gh pr merge "${PR_URL}" --auto --squash --delete-branch
+          # GitHub rejects enablePullRequestAutoMerge for a few seconds after
+          # the pull request opens, while it is still computing mergeability
+          # ("unstable status"). Retry only that error. Do not wait for the
+          # other checks: this job may be one of them.
+          merged=0
+          for attempt in 1 2 3 4 5 6; do
+            if output="$(gh pr merge "${PR_URL}" --auto --squash --delete-branch 2>&1)"; then
+              merged=1
+              printf '%s\n' "${output}"
+              break
+            fi
+            printf '%s\n' "${output}"
+            if ! printf '%s' "${output}" | grep -q "unstable status"; then
+              exit 1
+            fi
+            echo "Mergeability is still settling (attempt ${attempt}/6). Waiting 10s."
+            sleep 10
+          done
+          if [ "${merged}" -ne 1 ]; then
+            echo "GitHub did not accept auto-merge."
+            exit 1
+          fi
           gh pr edit "${PR_URL}" --add-label "${LABEL_AUTO_MERGE}"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
