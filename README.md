@@ -91,6 +91,18 @@ diffs. Bodies end with a period:
 Suffix tags (`-rc` / `-draft` / `-dev`) take precedence. Full details:
 [WORKFLOWS.md — GitHub Release Generator](docs/WORKFLOWS.md#github-release-generator).
 
+### Makefile Continuous Integration
+
+Makefile CI runs the makefile-skills check target, including tests. The language linters stay separate.
+
+| Workflow                                                                                 | File                            | Check                                      |
+| :--------------------------------------------------------------------------------------- | :------------------------------ | :----------------------------------------- |
+| [Go Continuous Integration (Make)](docs/WORKFLOWS.md#go-continuous-integration-make)     | `reusable-go-makefile-ci.yml`   | `make go-check`                            |
+| [Ruby Continuous Integration (Make)](docs/WORKFLOWS.md#ruby-continuous-integration-make) | `reusable-ruby-makefile-ci.yml` | `make ruby-bundle`, then `make ruby-check` |
+| [Rust Continuous Integration (Make)](docs/WORKFLOWS.md#rust-continuous-integration-make) | `reusable-rust-makefile-ci.yml` | `make rust-check`                          |
+
+Python makefile CI is [Python Continuous Integration (Make)](docs/WORKFLOWS.md#python-continuous-integration-make).
+
 ## Contributing
 
 Improvements, bug fixes, and new reusable workflows are welcome.

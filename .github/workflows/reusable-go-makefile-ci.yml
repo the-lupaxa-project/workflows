@@ -1,0 +1,55 @@
+name: Reusable Go CI via Make
+
+on:
+  workflow_call:
+    inputs:
+      go-versions:
+        description: "JSON array of Go versions"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  go-makefile-ci:
+    name: Go CI via Make
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        go-version: ${{ fromJson(inputs.go-versions) }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set Up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5  # v7.1.0
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Show Go Version
+        run: |
+          go version
+          which go
+
+      # .makefiles/ is gitignored; clone makefile-skills before go-* targets exist.
+      # make init errors if the directory already exists, so mirror ensure-skills.
+      - name: Ensure Makefile Skills
+        run: |
+          set -euo pipefail
+          MAKEFILES_DIR="${MAKEFILES_DIR:-.makefiles}"
+          if [ ! -f "${MAKEFILES_DIR}/skills/versioning.mk" ]; then
+            if [ -e "${MAKEFILES_DIR}" ]; then
+              echo "==> Removing incomplete ${MAKEFILES_DIR} before init"
+              rm -rf "${MAKEFILES_DIR}"
+            fi
+            make init
+          else
+            echo "==> Makefile skills already present at ${MAKEFILES_DIR}"
+          fi
+
+      - name: Run CI Checks
+        run: |
+          make go-check

@@ -20,7 +20,7 @@ from a comprehensive CI/CD platform.
 >
 > This repository provides the shared GitHub Actions automation platform used throughout **The Lupaxa Project**.
 >
-> - **Over 35 reusable workflows** organised into **7 functional categories**.
+> - **Over 45 reusable workflows** organised into **7 functional categories**.
 > - Shared automation used across all Lupaxa Project repositories.
 > - Consistent workflow interfaces with configurable inputs.
 > - Centralised maintenance with minimal repository duplication.
@@ -60,40 +60,43 @@ The following table provides a quick overview of every reusable workflow availab
 |   7 | [GitHub Actions Security](#github-actions-security)                         | Security               | Intermediate | Verify GitHub Actions workflows follow security best practices.                |
 |   8 | [GitHub Release Generator](#github-release-generator)                       | Release Management     | Advanced     | Create releases from tags with short fixed bodies (no commit dump).            |
 |   9 | [Go Linter](#go-linter)                                                     | Language Analysis      | Intermediate | Lint a Go module with golangci-lint.                                           |
-|  10 | [JavaScript Linter](#javascript-linter)                                     | Language Analysis      | Basic        | Lint JavaScript sources with standard.                                         |
-|  11 | [JSON Validator](#json-validator)                                           | Repository Quality     | Basic        | Validate JSON configuration and data files.                                    |
-|  12 | [Link Checker](#link-checker)                                               | Repository Quality     | Intermediate | Detect broken or invalid links in documentation.                               |
-|  13 | [Makefile Linter](#makefile-linter)                                         | Repository Quality     | Basic        | Validate Makefiles and `.mk` files with checkmake and conventions.             |
-|  14 | [Markdown Linter](#markdown-linter)                                         | Repository Quality     | Basic        | Check Markdown documentation for formatting and style issues.                  |
-|  15 | [MkDocs Site Publisher](#mkdocs-site-publisher)                             | Documentation          | Advanced     | Build and publish MkDocs documentation to GitHub Pages.                        |
-|  16 | [MkDocs Site Validator](#mkdocs-site-validator)                             | Documentation          | Intermediate | Strictly build MkDocs sites and optionally lint Markdown sources.              |
-|  17 | [Mypy](#mypy)                                                               | Language Analysis      | Basic        | Type-check Python code with mypy.                                              |
-|  18 | [Perl Linter](#perl-linter)                                                 | Language Analysis      | Basic        | Analyse Perl source code for syntax and quality issues.                        |
-|  19 | [PHP Linter](#php-linter)                                                   | Language Analysis      | Basic        | Analyse PHP source code for syntax and coding issues.                          |
-|  20 | [PowerShell Linter](#powershell-linter)                                     | Language Analysis      | Basic        | Lint PowerShell scripts, modules, and manifests with PSScriptAnalyzer.         |
-|  21 | [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
-|  22 | [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
-|  23 | [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
-|  24 | [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
-|  25 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
-|  26 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
-|  27 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
-|  28 | [Python Package Publisher](#python-package-publisher)                       | Release Management     | Intermediate | Deprecated for Trusted Publishing — inline hatch + pypi-publish instead.       |
-|  29 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
-|  30 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
-|  31 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
-|  32 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
-|  33 | [Ruff Linter](#ruff-linter)                                                 | Language Analysis      | Basic        | Lint Python code with Ruff (`ruff check`).                                     |
-|  34 | [Rust Linter](#rust-linter)                                                 | Language Analysis      | Intermediate | Lint a Cargo package with rustfmt and Clippy.                                  |
-|  35 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
-|  36 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
-|  37 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
-|  38 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
-|  39 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
-|  40 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
-|  41 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
-|  42 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
-|  43 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
+|  10 | [Go Continuous Integration (Make)](#go-continuous-integration-make)         | Continuous Integration | Intermediate | Execute Makefile-driven Go CI pipelines.                                       |
+|  11 | [JavaScript Linter](#javascript-linter)                                     | Language Analysis      | Basic        | Lint JavaScript sources with standard.                                         |
+|  12 | [JSON Validator](#json-validator)                                           | Repository Quality     | Basic        | Validate JSON configuration and data files.                                    |
+|  13 | [Link Checker](#link-checker)                                               | Repository Quality     | Intermediate | Detect broken or invalid links in documentation.                               |
+|  14 | [Makefile Linter](#makefile-linter)                                         | Repository Quality     | Basic        | Validate Makefiles and `.mk` files with checkmake and conventions.             |
+|  15 | [Markdown Linter](#markdown-linter)                                         | Repository Quality     | Basic        | Check Markdown documentation for formatting and style issues.                  |
+|  16 | [MkDocs Site Publisher](#mkdocs-site-publisher)                             | Documentation          | Advanced     | Build and publish MkDocs documentation to GitHub Pages.                        |
+|  17 | [MkDocs Site Validator](#mkdocs-site-validator)                             | Documentation          | Intermediate | Strictly build MkDocs sites and optionally lint Markdown sources.              |
+|  18 | [Mypy](#mypy)                                                               | Language Analysis      | Basic        | Type-check Python code with mypy.                                              |
+|  19 | [Perl Linter](#perl-linter)                                                 | Language Analysis      | Basic        | Analyse Perl source code for syntax and quality issues.                        |
+|  20 | [PHP Linter](#php-linter)                                                   | Language Analysis      | Basic        | Analyse PHP source code for syntax and coding issues.                          |
+|  21 | [PowerShell Linter](#powershell-linter)                                     | Language Analysis      | Basic        | Lint PowerShell scripts, modules, and manifests with PSScriptAnalyzer.         |
+|  22 | [Puppet Linter](#puppet-linter)                                             | Language Analysis      | Basic        | Validate Puppet manifests against best practices.                              |
+|  23 | [Python Code Auditor](#python-code-auditor)                                 | Language Analysis      | Basic        | Perform comprehensive static analysis of Python projects.                      |
+|  24 | [Python Continuous Integration](#python-continuous-integration)             | Continuous Integration | Advanced     | Build, lint, test and validate Python projects.                                |
+|  25 | [Python Continuous Integration (Make)](#python-continuous-integration-make) | Continuous Integration | Intermediate | Execute Makefile-driven Python CI pipelines.                                   |
+|  26 | [Python Dependency Updater](#python-dependency-updater)                     | Release Management     | Basic        | Check Python dependencies for available updates.                               |
+|  27 | [Python DocString Checker](#python-docstring-checker)                       | Language Analysis      | Basic        | Validate Python documentation strings.                                         |
+|  28 | [Python Linter](#python-linter)                                             | Language Analysis      | Basic        | Check Python source code for linting issues.                                   |
+|  29 | [Python Package Publisher](#python-package-publisher)                       | Release Management     | Intermediate | Deprecated for Trusted Publishing — inline hatch + pypi-publish instead.       |
+|  30 | [Python Security Scanner](#python-security-scanner)                         | Language Analysis      | Basic        | Scan Python projects for common security vulnerabilities.                      |
+|  31 | [Python Style Guide Checker](#python-style-guide-checker)                   | Language Analysis      | Basic        | Verify compliance with Python style guidelines.                                |
+|  32 | [Ruby Code Smell Detector](#ruby-code-smell-detector)                       | Language Analysis      | Basic        | Detect maintainability and design issues in Ruby code.                         |
+|  33 | [Ruby Linter](#ruby-linter)                                                 | Language Analysis      | Basic        | Check Ruby source code against coding standards.                               |
+|  34 | [Ruby Continuous Integration (Make)](#ruby-continuous-integration-make)     | Continuous Integration | Intermediate | Execute Makefile-driven Ruby CI pipelines.                                     |
+|  35 | [Ruff Linter](#ruff-linter)                                                 | Language Analysis      | Basic        | Lint Python code with Ruff (`ruff check`).                                     |
+|  36 | [Rust Linter](#rust-linter)                                                 | Language Analysis      | Intermediate | Lint a Cargo package with rustfmt and Clippy.                                  |
+|  37 | [Rust Continuous Integration (Make)](#rust-continuous-integration-make)     | Continuous Integration | Intermediate | Execute Makefile-driven Rust CI pipelines.                                     |
+|  38 | [Secrets Scanner](#secrets-scanner)                                         | Security               | Intermediate | Detect exposed secrets and credentials in repositories.                        |
+|  39 | [Shell Script Linter](#shell-script-linter)                                 | Language Analysis      | Basic        | Analyse shell scripts for portability and scripting issues.                    |
+|  40 | [Stale Issue & Pull Request Handler](#stale-issue--pull-request-handler)    | Repository Automation  | Intermediate | Automatically manage inactive Issues and Pull Requests.                        |
+|  41 | [Workflow Clean Up](#workflow-clean-up)                                     | Repository Automation  | Advanced     | Remove obsolete workflow runs and artifacts.                                   |
+|  42 | [Workflow History Purge](#workflow-history-purge)                           | Repository Automation  | Advanced     | Permanently delete completed GitHub Actions workflow history.                  |
+|  43 | [Workflow Notifier](#workflow-notifier)                                     | Repository Automation  | Advanced     | Send workflow status notifications to Slack.                                   |
+|  44 | [Workflow Scheduler Test](#workflow-scheduler-test)                         | Repository Automation  | Basic        | Verify scheduled GitHub Actions workflows execute correctly.                   |
+|  45 | [Workflow Summary](#workflow-summary)                                       | Repository Automation  | Intermediate | Generate summaries of GitHub Actions workflow runs.                            |
+|  46 | [YAML Linter](#yaml-linter)                                                 | Repository Quality     | Basic        | Validate YAML configuration files.                                             |
 
 > [!TIP]
 > **Level Guide**
@@ -401,6 +404,9 @@ comprehensive Continuous Integration for a project.
 | :-------------------------------------------------------------------------- | :---------------------------------------------- |
 | [Python Continuous Integration](#python-continuous-integration)             | Build, lint, test and validate Python projects. |
 | [Python Continuous Integration (Make)](#python-continuous-integration-make) | Execute Makefile-driven Python CI pipelines.    |
+| [Go Continuous Integration (Make)](#go-continuous-integration-make)         | Execute Makefile-driven Go CI pipelines.        |
+| [Ruby Continuous Integration (Make)](#ruby-continuous-integration-make)     | Execute Makefile-driven Ruby CI pipelines.      |
+| [Rust Continuous Integration (Make)](#rust-continuous-integration-make)     | Execute Makefile-driven Rust CI pipelines.      |
 
 ## Python Continuous Integration
 
@@ -492,6 +498,126 @@ jobs:
     workflow talks to the skill targets directly.
 -   `PYTHON=python` overrides the skill default (`python3`) so the matrix
     interpreter from `actions/setup-python` is used.
+
+[↑ Back to Contents](#contents)
+
+## Go Continuous Integration (Make)
+
+Executes Continuous Integration using the repository's Makefile, intended for
+projects that use [makefile-skills](https://github.com/lupaxa-developers-toolbox/makefile-skills)
+Go targets.
+
+The workflow ensures makefile-skills are present (`make init` when `.makefiles/`
+is missing), then runs `make go-check` (`go vet` and `go test`) on each Go version
+the caller supplies.
+
+[Go Linter](#go-linter) remains the golangci-lint workflow. This workflow does not run it.
+
+### Features
+
+- Matrix testing across the Go versions the caller passes.
+- Clones makefile-skills into `.makefiles/` when needed.
+- Runs `go-check`. There is no install target and no overridable CI target.
+
+### Inputs
+
+| Input          | Description                          | Required |
+| :------------- | :----------------------------------- | :------: |
+| `go-versions`  | JSON array of Go versions to test.   | yes      |
+
+### Example
+
+```yaml
+jobs:
+  go-ci:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-go-makefile-ci.yml@master
+    with:
+      go-versions: ${{ needs.go-versions.outputs.versions }}
+```
+
+### Notes
+
+- Callers need a root `Makefile` that supports `make init` and `go-check`.
+- Resolve `go-versions` with `lupaxa-actions-toolbox/get-language-versions` (`language: go`). Do not hardcode the array in the reusable workflow.
+
+[↑ Back to Contents](#contents)
+
+## Ruby Continuous Integration (Make)
+
+Executes Continuous Integration using the repository's Makefile, intended for
+projects that use [makefile-skills](https://github.com/lupaxa-developers-toolbox/makefile-skills)
+Ruby targets.
+
+The workflow ensures makefile-skills are present (`make init` when `.makefiles/`
+is missing), then runs `make ruby-bundle` and `make ruby-check` (RuboCop and `rake test`)
+on each Ruby version the caller supplies.
+
+[Ruby Linter](#ruby-linter) remains the RuboCop pipeline workflow. This workflow runs the makefile targets, including tests.
+
+### Features
+
+- Matrix testing across the Ruby versions the caller passes.
+- Clones makefile-skills into `.makefiles/` when needed.
+- Installs gems with `ruby-bundle` when a `Gemfile` is present, then runs `ruby-check`.
+
+### Inputs
+
+| Input            | Description                            | Required |
+| :--------------- | :------------------------------------- | :------: |
+| `ruby-versions`  | JSON array of Ruby versions to test.   | yes      |
+
+### Example
+
+```yaml
+jobs:
+  ruby-ci:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-ruby-makefile-ci.yml@master
+    with:
+      ruby-versions: ${{ needs.ruby-versions.outputs.versions }}
+```
+
+### Notes
+
+- Callers need a root `Makefile` that supports `make init`, `ruby-bundle`, and `ruby-check`.
+- Resolve `ruby-versions` with `lupaxa-actions-toolbox/get-language-versions` (`language: ruby`). Do not hardcode the array in the reusable workflow.
+- `ruby-bundle` skips `bundle install` when there is no `Gemfile`.
+
+[↑ Back to Contents](#contents)
+
+## Rust Continuous Integration (Make)
+
+Executes Continuous Integration using the repository's Makefile, intended for
+projects that use [makefile-skills](https://github.com/lupaxa-developers-toolbox/makefile-skills)
+Rust targets.
+
+The workflow installs the stable Rust toolchain with Clippy, ensures makefile-skills
+are present (`make init` when `.makefiles/` is missing), then runs `make rust-check`
+(`cargo clippy` and `cargo test`).
+
+[Rust Linter](#rust-linter) remains the rustfmt and Clippy workflow. This workflow runs Clippy through the makefile target, then the tests. It does not run `cargo fmt`.
+
+### Features
+
+- One job on the stable toolchain. There is no version matrix.
+- Clones makefile-skills into `.makefiles/` when needed.
+- Runs `rust-check`. There is no install target and no overridable CI target.
+
+### Inputs
+
+This workflow has no inputs.
+
+### Example
+
+```yaml
+jobs:
+  rust-ci:
+    uses: the-lupaxa-project/workflows/.github/workflows/reusable-rust-makefile-ci.yml@master
+```
+
+### Notes
+
+- Callers need a root `Makefile` that supports `make init` and `rust-check`.
+- `get-language-versions` has no Rust source, so the toolchain stays `stable`.
 
 [↑ Back to Contents](#contents)
 
@@ -587,6 +713,7 @@ a golangci-lint v2 config.
 The job installs Go with `actions/setup-go` (`stable` by default). It does
 not use the Standard Validation Interface or a CICD Toolbox pipeline, because
 these tools take a module rather than one file. It does not run `go test`.
+[Go Continuous Integration (Make)](#go-continuous-integration-make) runs `go vet` and `go test`.
 
 ### Inputs
 
@@ -825,6 +952,8 @@ jobs:
 
 Analyses Ruby source code using RuboCop to identify syntax, style and maintainability issues while encouraging consistent coding standards.
 
+[Ruby Continuous Integration (Make)](#ruby-continuous-integration-make) runs RuboCop and `rake test` through the makefile targets.
+
 ### Inputs
 
 [↑ Common Inputs](#common-inputs)
@@ -865,6 +994,7 @@ The job installs the toolchain with `actions-rust-lang/setup-rust-toolchain`.
 It does not use the Standard Validation Interface or a CICD Toolbox
 pipeline, because rustfmt and Clippy take a package or workspace rather
 than one file. It does not run `cargo test`.
+[Rust Continuous Integration (Make)](#rust-continuous-integration-make) runs Clippy and `cargo test`.
 
 ### Inputs
 
@@ -1808,8 +1938,11 @@ For example:
 | Repository Type | Recommended Workflows                                                                      |
 | :-------------- | :----------------------------------------------------------------------------------------- |
 | Documentation   | Markdown Linter, YAML Linter, Link Checker, MkDocs Site Publisher, MkDocs Site Validator   |
-| Python Library  | Python CI, Python Linter, Python Security Scanner, Code Analysis, Python Package Publisher |
+| Go Module       | Go CI (Make), Go Linter, Code Analysis                                                     |
 | Puppet Module   | Puppet Linter, Markdown Linter, YAML Linter                                                |
+| Python Library  | Python CI, Python Linter, Python Security Scanner, Code Analysis, Python Package Publisher |
+| Ruby Gem        | Ruby CI (Make), Ruby Linter, Code Analysis                                                 |
+| Rust Crate      | Rust CI (Make), Rust Linter, Code Analysis                                                 |
 | Shell Utilities | Shell Script Linter, Markdown Linter, Secrets Scanner                                      |
 
 ## Prefer Reusable Workflows
@@ -1889,13 +2022,20 @@ Repository
 │
 ├── Continuous Integration
 │   ├── Python Continuous Integration
-│   └── Python Continuous Integration (Make)
+│   ├── Python Continuous Integration (Make)
+│   ├── Go Continuous Integration (Make)
+│   ├── Ruby Continuous Integration (Make)
+│   └── Rust Continuous Integration (Make)
 │
 ├── Language Analysis
+│   ├── C Linter
 │   ├── Dockerfile Linter
+│   ├── Go Linter
+│   ├── JavaScript Linter
 │   ├── Mypy
 │   ├── Perl Linter
 │   ├── PHP Linter
+│   ├── PowerShell Linter
 │   ├── Puppet Linter
 │   ├── Python Code Auditor
 │   ├── Python DocString Checker
@@ -1905,6 +2045,7 @@ Repository
 │   ├── Ruby Code Smell Detector
 │   ├── Ruby Linter
 │   ├── Ruff Linter
+│   ├── Rust Linter
 │   └── Shell Script Linter
 │
 ├── Security
@@ -1913,7 +2054,8 @@ Repository
 │   └── Secrets Scanner
 │
 ├── Documentation
-│   └── MkDocs Site Publisher
+│   ├── MkDocs Site Publisher
+│   └── MkDocs Site Validator
 │
 ├── Release Management
 │   ├── GitHub Release Generator

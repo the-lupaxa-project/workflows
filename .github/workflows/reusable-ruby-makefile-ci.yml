@@ -1,0 +1,59 @@
+name: Reusable Ruby CI via Make
+
+on:
+  workflow_call:
+    inputs:
+      ruby-versions:
+        description: "JSON array of Ruby versions"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ruby-makefile-ci:
+    name: Ruby CI via Make
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ruby-version: ${{ fromJson(inputs.ruby-versions) }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set Up Ruby ${{ matrix.ruby-version }}
+        uses: ruby/setup-ruby@145243922b4465b78e04dd66294782c7de45901f  # v1.345.0
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+
+      - name: Show Ruby Version
+        run: |
+          ruby --version
+          which ruby
+
+      # .makefiles/ is gitignored; clone makefile-skills before ruby-* targets exist.
+      # make init errors if the directory already exists, so mirror ensure-skills.
+      - name: Ensure Makefile Skills
+        run: |
+          set -euo pipefail
+          MAKEFILES_DIR="${MAKEFILES_DIR:-.makefiles}"
+          if [ ! -f "${MAKEFILES_DIR}/skills/versioning.mk" ]; then
+            if [ -e "${MAKEFILES_DIR}" ]; then
+              echo "==> Removing incomplete ${MAKEFILES_DIR} before init"
+              rm -rf "${MAKEFILES_DIR}"
+            fi
+            make init
+          else
+            echo "==> Makefile skills already present at ${MAKEFILES_DIR}"
+          fi
+
+      - name: Install Gems
+        run: |
+          make ruby-bundle
+
+      - name: Run CI Checks
+        run: |
+          make ruby-check
